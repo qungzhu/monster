@@ -1,0 +1,130 @@
+import { useState, useCallback } from 'react';
+import type { Character, ChatMessage, MoodEntry, MoodType } from '../data/characters';
+import { characters } from '../data/characters';
+
+const STORAGE_KEYS = {
+  selectedCharacter: 'sw-selected-character',
+  chatHistory: 'sw-chat-history',
+  moodEntries: 'sw-mood-entries',
+  intimacyLevels: 'sw-intimacy-levels',
+  userName: 'sw-user-name',
+  checkedInToday: 'sw-checked-in',
+};
+
+function loadFromStorage<T>(key: string, defaultValue: T): T {
+  try {
+    const stored = localStorage.getItem(key);
+    return stored ? JSON.parse(stored) : defaultValue;
+  } catch {
+    return defaultValue;
+  }
+}
+
+function saveToStorage<T>(key: string, value: T): void {
+  localStorage.setItem(key, JSON.stringify(value));
+}
+
+export function useAppStore() {
+  const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(
+    loadFromStorage(STORAGE_KEYS.selectedCharacter, null)
+  );
+  const [chatHistories, setChatHistories] = useState<Record<string, ChatMessage[]>>(
+    loadFromStorage(STORAGE_KEYS.chatHistory, {})
+  );
+  const [moodEntries, setMoodEntries] = useState<MoodEntry[]>(
+    loadFromStorage(STORAGE_KEYS.moodEntries, [])
+  );
+  const [intimacyLevels, setIntimacyLevels] = useState<Record<string, number>>(
+    loadFromStorage(STORAGE_KEYS.intimacyLevels, {})
+  );
+  const [userName, setUserNameState] = useState<string>(
+    loadFromStorage(STORAGE_KEYS.userName, '')
+  );
+  const [checkedInToday, setCheckedInToday] = useState<string>(
+    loadFromStorage(STORAGE_KEYS.checkedInToday, '')
+  );
+
+  const selectedCharacter = characters.find(c => c.id === selectedCharacterId) || null;
+
+  const selectCharacter = useCallback((id: string) => {
+    setSelectedCharacterId(id);
+    saveToStorage(STORAGE_KEYS.selectedCharacter, id);
+  }, []);
+
+  const setUserName = useCallback((name: string) => {
+    setUserNameState(name);
+    saveToStorage(STORAGE_KEYS.userName, name);
+  }, []);
+
+  const addMessage = useCallback((characterId: string, message: ChatMessage) => {
+    setChatHistories(prev => {
+      const updated = {
+        ...prev,
+        [characterId]: [...(prev[characterId] || []), message],
+      };
+      saveToStorage(STORAGE_KEYS.chatHistory, updated);
+      return updated;
+    });
+  }, []);
+
+  const getCharacterResponse = useCallback((character: Character, mood?: MoodType): string => {
+    const responses = mood && character.chatResponses[mood]
+      ? character.chatResponses[mood]
+      : character.chatResponses.default;
+    return responses[Math.floor(Math.random() * responses.length)];
+  }, []);
+
+  const addIntimacy = useCallback((characterId: string, amount: number) => {
+    setIntimacyLevels(prev => {
+      const current = prev[characterId] || 0;
+      const updated = { ...prev, [characterId]: Math.min(current + amount, 100) };
+      saveToStorage(STORAGE_KEYS.intimacyLevels, updated);
+      return updated;
+    });
+  }, []);
+
+  const addMoodEntry = useCallback((entry: MoodEntry) => {
+    setMoodEntries(prev => {
+      const updated = [entry, ...prev];
+      saveToStorage(STORAGE_KEYS.moodEntries, updated);
+      return updated;
+    });
+  }, []);
+
+  const checkIn = useCallback(() => {
+    const today = new Date().toDateString();
+    setCheckedInToday(today);
+    saveToStorage(STORAGE_KEYS.checkedInToday, today);
+  }, []);
+
+  const isCheckedIn = checkedInToday === new Date().toDateString();
+
+  const clearAllData = useCallback(() => {
+    Object.values(STORAGE_KEYS).forEach(key => localStorage.removeItem(key));
+    setSelectedCharacterId(null);
+    setChatHistories({});
+    setMoodEntries([]);
+    setIntimacyLevels({});
+    setUserNameState('');
+    setCheckedInToday('');
+  }, []);
+
+  return {
+    selectedCharacter,
+    selectedCharacterId,
+    selectCharacter,
+    chatHistories,
+    addMessage,
+    getCharacterResponse,
+    moodEntries,
+    addMoodEntry,
+    intimacyLevels,
+    addIntimacy,
+    userName,
+    setUserName,
+    isCheckedIn,
+    checkIn,
+    clearAllData,
+    characters,
+  };
+}
