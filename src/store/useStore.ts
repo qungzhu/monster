@@ -3,12 +3,12 @@ import type { Character, ChatMessage, MoodEntry, MoodType } from '../data/charac
 import { characters } from '../data/characters';
 
 const STORAGE_KEYS = {
-  selectedCharacter: 'sw-selected-character',
-  chatHistory: 'sw-chat-history',
-  moodEntries: 'sw-mood-entries',
-  intimacyLevels: 'sw-intimacy-levels',
-  userName: 'sw-user-name',
-  checkedInToday: 'sw-checked-in',
+  selectedCharacter: 'fp-selected-character',
+  chatHistory: 'fp-chat-history',
+  moodEntries: 'fp-mood-entries',
+  intimacyLevels: 'fp-intimacy-levels',
+  userName: 'fp-user-name',
+  checkedInToday: 'fp-checked-in',
 };
 
 function loadFromStorage<T>(key: string, defaultValue: T): T {

@@ -46,8 +46,8 @@ export function MoodPage({
     setNote('');
   };
 
-  const themeColor = character?.theme === 'xinghui' ? '#e91e8c' :
-    character?.theme === 'lishen' ? '#4f46e5' : '#ea580c';
+  const themeColor = character?.theme === 'tuantuan' ? '#d97706' :
+    character?.theme === 'xiaoxue' ? '#7c3aed' : '#ec4899';
 
   return (
     <div className={`h-full overflow-y-auto pb-20 ${character ? `theme-${character.theme}` : ''}`}>

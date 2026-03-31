@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Settings, User, Trash2, Heart, Info, Shield, Volume2 } from 'lucide-react';
+import { Settings, User, Trash2, PawPrint, Info, Shield, Volume2 } from 'lucide-react';
 
 interface SettingsPageProps {
   userName: string;
@@ -36,7 +36,7 @@ export function SettingsPage({ userName, setUserName, clearAllData }: SettingsPa
           className="mb-6"
         >
           <h1 className="text-xl font-bold flex items-center gap-2">
-            <Settings size={22} className="text-primary-light" />
+            <Settings size={22} className="text-amber-400" />
             设置
           </h1>
         </motion.div>
@@ -50,7 +50,7 @@ export function SettingsPage({ userName, setUserName, clearAllData }: SettingsPa
             className="glass rounded-2xl p-4"
           >
             <div className="flex items-center gap-2 mb-3">
-              <User size={16} className="text-primary-light" />
+              <User size={16} className="text-amber-400" />
               <h3 className="text-sm font-medium">个人信息</h3>
             </div>
             <div className="flex gap-2">
@@ -64,7 +64,7 @@ export function SettingsPage({ userName, setUserName, clearAllData }: SettingsPa
               />
               <button
                 onClick={handleSaveName}
-                className="bg-primary/20 text-primary-light px-4 py-2.5 rounded-xl text-sm font-medium hover:bg-primary/30 transition-colors"
+                className="bg-amber-600/20 text-amber-400 px-4 py-2.5 rounded-xl text-sm font-medium hover:bg-amber-600/30 transition-colors"
               >
                 {saved ? '已保存 ✓' : '保存'}
               </button>
@@ -79,21 +79,21 @@ export function SettingsPage({ userName, setUserName, clearAllData }: SettingsPa
             className="glass rounded-2xl p-4"
           >
             <div className="flex items-center gap-2 mb-3">
-              <Info size={16} className="text-primary-light" />
-              <h3 className="text-sm font-medium">关于心语</h3>
+              <Info size={16} className="text-amber-400" />
+              <h3 className="text-sm font-medium">关于毛茸伙伴</h3>
             </div>
             <div className="space-y-3 text-sm text-text-secondary">
               <div className="flex items-start gap-3">
-                <Heart size={16} className="text-pink-400 shrink-0 mt-0.5" />
-                <p>心语 SoulWhisper 是一款AI情绪陪伴应用，旨在为你提供温暖的情感支持和陪伴。</p>
+                <PawPrint size={16} className="text-amber-400 shrink-0 mt-0.5" />
+                <p>毛茸伙伴 FurryPal 是一款AI萌宠陪伴应用，你可以和可爱的虚拟萌宠互动聊天，获得温暖的情感陪伴。</p>
               </div>
               <div className="flex items-start gap-3">
                 <Shield size={16} className="text-indigo-400 shrink-0 mt-0.5" />
                 <p>我们重视你的隐私。所有聊天记录仅保存在你的本地设备上，不会上传到任何服务器。</p>
               </div>
               <div className="flex items-start gap-3">
-                <Volume2 size={16} className="text-amber-400 shrink-0 mt-0.5" />
-                <p>如果你正在经历严重的心理困扰，请及时寻求专业的心理咨询帮助。</p>
+                <Volume2 size={16} className="text-pink-400 shrink-0 mt-0.5" />
+                <p>如果你正在经历严重的心理困扰，请及时寻求专业的心理咨询帮助。萌宠的陪伴是温暖的，但无法替代专业支持。</p>
               </div>
             </div>
           </motion.div>
@@ -106,16 +106,16 @@ export function SettingsPage({ userName, setUserName, clearAllData }: SettingsPa
             className="glass rounded-2xl p-4"
           >
             <div className="flex items-center gap-2 mb-3">
-              <Heart size={16} className="text-primary-light" />
+              <PawPrint size={16} className="text-amber-400" />
               <h3 className="text-sm font-medium">功能特色</h3>
             </div>
             <div className="space-y-2">
               {[
+                { emoji: '🐾', text: '多只萌宠个性化陪伴' },
                 { emoji: '💬', text: '智能情绪感知对话' },
                 { emoji: '📔', text: '心情日记与记录' },
                 { emoji: '💕', text: '亲密度成长系统' },
-                { emoji: '🎭', text: '多角色个性化陪伴' },
-                { emoji: '📅', text: '每日签到与问候' },
+                { emoji: '📅', text: '每日签到与互动' },
                 { emoji: '🔒', text: '本地隐私数据保护' },
               ].map(feature => (
                 <div key={feature.text} className="flex items-center gap-3 py-1">
@@ -172,8 +172,8 @@ export function SettingsPage({ userName, setUserName, clearAllData }: SettingsPa
             transition={{ delay: 0.5 }}
             className="text-center py-4"
           >
-            <p className="text-text-muted text-xs">心语 SoulWhisper v1.0.0</p>
-            <p className="text-text-muted text-[10px] mt-1">Made with ❤️</p>
+            <p className="text-text-muted text-xs">毛茸伙伴 FurryPal v1.0.0</p>
+            <p className="text-text-muted text-[10px] mt-1">Made with 🐾</p>
           </motion.div>
         </div>
       </div>

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, ChevronRight, Heart } from 'lucide-react';
+import { PawPrint, ChevronRight } from 'lucide-react';
 import { characters } from '../data/characters';
 import { ParticleBackground } from '../components/ParticleBackground';
 
@@ -15,15 +15,15 @@ interface WelcomePageProps {
 }
 
 const themeColors: Record<string, string> = {
-  xinghui: '#e91e8c',
-  lishen: '#4f46e5',
-  qiyu: '#ea580c',
+  tuantuan: '#d97706',
+  xiaoxue: '#7c3aed',
+  mianhuatang: '#ec4899',
 };
 
 const themeBgs: Record<string, string> = {
-  xinghui: 'from-pink-950/50 via-purple-950/30 to-transparent',
-  lishen: 'from-indigo-950/50 via-blue-950/30 to-transparent',
-  qiyu: 'from-orange-950/50 via-amber-950/30 to-transparent',
+  tuantuan: 'from-amber-950/50 via-yellow-950/30 to-transparent',
+  xiaoxue: 'from-violet-950/50 via-purple-950/30 to-transparent',
+  mianhuatang: 'from-pink-950/50 via-rose-950/30 to-transparent',
 };
 
 export function WelcomePage({
@@ -55,7 +55,7 @@ export function WelcomePage({
 
   return (
     <div className="h-full overflow-y-auto pb-20 relative">
-      <ParticleBackground color={hoveredChar ? themeColors[hoveredChar] : '#e91e8c'} />
+      <ParticleBackground color={hoveredChar ? themeColors[hoveredChar] : '#d97706'} />
 
       <div className="relative z-10 px-6 pt-12">
         {/* Header */}
@@ -69,13 +69,13 @@ export function WelcomePage({
             animate={{ scale: [1, 1.05, 1] }}
             transition={{ duration: 3, repeat: Infinity }}
           >
-            <Sparkles size={24} className="text-primary-light" />
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-pink-400 via-purple-400 to-indigo-400 bg-clip-text text-transparent">
-              心语 SoulWhisper
+            <span className="text-2xl">🐾</span>
+            <h1 className="text-3xl font-bold bg-gradient-to-r from-amber-400 via-pink-400 to-violet-400 bg-clip-text text-transparent">
+              毛茸伙伴 FurryPal
             </h1>
-            <Sparkles size={24} className="text-primary-light" />
+            <span className="text-2xl">🐾</span>
           </motion.div>
-          <p className="text-text-secondary text-sm">你的专属AI灵魂伴侣</p>
+          <p className="text-text-secondary text-sm">你的专属AI萌宠伙伴</p>
         </motion.div>
 
         {/* Name Input */}
@@ -89,7 +89,7 @@ export function WelcomePage({
               className="glass rounded-2xl p-6 mb-8 max-w-sm mx-auto"
             >
               <p className="text-text-secondary text-sm mb-4 text-center">
-                在开始之前，告诉我你的名字吧~
+                告诉小宠物们你的名字吧~
               </p>
               <div className="flex gap-2">
                 <input
@@ -103,7 +103,7 @@ export function WelcomePage({
                 />
                 <button
                   onClick={handleNameSubmit}
-                  className="bg-primary rounded-xl px-5 py-3 text-white font-medium hover:bg-primary-dark transition-colors"
+                  className="bg-amber-600 rounded-xl px-5 py-3 text-white font-medium hover:bg-amber-700 transition-colors"
                 >
                   确认
                 </button>
@@ -117,9 +117,9 @@ export function WelcomePage({
               className="text-center mb-6"
             >
               <h2 className="text-xl text-text-primary">
-                {getGreeting()}，<span className="text-primary-light font-medium">{userName}</span>
+                {getGreeting()}，<span className="text-amber-400 font-medium">{userName}</span>
               </h2>
-              <p className="text-text-muted text-sm mt-1">今天想和谁聊聊天呢？</p>
+              <p className="text-text-muted text-sm mt-1">今天想和哪只小可爱玩呢？</p>
             </motion.div>
           )}
         </AnimatePresence>
@@ -137,15 +137,15 @@ export function WelcomePage({
               className="w-full glass rounded-2xl p-4 flex items-center justify-between hover:bg-white/10 transition-colors group"
             >
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-pink-500 to-purple-500 flex items-center justify-center">
-                  <Heart size={18} className="text-white" />
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-500 to-pink-500 flex items-center justify-center">
+                  <PawPrint size={18} className="text-white" />
                 </div>
                 <div className="text-left">
                   <p className="text-sm font-medium text-text-primary">每日签到</p>
-                  <p className="text-xs text-text-muted">签到获得亲密度+5</p>
+                  <p className="text-xs text-text-muted">签到获得亲密度+5 🐾</p>
                 </div>
               </div>
-              <ChevronRight size={18} className="text-text-muted group-hover:text-primary-light transition-colors" />
+              <ChevronRight size={18} className="text-text-muted group-hover:text-amber-400 transition-colors" />
             </button>
           </motion.div>
         )}
@@ -157,7 +157,7 @@ export function WelcomePage({
             className="text-center mb-6"
           >
             <span className="text-xs text-text-muted glass rounded-full px-3 py-1 inline-flex items-center gap-1">
-              <Heart size={12} className="text-pink-400" fill="currentColor" />
+              <PawPrint size={12} className="text-amber-400" fill="currentColor" />
               今日已签到
             </span>
           </motion.div>
@@ -187,7 +187,7 @@ export function WelcomePage({
                   <div className="flex items-start gap-4">
                     {/* Avatar */}
                     <motion.div
-                      className="w-16 h-16 rounded-2xl flex items-center justify-center text-2xl shrink-0"
+                      className="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl shrink-0"
                       style={{
                         background: `linear-gradient(135deg, ${themeColors[char.id]}33, ${themeColors[char.id]}11)`,
                         border: `1px solid ${themeColors[char.id]}44`,
@@ -222,7 +222,7 @@ export function WelcomePage({
 
                       {/* Intimacy preview */}
                       <div className="mt-2 flex items-center gap-2">
-                        <Heart size={10} style={{ color: themeColors[char.id] }} fill="currentColor" />
+                        <PawPrint size={10} style={{ color: themeColors[char.id] }} fill="currentColor" />
                         <div className="flex-1 h-1 bg-surface-lighter rounded-full overflow-hidden">
                           <div
                             className="h-full rounded-full transition-all duration-500"
@@ -248,7 +248,7 @@ export function WelcomePage({
                         className="w-6 h-6 rounded-full flex items-center justify-center"
                         style={{ background: themeColors[char.id] }}
                       >
-                        <Heart size={12} className="text-white" fill="currentColor" />
+                        <PawPrint size={12} className="text-white" fill="currentColor" />
                       </div>
                     </motion.div>
                   )}

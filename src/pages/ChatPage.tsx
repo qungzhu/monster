@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Smile, Heart, Sparkles } from 'lucide-react';
+import { Send, Smile, PawPrint, Sparkles } from 'lucide-react';
 import type { Character, ChatMessage, MoodType } from '../data/characters';
 import { moodEmojis, moodLabels } from '../data/characters';
 import { detectEmotion, getTimeOfDay } from '../utils/emotion';
@@ -26,7 +26,7 @@ export function ChatPage({
   getCharacterResponse,
   intimacyLevel,
   addIntimacy,
-  userName,
+  userName: _userName,
 }: ChatPageProps) {
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -42,19 +42,17 @@ export function ChatPage({
     scrollToBottom();
   }, [chatHistory, isTyping, scrollToBottom]);
 
-  // Send initial greeting if no chat history
   useEffect(() => {
     if (character && chatHistory.length === 0) {
       const timeOfDay = getTimeOfDay();
       const dailyMessages = character.dailyMessages[timeOfDay];
       const greeting = dailyMessages[Math.floor(Math.random() * dailyMessages.length)];
-      const personalGreeting = userName ? greeting.replace(/你/, `${userName}，你`) : greeting;
 
       setTimeout(() => {
         addMessage(character.id, {
           id: `${Date.now()}`,
           role: 'character',
-          content: personalGreeting,
+          content: greeting,
           timestamp: Date.now(),
         });
       }, 800);
@@ -66,8 +64,8 @@ export function ChatPage({
       <div className="h-full flex items-center justify-center pb-20">
         <div className="text-center">
           <Sparkles size={48} className="text-text-muted mx-auto mb-4" />
-          <p className="text-text-secondary">请先选择一位伴侣</p>
-          <p className="text-text-muted text-sm mt-1">回到首页选择你的专属陪伴</p>
+          <p className="text-text-secondary">请先选择一只小可爱</p>
+          <p className="text-text-muted text-sm mt-1">回到首页选择你的萌宠伙伴</p>
         </div>
       </div>
     );
@@ -78,7 +76,6 @@ export function ChatPage({
 
     const detectedMood = mood || detectEmotion(content);
 
-    // Add user message
     const userMessage: ChatMessage = {
       id: `user-${Date.now()}`,
       role: 'user',
@@ -90,18 +87,16 @@ export function ChatPage({
     setInput('');
     setShowMoodPicker(false);
 
-    // Simulate typing delay
     setIsTyping(true);
     const delay = 1000 + Math.random() * 2000;
 
     setTimeout(() => {
       const response = getCharacterResponse(character, detectedMood as MoodType);
-      const personalResponse = userName ? response.replace(/你/g, (_, i) => i === 0 ? `${userName}你` : '你') : response;
 
       const charMessage: ChatMessage = {
         id: `char-${Date.now()}`,
         role: 'character',
-        content: personalResponse,
+        content: response,
         timestamp: Date.now(),
       };
       addMessage(character.id, charMessage);
@@ -120,15 +115,15 @@ export function ChatPage({
     sendMessage(moodMessage, mood);
   };
 
-  const themeColor = character.theme === 'xinghui' ? '#e91e8c' :
-    character.theme === 'lishen' ? '#4f46e5' : '#ea580c';
+  const themeColor = character.theme === 'tuantuan' ? '#d97706' :
+    character.theme === 'xiaoxue' ? '#7c3aed' : '#ec4899';
 
   return (
     <div className={`h-full flex flex-col theme-${character.theme}`}>
       {/* Chat Header */}
       <div className="glass-strong px-4 py-3 flex items-center gap-3">
         <div
-          className="w-10 h-10 rounded-full flex items-center justify-center text-lg"
+          className="w-10 h-10 rounded-full flex items-center justify-center text-xl"
           style={{
             background: `linear-gradient(135deg, ${themeColor}33, ${themeColor}11)`,
             border: `1px solid ${themeColor}44`,
@@ -173,7 +168,7 @@ export function ChatPage({
               <div
                 className={`max-w-[75%] rounded-2xl px-4 py-3 ${
                   message.role === 'user'
-                    ? 'bg-primary/20 rounded-tr-sm'
+                    ? 'rounded-tr-sm'
                     : 'glass rounded-tl-sm'
                 }`}
                 style={message.role === 'user' ? {
@@ -283,8 +278,9 @@ export function ChatPage({
               }
             }}
             className="p-2 rounded-xl hover:bg-surface-lighter transition-colors"
+            title="摸摸头"
           >
-            <Heart size={18} className="text-pink-400" />
+            <PawPrint size={18} style={{ color: themeColor }} />
           </motion.button>
         </form>
       </div>

@@ -29,14 +29,14 @@ export function Navigation() {
                 <motion.div
                   layoutId="nav-indicator"
                   className="absolute -top-1 w-8 h-1 rounded-full"
-                  style={{ background: 'var(--char-gradient, linear-gradient(135deg, #e91e8c, #ff6eb4))' }}
+                  style={{ background: 'var(--char-gradient, linear-gradient(135deg, #d97706, #fbbf24))' }}
                   transition={{ type: 'spring', stiffness: 350, damping: 30 }}
                 />
               )}
               <Icon
                 size={20}
                 className={isActive ? 'text-primary-light' : 'text-text-muted'}
-                style={isActive ? { color: 'var(--char-primary, #e91e8c)' } : undefined}
+                style={isActive ? { color: 'var(--char-primary, #d97706)' } : undefined}
               />
               <span
                 className={`text-[10px] ${isActive ? 'text-text-primary font-medium' : 'text-text-muted'}`}

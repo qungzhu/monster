@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Heart } from 'lucide-react';
+import { PawPrint } from 'lucide-react';
 
 interface IntimacyBarProps {
   level: number;
@@ -7,11 +7,11 @@ interface IntimacyBarProps {
 }
 
 function getIntimacyTitle(level: number): string {
-  if (level < 20) return '初识';
+  if (level < 20) return '初见';
   if (level < 40) return '熟悉';
-  if (level < 60) return '亲密';
-  if (level < 80) return '心动';
-  return '挚爱';
+  if (level < 60) return '信任';
+  if (level < 80) return '依赖';
+  return '最佳拍档';
 }
 
 export function IntimacyBar({ level, maxLevel }: IntimacyBarProps) {
@@ -22,7 +22,7 @@ export function IntimacyBar({ level, maxLevel }: IntimacyBarProps) {
     <div className="w-full">
       <div className="flex items-center justify-between mb-1">
         <div className="flex items-center gap-1">
-          <Heart size={14} style={{ color: 'var(--char-primary, #e91e8c)' }} fill="currentColor" />
+          <PawPrint size={14} style={{ color: 'var(--char-primary, #d97706)' }} fill="currentColor" />
           <span className="text-xs text-text-secondary">{title}</span>
         </div>
         <span className="text-xs text-text-muted">{level}/{maxLevel}</span>
