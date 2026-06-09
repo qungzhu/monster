@@ -15,9 +15,9 @@ export function Navbar() {
   const navLinks = [
     { label: t.nav.home, href: '#home' },
     { label: t.nav.features, href: '#features' },
+    { label: t.nav.useCases, href: '#use-cases' },
     { label: t.nav.howItWorks, href: '#how-it-works' },
     { label: t.nav.community, href: '#testimonials' },
-    { label: t.nav.partners, href: '#brands' },
   ];
 
   return (

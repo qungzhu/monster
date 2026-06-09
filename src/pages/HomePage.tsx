@@ -1,6 +1,7 @@
 import { Navbar } from '../components/mova/Navbar';
 import { Hero } from '../components/mova/Hero';
 import { Features } from '../components/mova/Features';
+import { UseCases } from '../components/mova/UseCases';
 import { HowItWorks } from '../components/mova/HowItWorks';
 import { Testimonials } from '../components/mova/Testimonials';
 import { Brands } from '../components/mova/Brands';
@@ -14,6 +15,7 @@ export function HomePage() {
       <main>
         <Hero />
         <Features />
+        <UseCases />
         <HowItWorks />
         <Testimonials />
         <Brands />

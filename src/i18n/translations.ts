@@ -5,6 +5,7 @@ export const translations = {
     nav: {
       home: 'Home',
       features: 'Features',
+      useCases: 'Where to Use',
       howItWorks: 'How It Works',
       community: 'Community',
       partners: 'Partners',
@@ -155,6 +156,7 @@ export const translations = {
     nav: {
       home: 'Laman Utama',
       features: 'Ciri-ciri',
+      useCases: 'Cara Guna',
       howItWorks: 'Cara Kerja',
       community: 'Komuniti',
       partners: 'Rakan Kongsi',
@@ -305,6 +307,7 @@ export const translations = {
     nav: {
       home: '首页',
       features: '功能',
+      useCases: '在哪里用',
       howItWorks: '运作方式',
       community: '社群',
       partners: '合作品牌',
