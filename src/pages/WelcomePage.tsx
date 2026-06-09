@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { PawPrint, ChevronRight, Flame } from 'lucide-react';
 import { characters } from '../data/characters';
 import { ParticleBackground } from '../components/ParticleBackground';
+import { PetScene } from '../components/pets/PetScene';
 
 interface WelcomePageProps {
   userName: string;
@@ -227,16 +228,9 @@ export function WelcomePage({
                 <div className={`absolute inset-0 bg-gradient-to-r ${themeBgs[char.id]} opacity-80`} />
                 <div className="glass relative p-5">
                   <div className="flex items-start gap-4">
-                    <motion.div
-                      className="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl shrink-0"
-                      style={{
-                        background: `linear-gradient(135deg, ${themeColors[char.id]}33, ${themeColors[char.id]}11)`,
-                        border: `1px solid ${themeColors[char.id]}44`,
-                      }}
-                      whileHover={{ scale: 1.05, rotate: 5 }}
-                    >
-                      {char.avatar}
-                    </motion.div>
+                    <div className="shrink-0">
+                      <PetScene characterId={char.id} size="small" interactive={false} />
+                    </div>
 
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-1">

@@ -8,6 +8,7 @@ import { sendAIMessage } from '../utils/ai';
 import { TypingIndicator } from '../components/TypingIndicator';
 import { IntimacyBar } from '../components/IntimacyBar';
 import { PetStickers } from '../components/PetStickers';
+import { PetScene } from '../components/pets/PetScene';
 
 interface ChatPageProps {
   character: Character | null;
@@ -163,14 +164,8 @@ export function ChatPage({
     <div className={`h-full flex flex-col theme-${character.theme}`}>
       {/* Chat Header */}
       <div className="glass-strong px-4 py-3 flex items-center gap-3">
-        <div
-          className="w-10 h-10 rounded-full flex items-center justify-center text-xl"
-          style={{
-            background: `linear-gradient(135deg, ${themeColor}33, ${themeColor}11)`,
-            border: `1px solid ${themeColor}44`,
-          }}
-        >
-          {character.avatar}
+        <div className="w-10 h-10 shrink-0 rounded-full overflow-hidden">
+          <PetScene characterId={character.id} size="tiny" interactive={false} />
         </div>
         <div className="flex-1">
           <h2 className="font-bold text-sm">{character.name}</h2>

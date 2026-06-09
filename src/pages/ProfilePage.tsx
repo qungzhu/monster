@@ -5,6 +5,7 @@ import type { Character } from '../data/characters';
 import { IntimacyBar } from '../components/IntimacyBar';
 import { IntimacyUnlocks } from '../components/IntimacyUnlocks';
 import { ParticleBackground } from '../components/ParticleBackground';
+import { PetScene } from '../components/pets/PetScene';
 
 interface ProfilePageProps {
   character: Character | null;
@@ -59,16 +60,7 @@ export function ProfilePage({ character, intimacyLevel, chatCount }: ProfilePage
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.5 }}
           >
-            <div
-              className="w-28 h-28 rounded-3xl flex items-center justify-center text-6xl"
-              style={{
-                background: `linear-gradient(135deg, ${color}33, ${color}11)`,
-                border: `2px solid ${color}44`,
-                boxShadow: `0 0 40px ${color}22`,
-              }}
-            >
-              {character.avatar}
-            </div>
+            <PetScene characterId={character.id} size="large" interactive={true} />
           </motion.div>
         </div>
 
