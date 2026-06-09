@@ -4,12 +4,11 @@ const platforms = [
   {
     name: 'Shopee',
     category: { en: 'E-Commerce', my: 'E-Dagang', zh: '电商平台' },
-    commission: 'Up to 10%',
     color: '#E8724A',
     desc: {
-      en: 'Share Shopee product links. Earn commission every time your audience buys.',
-      my: 'Kongsi pautan produk Shopee. Jana komisen setiap kali audiens anda membeli.',
-      zh: '分享Shopee商品链接，粉丝购买即得佣金，支持马来西亚、印尼、泰国等多国站点。',
+      en: 'Share Shopee product links. Earn cashback commission every time your audience buys.',
+      my: 'Kongsi pautan produk Shopee. Jana komisen cashback setiap kali audiens anda membeli.',
+      zh: '分享Shopee商品链接，粉丝购买即得返券佣金，支持东南亚多国站点。',
     },
     icon: (
       <svg viewBox="0 0 40 40" fill="none" className="w-10 h-10">
@@ -23,13 +22,12 @@ const platforms = [
   },
   {
     name: 'TikTok Shop',
-    category: { en: 'Short Video', my: 'Video Pendek', zh: '短视频电商' },
-    commission: 'Up to 20%',
+    category: { en: 'Short Video Commerce', my: 'Video Pendek', zh: '短视频电商' },
     color: '#FF004F',
     desc: {
-      en: 'Add affiliate links to TikTok videos, livestreams, and bio. Highest commission rates.',
-      my: 'Tambah pautan afiliasi ke video TikTok, siaran langsung, dan bio. Kadar komisen tertinggi.',
-      zh: '在TikTok视频、直播和主页添加联盟链接，佣金比例最高，流量转化最强。',
+      en: 'Add affiliate links to TikTok videos, livestreams & bio. Highest conversion platform.',
+      my: 'Tambah pautan afiliasi ke video TikTok, siaran langsung & bio. Platform penukaran tertinggi.',
+      zh: '在TikTok视频、直播和主页添加联盟链接，流量大、转化率高。',
     },
     icon: (
       <svg viewBox="0 0 40 40" fill="none" className="w-10 h-10">
@@ -41,11 +39,10 @@ const platforms = [
   {
     name: 'Lazada',
     category: { en: 'E-Commerce', my: 'E-Dagang', zh: '电商平台' },
-    commission: 'Up to 8%',
     color: '#0F146D',
     desc: {
-      en: 'Promote Lazada products across Southeast Asia. Great for electronics, fashion & more.',
-      my: 'Promosikan produk Lazada merentasi Asia Tenggara. Sesuai untuk elektronik, fesyen & lagi.',
+      en: 'Promote Lazada products across Southeast Asia — electronics, fashion, home & more.',
+      my: 'Promosikan produk Lazada merentasi Asia Tenggara — elektronik, fesyen, rumah & lagi.',
       zh: '推广Lazada东南亚商品，覆盖马来西亚、印尼、菲律宾等多国，品类丰富。',
     },
     icon: (
@@ -60,12 +57,11 @@ const platforms = [
   {
     name: 'Tiket.com',
     category: { en: 'Travel', my: 'Pelancongan', zh: '旅游出行' },
-    commission: 'Up to 5%',
     color: '#2196F3',
     desc: {
-      en: 'Earn on every flight, hotel, and experience booking made via your Tiket.com link.',
+      en: 'Earn on every flight, hotel & experience booking made through your Tiket.com link.',
       my: 'Jana pendapatan untuk setiap tempahan penerbangan, hotel & pengalaman melalui pautan anda.',
-      zh: '通过你的链接完成每笔机票、酒店、景点预订，即可获得返佣，适合旅游类博主。',
+      zh: '通过链接完成机票、酒店、景点预订即得返佣，适合旅游类博主。',
     },
     icon: (
       <svg viewBox="0 0 40 40" fill="none" className="w-10 h-10">
@@ -79,12 +75,11 @@ const platforms = [
   {
     name: 'Trip.com',
     category: { en: 'Travel', my: 'Pelancongan', zh: '旅游出行' },
-    commission: 'Up to 6%',
     color: '#1E88E5',
     desc: {
-      en: 'Global travel affiliate — hotels, flights, trains worldwide. Ideal for travel creators.',
-      my: 'Afiliasi perjalanan global — hotel, penerbangan, kereta api seluruh dunia.',
-      zh: '全球旅游联盟——推广全球酒店、机票、火车票，尤其适合境外旅游内容创作者。',
+      en: 'Global travel affiliate — hotels, flights & trains worldwide. Ideal for travel creators.',
+      my: 'Afiliasi perjalanan global — hotel, penerbangan & kereta api seluruh dunia.',
+      zh: '全球旅游联盟——推广全球酒店、机票、火车票，适合境外旅游创作者。',
     },
     icon: (
       <svg viewBox="0 0 40 40" fill="none" className="w-10 h-10">
@@ -102,12 +97,13 @@ const useCaseContent = {
     badge: 'Where to Use Mova',
     title: 'Earn Cashback & Commissions',
     titleHighlight: 'on Every Platform',
-    subtitle: 'Share your Mova affiliate links across any platform below — when your audience clicks and buys, you earn.',
+    subtitle: 'Share your Mova affiliate links on these platforms — cashback rates vary by seller/merchant.',
+    cashbackNote: '* Cashback rates are set by each seller or merchant on the platform, not fixed.',
     howTitle: 'How Cashback & Commissions Work',
     steps: [
       { icon: '🔗', title: 'Get Your Link', desc: 'Mova generates a unique tracked affiliate link for any product on supported platforms.' },
-      { icon: '📲', title: 'Share on Social Media', desc: 'Post on TikTok, Instagram, Xiaohongshu, YouTube, Telegram, or any channel.' },
-      { icon: '🛍️', title: 'Audience Shops', desc: 'Your followers click your link and make a purchase within the cookie window.' },
+      { icon: '📲', title: 'Share on Social Media', desc: 'Post on TikTok, Instagram, YouTube, Telegram, or any channel you use.' },
+      { icon: '🛍️', title: 'Audience Shops', desc: 'Your followers click your link and complete a purchase within the cookie window.' },
       { icon: '💰', title: 'You Get Paid', desc: 'Commission is credited to your Mova wallet automatically. Withdraw anytime.' },
     ],
   },
@@ -115,11 +111,12 @@ const useCaseContent = {
     badge: 'Di Mana Menggunakan Mova',
     title: 'Jana Cashback & Komisen',
     titleHighlight: 'di Setiap Platform',
-    subtitle: 'Kongsi pautan afiliasi Mova anda di mana-mana platform di bawah — apabila audiens anda klik dan beli, anda jana pendapatan.',
+    subtitle: 'Kongsi pautan afiliasi Mova anda di platform-platform ini — kadar cashback bergantung kepada penjual/pedagang.',
+    cashbackNote: '* Kadar cashback ditetapkan oleh setiap penjual atau pedagang di platform, bukan tetap.',
     howTitle: 'Cara Cashback & Komisen Berfungsi',
     steps: [
       { icon: '🔗', title: 'Dapatkan Pautan Anda', desc: 'Mova menjana pautan afiliasi unik untuk sebarang produk di platform yang disokong.' },
-      { icon: '📲', title: 'Kongsi di Media Sosial', desc: 'Siar di TikTok, Instagram, YouTube, Telegram atau mana-mana saluran.' },
+      { icon: '📲', title: 'Kongsi di Media Sosial', desc: 'Siar di TikTok, Instagram, YouTube, Telegram atau mana-mana saluran anda.' },
       { icon: '🛍️', title: 'Audiens Membeli', desc: 'Pengikut anda klik pautan anda dan membuat pembelian dalam tempoh cookie.' },
       { icon: '💰', title: 'Anda Dibayar', desc: 'Komisen dikreditkan ke dompet Mova anda secara automatik. Keluarkan bila-bila masa.' },
     ],
@@ -128,7 +125,8 @@ const useCaseContent = {
     badge: '在哪里使用 Mova',
     title: '在每个平台赚取',
     titleHighlight: '返券与佣金',
-    subtitle: '将你的 Mova 专属推广链接分享到任意平台——粉丝点击购买，你就自动入账。',
+    subtitle: '将你的 Mova 专属推广链接分享到以下平台——返券比例由各平台商家自行设定。',
+    cashbackNote: '* 返券比例由各平台卖家/商家决定，非固定费率。',
     howTitle: '返券与佣金如何运作',
     steps: [
       { icon: '🔗', title: '获取专属链接', desc: 'Mova 为支持平台上的任意商品生成带追踪功能的专属联盟链接。' },
@@ -149,7 +147,6 @@ export function UseCases() {
       <div className="absolute top-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-[#B8A882]/20 to-transparent" />
 
       <div className="relative z-10 max-w-7xl mx-auto px-6">
-
         {/* Section header */}
         <div className="text-center mb-14">
           <div className="inline-flex items-center gap-2 px-4 py-2 bg-[#B8A882]/10 border border-[#B8A882]/20 rounded-full mb-6">
@@ -164,33 +161,27 @@ export function UseCases() {
               {content.titleHighlight}
             </span>
           </h2>
-          <p className="text-[#A09890] text-lg max-w-2xl mx-auto leading-relaxed">
+          <p className="text-[#A09890] text-lg max-w-2xl mx-auto leading-relaxed mb-3">
             {content.subtitle}
           </p>
+          <p className="text-[#706860] text-xs italic">{content.cashbackNote}</p>
         </div>
 
-        {/* Platform grid */}
+        {/* Platform cards */}
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 mb-16">
           {platforms.map((p) => (
             <div
               key={p.name}
               className="group flex gap-5 p-6 bg-white/[0.025] border border-white/[0.06] hover:border-white/[0.14] rounded-2xl transition-all duration-300 hover:-translate-y-1"
-              style={{ '--p-color': p.color } as React.CSSProperties}
             >
               <div className="flex-shrink-0">{p.icon}</div>
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
                   <span className="text-[#E8E4DC] font-semibold text-base">{p.name}</span>
-                  <span
-                    className="text-[10px] font-bold px-2 py-0.5 rounded-full"
-                    style={{ background: `${p.color}20`, color: p.color }}
-                  >
-                    {p.commission}
-                  </span>
                 </div>
                 <div
                   className="text-[10px] font-medium mb-2 uppercase tracking-widest"
-                  style={{ color: p.color + 'aa' }}
+                  style={{ color: p.color + 'bb' }}
                 >
                   {p.category[lang]}
                 </div>
@@ -200,7 +191,7 @@ export function UseCases() {
           ))}
         </div>
 
-        {/* How it works — cashback flow */}
+        {/* How it works */}
         <div className="bg-white/[0.02] border border-white/[0.06] rounded-3xl p-8 md:p-12">
           <h3 className="text-[#E8E4DC] text-2xl font-bold text-center mb-10">
             {content.howTitle}
@@ -208,7 +199,6 @@ export function UseCases() {
           <div className="grid sm:grid-cols-2 md:grid-cols-4 gap-6">
             {content.steps.map((step, i) => (
               <div key={i} className="relative flex flex-col items-center text-center">
-                {/* Connector */}
                 {i < content.steps.length - 1 && (
                   <div className="hidden md:block absolute top-7 left-1/2 w-full h-px border-t border-dashed border-white/10" />
                 )}
