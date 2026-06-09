@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { PawPrint, ChevronRight } from 'lucide-react';
+import { PawPrint, ChevronRight, Flame } from 'lucide-react';
 import { characters } from '../data/characters';
 import { ParticleBackground } from '../components/ParticleBackground';
 
@@ -10,7 +10,9 @@ interface WelcomePageProps {
   selectCharacter: (id: string) => void;
   selectedCharacterId: string | null;
   isCheckedIn: boolean;
-  checkIn: () => void;
+  checkIn: () => number;
+  checkInStreak: number;
+  getCheckInReward: () => number;
   intimacyLevels: Record<string, number>;
 }
 
@@ -33,17 +35,29 @@ export function WelcomePage({
   selectedCharacterId,
   isCheckedIn,
   checkIn,
+  checkInStreak,
+  getCheckInReward,
   intimacyLevels,
 }: WelcomePageProps) {
   const [nameInput, setNameInput] = useState(userName);
   const [showNameInput, setShowNameInput] = useState(!userName);
   const [hoveredChar, setHoveredChar] = useState<string | null>(null);
+  const [checkInAnimation, setCheckInAnimation] = useState(false);
+  const [checkInResult, setCheckInResult] = useState<{ streak: number; reward: number } | null>(null);
 
   const handleNameSubmit = () => {
     if (nameInput.trim()) {
       setUserName(nameInput.trim());
       setShowNameInput(false);
     }
+  };
+
+  const handleCheckIn = () => {
+    const streak = checkIn();
+    const reward = getCheckInReward();
+    setCheckInResult({ streak, reward });
+    setCheckInAnimation(true);
+    setTimeout(() => setCheckInAnimation(false), 3000);
   };
 
   const getGreeting = () => {
@@ -133,7 +147,7 @@ export function WelcomePage({
             className="max-w-sm mx-auto mb-6"
           >
             <button
-              onClick={checkIn}
+              onClick={handleCheckIn}
               className="w-full glass rounded-2xl p-4 flex items-center justify-between hover:bg-white/10 transition-colors group"
             >
               <div className="flex items-center gap-3">
@@ -142,7 +156,14 @@ export function WelcomePage({
                 </div>
                 <div className="text-left">
                   <p className="text-sm font-medium text-text-primary">每日签到</p>
-                  <p className="text-xs text-text-muted">签到获得亲密度+5 🐾</p>
+                  <p className="text-xs text-text-muted">
+                    签到获得亲密度+{getCheckInReward()} 🐾
+                    {checkInStreak > 0 && (
+                      <span className="ml-1 text-amber-400">
+                        🔥 已连续{checkInStreak}天
+                      </span>
+                    )}
+                  </p>
                 </div>
               </div>
               <ChevronRight size={18} className="text-text-muted group-hover:text-amber-400 transition-colors" />
@@ -150,18 +171,39 @@ export function WelcomePage({
           </motion.div>
         )}
 
-        {isCheckedIn && !showNameInput && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="text-center mb-6"
-          >
-            <span className="text-xs text-text-muted glass rounded-full px-3 py-1 inline-flex items-center gap-1">
-              <PawPrint size={12} className="text-amber-400" fill="currentColor" />
-              今日已签到
-            </span>
-          </motion.div>
-        )}
+        {/* Check-in result */}
+        <AnimatePresence>
+          {isCheckedIn && !showNameInput && (
+            <motion.div
+              initial={checkInAnimation ? { opacity: 0, scale: 0.8 } : { opacity: 1 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="text-center mb-6"
+            >
+              <div className="inline-flex flex-col items-center gap-1">
+                <span className="text-xs text-text-muted glass rounded-full px-3 py-1 inline-flex items-center gap-1">
+                  <PawPrint size={12} className="text-amber-400" fill="currentColor" />
+                  今日已签到
+                  {checkInStreak > 0 && (
+                    <span className="inline-flex items-center gap-0.5 ml-1 text-amber-400">
+                      <Flame size={10} />
+                      连续{checkInStreak}天
+                    </span>
+                  )}
+                </span>
+                {checkInAnimation && checkInResult && (
+                  <motion.span
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0 }}
+                    className="text-[11px] text-amber-400"
+                  >
+                    +{checkInResult.reward} 亲密度 ✨
+                  </motion.span>
+                )}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Character Selection */}
         {!showNameInput && (
@@ -185,7 +227,6 @@ export function WelcomePage({
                 <div className={`absolute inset-0 bg-gradient-to-r ${themeBgs[char.id]} opacity-80`} />
                 <div className="glass relative p-5">
                   <div className="flex items-start gap-4">
-                    {/* Avatar */}
                     <motion.div
                       className="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl shrink-0"
                       style={{
@@ -220,7 +261,6 @@ export function WelcomePage({
                         ))}
                       </div>
 
-                      {/* Intimacy preview */}
                       <div className="mt-2 flex items-center gap-2">
                         <PawPrint size={10} style={{ color: themeColors[char.id] }} fill="currentColor" />
                         <div className="flex-1 h-1 bg-surface-lighter rounded-full overflow-hidden">
@@ -237,7 +277,6 @@ export function WelcomePage({
                     </div>
                   </div>
 
-                  {/* Selection indicator */}
                   {selectedCharacterId === char.id && (
                     <motion.div
                       initial={{ scale: 0 }}

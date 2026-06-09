@@ -1,7 +1,9 @@
+import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { PawPrint, Cake, Scale, Utensils, MessageCircle, Sparkles, Dog } from 'lucide-react';
+import { PawPrint, Cake, Scale, Utensils, MessageCircle, Sparkles, Dog, Trophy } from 'lucide-react';
 import type { Character } from '../data/characters';
 import { IntimacyBar } from '../components/IntimacyBar';
+import { IntimacyUnlocks } from '../components/IntimacyUnlocks';
 import { ParticleBackground } from '../components/ParticleBackground';
 
 interface ProfilePageProps {
@@ -17,6 +19,8 @@ const themeColors: Record<string, string> = {
 };
 
 export function ProfilePage({ character, intimacyLevel, chatCount }: ProfilePageProps) {
+  const [showUnlocks, setShowUnlocks] = useState(false);
+
   if (!character) {
     return (
       <div className="h-full flex items-center justify-center pb-20">
@@ -68,7 +72,6 @@ export function ProfilePage({ character, intimacyLevel, chatCount }: ProfilePage
           </motion.div>
         </div>
 
-        {/* Name & Title */}
         <motion.div
           className="text-center -mt-6 relative z-10 px-6"
           initial={{ opacity: 0, y: 20 }}
@@ -170,6 +173,36 @@ export function ProfilePage({ character, intimacyLevel, chatCount }: ProfilePage
               </span>
             ))}
           </div>
+        </motion.div>
+
+        {/* Intimacy Unlocks */}
+        <motion.div
+          className="glass rounded-2xl p-4"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.55 }}
+        >
+          <button
+            onClick={() => setShowUnlocks(!showUnlocks)}
+            className="w-full flex items-center justify-between"
+          >
+            <h3 className="text-sm font-medium flex items-center gap-2">
+              <Trophy size={14} style={{ color }} />
+              羁绊成就
+            </h3>
+            <span className="text-xs text-text-muted">
+              {showUnlocks ? '收起' : '展开'} ▾
+            </span>
+          </button>
+          {showUnlocks && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              className="mt-3"
+            >
+              <IntimacyUnlocks character={character} level={intimacyLevel} />
+            </motion.div>
+          )}
         </motion.div>
 
         {/* Description */}

@@ -1,11 +1,13 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Smile, PawPrint, Sparkles } from 'lucide-react';
+import { Send, Smile, PawPrint, Sparkles, Sticker, Bot } from 'lucide-react';
 import type { Character, ChatMessage, MoodType } from '../data/characters';
 import { moodEmojis, moodLabels } from '../data/characters';
 import { detectEmotion, getTimeOfDay } from '../utils/emotion';
+import { sendAIMessage } from '../utils/ai';
 import { TypingIndicator } from '../components/TypingIndicator';
 import { IntimacyBar } from '../components/IntimacyBar';
+import { PetStickers } from '../components/PetStickers';
 
 interface ChatPageProps {
   character: Character | null;
@@ -15,6 +17,7 @@ interface ChatPageProps {
   intimacyLevel: number;
   addIntimacy: (characterId: string, amount: number) => void;
   userName: string;
+  apiKey: string;
 }
 
 const moodOptions: MoodType[] = ['happy', 'sad', 'angry', 'anxious', 'lonely'];
@@ -26,13 +29,15 @@ export function ChatPage({
   getCharacterResponse,
   intimacyLevel,
   addIntimacy,
-  userName: _userName,
+  userName,
+  apiKey,
 }: ChatPageProps) {
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [showMoodPicker, setShowMoodPicker] = useState(false);
+  const [showStickers, setShowStickers] = useState(false);
+  const [isAIMode, setIsAIMode] = useState(!!apiKey);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLInputElement>(null);
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -59,6 +64,10 @@ export function ChatPage({
     }
   }, [character?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  useEffect(() => {
+    setIsAIMode(!!apiKey);
+  }, [apiKey]);
+
   if (!character) {
     return (
       <div className="h-full flex items-center justify-center pb-20">
@@ -71,11 +80,10 @@ export function ChatPage({
     );
   }
 
-  const sendMessage = (content: string, mood?: MoodType) => {
-    if (!content.trim()) return;
+  const sendMessage = async (content: string, mood?: MoodType) => {
+    if (!content.trim() || isTyping) return;
 
     const detectedMood = mood || detectEmotion(content);
-
     const userMessage: ChatMessage = {
       id: `user-${Date.now()}`,
       role: 'user',
@@ -86,23 +94,52 @@ export function ChatPage({
     addMessage(character.id, userMessage);
     setInput('');
     setShowMoodPicker(false);
-
+    setShowStickers(false);
     setIsTyping(true);
-    const delay = 1000 + Math.random() * 2000;
 
-    setTimeout(() => {
-      const response = getCharacterResponse(character, detectedMood as MoodType);
-
-      const charMessage: ChatMessage = {
-        id: `char-${Date.now()}`,
-        role: 'character',
-        content: response,
-        timestamp: Date.now(),
-      };
-      addMessage(character.id, charMessage);
-      addIntimacy(character.id, 2);
+    if (isAIMode && apiKey) {
+      try {
+        const result = await sendAIMessage(
+          content,
+          character,
+          chatHistory,
+          intimacyLevel,
+          userName,
+          apiKey,
+        );
+        const charMessage: ChatMessage = {
+          id: `char-${Date.now()}`,
+          role: 'character',
+          content: result.response,
+          timestamp: Date.now(),
+        };
+        addMessage(character.id, charMessage);
+        addIntimacy(character.id, 2);
+      } catch {
+        const response = getCharacterResponse(character, detectedMood as MoodType);
+        addMessage(character.id, {
+          id: `char-${Date.now()}`,
+          role: 'character',
+          content: response,
+          timestamp: Date.now(),
+        });
+        addIntimacy(character.id, 2);
+      }
       setIsTyping(false);
-    }, delay);
+    } else {
+      const delay = 1000 + Math.random() * 2000;
+      setTimeout(() => {
+        const response = getCharacterResponse(character, detectedMood as MoodType);
+        addMessage(character.id, {
+          id: `char-${Date.now()}`,
+          role: 'character',
+          content: response,
+          timestamp: Date.now(),
+        });
+        addIntimacy(character.id, 2);
+        setIsTyping(false);
+      }, delay);
+    }
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -113,6 +150,10 @@ export function ChatPage({
   const handleMoodSelect = (mood: MoodType) => {
     const moodMessage = `我现在感觉${moodLabels[mood]}...`;
     sendMessage(moodMessage, mood);
+  };
+
+  const handleStickerSelect = (sticker: string) => {
+    sendMessage(sticker);
   };
 
   const themeColor = character.theme === 'tuantuan' ? '#d97706' :
@@ -137,9 +178,17 @@ export function ChatPage({
             <IntimacyBar level={intimacyLevel} maxLevel={character.maxIntimacy} />
           </div>
         </div>
-        <div className="flex items-center gap-1 text-xs text-text-muted">
-          <span className="w-2 h-2 rounded-full bg-green-400" />
-          在线
+        <div className="flex items-center gap-2">
+          {isAIMode && (
+            <span className="flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full" style={{ background: `${themeColor}22`, color: themeColor }}>
+              <Bot size={10} />
+              AI
+            </span>
+          )}
+          <div className="flex items-center gap-1 text-xs text-text-muted">
+            <span className="w-2 h-2 rounded-full bg-green-400" />
+            在线
+          </div>
         </div>
       </div>
 
@@ -242,27 +291,41 @@ export function ChatPage({
         )}
       </AnimatePresence>
 
+      {/* Pet Stickers */}
+      <PetStickers
+        show={showStickers && !showMoodPicker}
+        onSelect={handleStickerSelect}
+        characterId={character.id}
+      />
+
       {/* Input Area */}
       <div className="glass-strong px-4 py-3 pb-20">
         <form onSubmit={handleSubmit} className="flex items-center gap-2">
           <button
             type="button"
-            onClick={() => setShowMoodPicker(!showMoodPicker)}
+            onClick={() => { setShowMoodPicker(!showMoodPicker); setShowStickers(false); }}
             className={`p-2 rounded-xl transition-colors ${showMoodPicker ? 'bg-primary/20' : 'hover:bg-surface-lighter'}`}
           >
             <Smile size={20} className="text-text-muted" />
           </button>
+          <button
+            type="button"
+            onClick={() => { setShowStickers(!showStickers); setShowMoodPicker(false); }}
+            className={`p-2 rounded-xl transition-colors ${showStickers ? 'bg-primary/20' : 'hover:bg-surface-lighter'}`}
+          >
+            <Sticker size={20} className="text-text-muted" />
+          </button>
           <input
-            ref={inputRef}
             type="text"
             value={input}
             onChange={e => setInput(e.target.value)}
             placeholder={`对${character.name}说些什么...`}
             className="flex-1 bg-surface-light rounded-xl px-4 py-2.5 text-sm text-text-primary placeholder:text-text-muted outline-none border border-transparent focus:border-primary/20 transition-colors"
+            disabled={isTyping}
           />
           <motion.button
             type="submit"
-            disabled={!input.trim()}
+            disabled={!input.trim() || isTyping}
             whileTap={{ scale: 0.9 }}
             className="p-2.5 rounded-xl transition-colors disabled:opacity-30"
             style={{ background: input.trim() ? `${themeColor}33` : undefined }}
@@ -272,11 +335,7 @@ export function ChatPage({
           <motion.button
             type="button"
             whileTap={{ scale: 0.9 }}
-            onClick={() => {
-              if (character) {
-                addIntimacy(character.id, 1);
-              }
-            }}
+            onClick={() => { if (character) addIntimacy(character.id, 1); }}
             className="p-2 rounded-xl hover:bg-surface-lighter transition-colors"
             title="摸摸头"
           >

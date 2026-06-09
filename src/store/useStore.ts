@@ -9,6 +9,9 @@ const STORAGE_KEYS = {
   intimacyLevels: 'fp-intimacy-levels',
   userName: 'fp-user-name',
   checkedInToday: 'fp-checked-in',
+  apiKey: 'fp-api-key',
+  checkInStreak: 'fp-check-in-streak',
+  lastCheckInDate: 'fp-last-check-in-date',
 };
 
 function loadFromStorage<T>(key: string, defaultValue: T): T {
@@ -22,6 +25,12 @@ function loadFromStorage<T>(key: string, defaultValue: T): T {
 
 function saveToStorage<T>(key: string, value: T): void {
   localStorage.setItem(key, JSON.stringify(value));
+}
+
+function isYesterday(dateStr: string): boolean {
+  const yesterday = new Date();
+  yesterday.setDate(yesterday.getDate() - 1);
+  return dateStr === yesterday.toDateString();
 }
 
 export function useAppStore() {
@@ -43,6 +52,15 @@ export function useAppStore() {
   const [checkedInToday, setCheckedInToday] = useState<string>(
     loadFromStorage(STORAGE_KEYS.checkedInToday, '')
   );
+  const [apiKey, setApiKeyState] = useState<string>(
+    loadFromStorage(STORAGE_KEYS.apiKey, '')
+  );
+  const [checkInStreak, setCheckInStreak] = useState<number>(
+    loadFromStorage(STORAGE_KEYS.checkInStreak, 0)
+  );
+  const [lastCheckInDate, setLastCheckInDate] = useState<string>(
+    loadFromStorage(STORAGE_KEYS.lastCheckInDate, '')
+  );
 
   const selectedCharacter = characters.find(c => c.id === selectedCharacterId) || null;
 
@@ -54,6 +72,11 @@ export function useAppStore() {
   const setUserName = useCallback((name: string) => {
     setUserNameState(name);
     saveToStorage(STORAGE_KEYS.userName, name);
+  }, []);
+
+  const setApiKey = useCallback((key: string) => {
+    setApiKeyState(key);
+    saveToStorage(STORAGE_KEYS.apiKey, key);
   }, []);
 
   const addMessage = useCallback((characterId: string, message: ChatMessage) => {
@@ -93,11 +116,30 @@ export function useAppStore() {
 
   const checkIn = useCallback(() => {
     const today = new Date().toDateString();
+    let newStreak: number;
+    if (isYesterday(lastCheckInDate)) {
+      newStreak = checkInStreak + 1;
+    } else if (lastCheckInDate === today) {
+      newStreak = checkInStreak;
+    } else {
+      newStreak = 1;
+    }
+
     setCheckedInToday(today);
+    setCheckInStreak(newStreak);
+    setLastCheckInDate(today);
     saveToStorage(STORAGE_KEYS.checkedInToday, today);
-  }, []);
+    saveToStorage(STORAGE_KEYS.checkInStreak, newStreak);
+    saveToStorage(STORAGE_KEYS.lastCheckInDate, today);
+    return newStreak;
+  }, [lastCheckInDate, checkInStreak]);
 
   const isCheckedIn = checkedInToday === new Date().toDateString();
+
+  const getCheckInReward = useCallback(() => {
+    const streakBonus = Math.min(checkInStreak * 2, 10);
+    return 5 + streakBonus;
+  }, [checkInStreak]);
 
   const clearAllData = useCallback(() => {
     Object.values(STORAGE_KEYS).forEach(key => localStorage.removeItem(key));
@@ -107,6 +149,9 @@ export function useAppStore() {
     setIntimacyLevels({});
     setUserNameState('');
     setCheckedInToday('');
+    setApiKeyState('');
+    setCheckInStreak(0);
+    setLastCheckInDate('');
   }, []);
 
   return {
@@ -124,7 +169,11 @@ export function useAppStore() {
     setUserName,
     isCheckedIn,
     checkIn,
+    checkInStreak,
+    getCheckInReward,
     clearAllData,
     characters,
+    apiKey,
+    setApiKey,
   };
 }

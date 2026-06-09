@@ -23,11 +23,14 @@ function AppContent() {
               selectedCharacterId={store.selectedCharacterId}
               isCheckedIn={store.isCheckedIn}
               checkIn={() => {
-                store.checkIn();
+                const streak = store.checkIn();
                 if (store.selectedCharacterId) {
-                  store.addIntimacy(store.selectedCharacterId, 5);
+                  store.addIntimacy(store.selectedCharacterId, store.getCheckInReward());
                 }
+                return streak;
               }}
+              checkInStreak={store.checkInStreak}
+              getCheckInReward={store.getCheckInReward}
               intimacyLevels={store.intimacyLevels}
             />
           }
@@ -43,6 +46,7 @@ function AppContent() {
               intimacyLevel={store.selectedCharacterId ? (store.intimacyLevels[store.selectedCharacterId] || 0) : 0}
               addIntimacy={store.addIntimacy}
               userName={store.userName}
+              apiKey={store.apiKey}
             />
           }
         />
@@ -75,6 +79,8 @@ function AppContent() {
               userName={store.userName}
               setUserName={store.setUserName}
               clearAllData={store.clearAllData}
+              apiKey={store.apiKey}
+              setApiKey={store.setApiKey}
             />
           }
         />

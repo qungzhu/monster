@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { BookHeart, Plus, X } from 'lucide-react';
 import type { Character, MoodEntry, MoodType } from '../data/characters';
 import { moodEmojis, moodLabels, moodColors } from '../data/characters';
+import { MoodCalendar } from '../components/MoodCalendar';
+import { MoodStats } from '../components/MoodStats';
 
 interface MoodPageProps {
   character: Character | null;
@@ -24,6 +26,7 @@ export function MoodPage({
   const [showAdd, setShowAdd] = useState(false);
   const [selectedMood, setSelectedMood] = useState<MoodType | null>(null);
   const [note, setNote] = useState('');
+  const [activeTab, setActiveTab] = useState<'diary' | 'calendar' | 'stats'>('diary');
 
   const handleSubmit = () => {
     if (!selectedMood || !character) return;
@@ -56,11 +59,11 @@ export function MoodPage({
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex items-center justify-between mb-6"
+          className="flex items-center justify-between mb-4"
         >
           <div>
             <h1 className="text-xl font-bold flex items-center gap-2">
-              <BookHeart size={22} style={{ color: themeColor || '#e91e8c' }} />
+              <BookHeart size={22} style={{ color: themeColor || '#d97706' }} />
               心情日记
             </h1>
             <p className="text-text-muted text-xs mt-1">记录你的每一刻心情</p>
@@ -76,6 +79,26 @@ export function MoodPage({
             </motion.button>
           )}
         </motion.div>
+
+        {/* Tabs */}
+        {character && (
+          <div className="flex gap-1 mb-4 glass rounded-xl p-1">
+            {([['diary', '日记'], ['calendar', '日历'], ['stats', '统计']] as const).map(([key, label]) => (
+              <button
+                key={key}
+                onClick={() => setActiveTab(key)}
+                className={`flex-1 py-2 rounded-lg text-xs font-medium transition-all ${
+                  activeTab === key
+                    ? 'text-white'
+                    : 'text-text-muted hover:text-text-secondary'
+                }`}
+                style={activeTab === key ? { background: themeColor } : undefined}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Add Mood Form */}
         <AnimatePresence>
@@ -129,74 +152,106 @@ export function MoodPage({
           )}
         </AnimatePresence>
 
-        {/* Mood Entries */}
+        {/* No character */}
         {!character && (
           <div className="text-center py-20">
             <BookHeart size={48} className="text-text-muted mx-auto mb-4" />
-            <p className="text-text-secondary">请先选择一位伴侣</p>
+            <p className="text-text-secondary">请先选择一只小可爱</p>
           </div>
         )}
 
-        {character && moodEntries.length === 0 && !showAdd && (
+        {/* Calendar Tab */}
+        {character && activeTab === 'calendar' && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="text-center py-16"
           >
-            <BookHeart size={48} className="text-text-muted mx-auto mb-4" />
-            <p className="text-text-secondary">还没有心情记录</p>
-            <p className="text-text-muted text-sm mt-1">点击右上角的+开始记录</p>
+            <MoodCalendar entries={moodEntries} />
           </motion.div>
         )}
 
-        <div className="space-y-3 pb-4">
-          {moodEntries.map((entry, index) => (
-            <motion.div
-              key={entry.id}
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: index * 0.05 }}
-              className="glass rounded-2xl p-4"
-            >
-              <div className="flex items-start gap-3">
-                <div
-                  className="w-10 h-10 rounded-xl flex items-center justify-center text-xl shrink-0"
-                  style={{ background: `${moodColors[entry.mood]}22` }}
-                >
-                  {moodEmojis[entry.mood]}
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center justify-between mb-1">
-                    <span className="text-sm font-medium" style={{ color: moodColors[entry.mood] }}>
-                      {moodLabels[entry.mood]}
-                    </span>
-                    <span className="text-[10px] text-text-muted">
-                      {new Date(entry.date).toLocaleDateString('zh-CN', {
-                        month: 'short',
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                      })}
-                    </span>
-                  </div>
-                  {entry.note && (
-                    <p className="text-text-secondary text-sm mb-2">{entry.note}</p>
-                  )}
-                  {/* Character response */}
-                  <div
-                    className="rounded-xl p-3 mt-2"
-                    style={{ background: `${themeColor}11`, border: `1px solid ${themeColor}15` }}
-                  >
-                    <p className="text-xs text-text-muted mb-1">
-                      {character?.name ?? ''}的回复:
-                    </p>
-                    <p className="text-sm text-text-secondary">{entry.characterResponse}</p>
-                  </div>
-                </div>
+        {/* Stats Tab */}
+        {character && activeTab === 'stats' && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+          >
+            {moodEntries.length === 0 ? (
+              <div className="text-center py-16">
+                <BookHeart size={48} className="text-text-muted mx-auto mb-4" />
+                <p className="text-text-secondary">还没有心情记录</p>
+                <p className="text-text-muted text-sm mt-1">开始记录后这里会显示统计</p>
               </div>
-            </motion.div>
-          ))}
-        </div>
+            ) : (
+              <MoodStats entries={moodEntries} />
+            )}
+          </motion.div>
+        )}
+
+        {/* Diary Tab */}
+        {character && activeTab === 'diary' && (
+          <>
+            {moodEntries.length === 0 && !showAdd && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="text-center py-16"
+              >
+                <BookHeart size={48} className="text-text-muted mx-auto mb-4" />
+                <p className="text-text-secondary">还没有心情记录</p>
+                <p className="text-text-muted text-sm mt-1">点击右上角的+开始记录</p>
+              </motion.div>
+            )}
+
+            <div className="space-y-3 pb-4">
+              {moodEntries.map((entry, index) => (
+                <motion.div
+                  key={entry.id}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: index * 0.05 }}
+                  className="glass rounded-2xl p-4"
+                >
+                  <div className="flex items-start gap-3">
+                    <div
+                      className="w-10 h-10 rounded-xl flex items-center justify-center text-xl shrink-0"
+                      style={{ background: `${moodColors[entry.mood]}22` }}
+                    >
+                      {moodEmojis[entry.mood]}
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-sm font-medium" style={{ color: moodColors[entry.mood] }}>
+                          {moodLabels[entry.mood]}
+                        </span>
+                        <span className="text-[10px] text-text-muted">
+                          {new Date(entry.date).toLocaleDateString('zh-CN', {
+                            month: 'short',
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit',
+                          })}
+                        </span>
+                      </div>
+                      {entry.note && (
+                        <p className="text-text-secondary text-sm mb-2">{entry.note}</p>
+                      )}
+                      <div
+                        className="rounded-xl p-3 mt-2"
+                        style={{ background: `${themeColor}11`, border: `1px solid ${themeColor}15` }}
+                      >
+                        <p className="text-xs text-text-muted mb-1">
+                          {character?.name ?? ''}的回复:
+                        </p>
+                        <p className="text-sm text-text-secondary">{entry.characterResponse}</p>
+                      </div>
+                    </div>
+                  </div>
+                </motion.div>
+              ))}
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
