@@ -171,7 +171,7 @@ export function Hero() {
             { value: '50K+', label: t.hero.stat1 },
             { value: '120+', label: t.hero.stat2 },
             { value: '$2,400', label: t.hero.stat3 },
-            { value: '30+', label: t.hero.stat4 },
+            { value: '5', label: t.hero.stat4 },
           ].map((stat) => (
             <div
               key={stat.label}

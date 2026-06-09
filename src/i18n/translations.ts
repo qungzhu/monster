@@ -13,7 +13,7 @@ export const translations = {
       joinNow: 'Join Free',
     },
     hero: {
-      badge: 'AI-Powered Affiliate Marketing',
+      badge: 'Affiliate Marketing & Cashback Platform',
       title1: 'Monetize Your',
       title2: 'Influence',
       title3: 'with Intelligent AI',
@@ -24,7 +24,7 @@ export const translations = {
       stat1: 'Active Members',
       stat2: 'Countries Reached',
       stat3: 'Avg. Monthly Earnings',
-      stat4: 'AI Tools Available',
+      stat4: 'Partner Platforms',
     },
     stats: {
       members: '50,000+',
@@ -41,27 +41,27 @@ export const translations = {
       title: 'Everything You Need to',
       titleHighlight: 'Scale Your Income',
       subtitle:
-        'Mova gives you a complete AI-powered toolkit to create content, track performance, and maximize affiliate commissions.',
+        'Mova gives you a complete toolkit to find products, track performance, and maximize affiliate commissions — with built-in support for connecting your favourite AI tools via API.',
       items: [
         {
-          title: 'AI Content Studio',
-          desc: 'Generate high-converting posts, captions, and videos scripts tailored for TikTok, Instagram, YouTube, and more — in seconds.',
+          title: 'Smart Product Discovery',
+          desc: 'Browse and search thousands of products across Shopee, TikTok Shop, Lazada, and travel platforms. Pick the best fit for your audience in seconds.',
         },
         {
           title: 'Smart Link Tracking',
-          desc: 'Real-time click analytics, conversion tracking, and automated A/B testing to optimize every affiliate link you share.',
+          desc: 'Real-time click analytics, conversion tracking, and performance reports to optimize every affiliate link you share.',
         },
         {
           title: 'Multi-Platform Manager',
-          desc: 'Manage and schedule content across all your social channels from one intelligent dashboard.',
+          desc: 'Manage all your affiliate links and campaigns across multiple platforms from one clean dashboard.',
         },
         {
           title: 'Global Commission Engine',
-          desc: 'Earn commissions from brands worldwide with transparent, on-time payouts and multi-currency support.',
+          desc: 'Earn cashback and sales commissions with transparent, on-time payouts and multi-currency support.',
         },
         {
-          title: 'AI Market Intelligence',
-          desc: 'Stay ahead of trends with AI-powered competitor analysis and niche opportunity alerts.',
+          title: 'AI Tool Integration',
+          desc: 'Connect external AI tools (ChatGPT, Gemini, etc.) via API to help you write content, captions, and scripts for your promotions.',
         },
         {
           title: 'Community & Academy',
@@ -81,13 +81,13 @@ export const translations = {
         },
         {
           number: '02',
-          title: 'Create AI Content',
-          desc: 'Use our AI Studio to generate engaging content for your niche. Choose products from 500+ brand partners.',
+          title: 'Pick Products & Get Your Link',
+          desc: 'Browse 500+ brand partners, choose products that match your niche, and get your unique tracked affiliate link instantly.',
         },
         {
           number: '03',
-          title: 'Grow & Earn',
-          desc: 'Post, track, optimize with AI insights. Watch your commissions grow as your audience scales.',
+          title: 'Promote, Track & Earn',
+          desc: 'Share your links on any social channel. Use any AI tool you like to create content. Watch commissions roll in as your audience grows.',
         },
       ],
     },
@@ -99,19 +99,19 @@ export const translations = {
         {
           name: 'Sarah Lim',
           role: 'Lifestyle Creator, Malaysia',
-          text: 'Mova changed my life. Within 3 months I went from zero to RM 8,000/month using just Instagram and TikTok. The AI content tools are insane.',
+          text: 'Mova changed my life. Within 3 months I went from zero to RM 8,000/month using just Instagram and TikTok. The link tracking and commission system is seamless.',
           earnings: 'RM 8,000 / mo',
         },
         {
           name: 'James Okafor',
           role: 'Tech Reviewer, Nigeria',
-          text: "I tried 5 other affiliate platforms. Mova's AI actually understands my audience. My CTR doubled in the first month.",
+          text: "I tried 5 other affiliate platforms. Mova's tracking is the most accurate I've used. I connected ChatGPT via API and my content workflow is now fully automated.",
           earnings: '$3,200 / mo',
         },
         {
           name: 'Priya Sharma',
           role: 'Health & Wellness Creator, India',
-          text: 'The community alone is worth joining. Top affiliates share strategies openly. Plus the AI saves me 10+ hours every week.',
+          text: 'The community alone is worth joining. Top affiliates share strategies openly. I use the AI API integration with Gemini to write my promo posts — saves me hours every week.',
           earnings: '$2,800 / mo',
         },
       ],
@@ -125,14 +125,14 @@ export const translations = {
     cta: {
       badge: 'Limited Early Access',
       title: 'Ready to Build Your',
-      titleHighlight: 'AI Income Stream?',
-      subtitle: 'Join 50,000+ creators already using Mova to monetize smarter. Free forever plan available.',
+      titleHighlight: 'Affiliate Income Stream?',
+      subtitle: 'Join 50,000+ creators already using Mova to earn cashback and commissions. Connect your own AI tools to work even smarter.',
       btn1: 'Get Started Free',
       btn2: 'Book a Demo Call',
       note: 'No credit card required · Cancel anytime',
     },
     footer: {
-      tagline: 'AI-powered affiliate marketing for the next generation of creators.',
+      tagline: 'Smart affiliate marketing & cashback platform for the next generation of creators.',
       product: 'Product',
       company: 'Company',
       legal: 'Legal',
@@ -165,7 +165,7 @@ export const translations = {
       joinNow: 'Daftar Percuma',
     },
     hero: {
-      badge: 'Pemasaran Afiliasi Dikuasai AI',
+      badge: 'Platform Afiliasi & Cashback',
       title1: 'Jana Pendapatan dari',
       title2: 'Pengaruh',
       title3: 'Anda dengan AI Pintar',
@@ -176,7 +176,7 @@ export const translations = {
       stat1: 'Ahli Aktif',
       stat2: 'Negara Diliputi',
       stat3: 'Pendapatan Bulanan Purata',
-      stat4: 'Alat AI Tersedia',
+      stat4: 'Platform Rakan Kongsi',
     },
     stats: {
       members: '50,000+',
@@ -193,27 +193,27 @@ export const translations = {
       title: 'Semua Yang Anda Perlukan untuk',
       titleHighlight: 'Tingkatkan Pendapatan',
       subtitle:
-        'Mova memberi anda set alat berkuasa AI yang lengkap untuk mencipta kandungan, menjejaki prestasi, dan memaksimumkan komisen afiliasi.',
+        'Mova memberi anda set alat lengkap untuk mencari produk, menjejaki prestasi, dan memaksimumkan komisen afiliasi — dengan sokongan sambungan alat AI kegemaran anda melalui API.',
       items: [
         {
-          title: 'Studio Kandungan AI',
-          desc: 'Jana siaran, kapsyen, dan skrip video yang menukar tinggi, disesuaikan untuk TikTok, Instagram, YouTube dan lain-lain — dalam masa beberapa saat.',
+          title: 'Penemuan Produk Pintar',
+          desc: 'Semak dan cari ribuan produk merentasi Shopee, TikTok Shop, Lazada, dan platform pelancongan. Pilih yang terbaik untuk audiens anda dalam masa beberapa saat.',
         },
         {
           title: 'Penjejakan Pautan Pintar',
-          desc: 'Analitik klik masa nyata, penjejakan penukaran, dan ujian A/B automatik untuk mengoptimumkan setiap pautan afiliasi yang anda kongsi.',
+          desc: 'Analitik klik masa nyata, penjejakan penukaran, dan laporan prestasi untuk mengoptimumkan setiap pautan afiliasi yang anda kongsi.',
         },
         {
           title: 'Pengurus Pelbagai Platform',
-          desc: 'Urus dan jadualkan kandungan di semua saluran sosial anda dari satu papan pemuka pintar.',
+          desc: 'Urus semua pautan afiliasi dan kempen anda merentasi pelbagai platform dari satu papan pemuka yang bersih.',
         },
         {
           title: 'Enjin Komisen Global',
-          desc: 'Dapatkan komisen dari jenama di seluruh dunia dengan pembayaran telus, tepat masa dan sokongan pelbagai mata wang.',
+          desc: 'Jana cashback dan komisen jualan dengan pembayaran telus, tepat masa dan sokongan pelbagai mata wang.',
         },
         {
-          title: 'Perisikan Pasaran AI',
-          desc: 'Kekal di hadapan trend dengan analisis pesaing berkuasa AI dan amaran peluang niche.',
+          title: 'Integrasi Alat AI',
+          desc: 'Sambungkan alat AI luaran (ChatGPT, Gemini, dll.) melalui API untuk membantu anda menulis kandungan, kapsyen, dan skrip promosi.',
         },
         {
           title: 'Komuniti & Akademi',
@@ -233,13 +233,13 @@ export const translations = {
         },
         {
           number: '02',
-          title: 'Cipta Kandungan AI',
-          desc: 'Gunakan Studio AI kami untuk menjana kandungan menarik untuk niche anda. Pilih produk dari 500+ rakan jenama.',
+          title: 'Pilih Produk & Dapatkan Pautan',
+          desc: 'Layari 500+ rakan jenama, pilih produk yang sesuai dengan niche anda, dan dapatkan pautan afiliasi unik anda dengan serta-merta.',
         },
         {
           number: '03',
-          title: 'Berkembang & Jana Pendapatan',
-          desc: 'Siar, jejak, optimumkan dengan cerapan AI. Saksikan komisen anda berkembang apabila audiens anda berkembang.',
+          title: 'Promosi, Jejak & Jana Pendapatan',
+          desc: 'Kongsi pautan anda di mana-mana saluran sosial. Gunakan mana-mana alat AI yang anda suka untuk mencipta kandungan. Saksikan komisen masuk apabila audiens anda berkembang.',
         },
       ],
     },
@@ -251,19 +251,19 @@ export const translations = {
         {
           name: 'Sarah Lim',
           role: 'Pencipta Gaya Hidup, Malaysia',
-          text: 'Mova mengubah hidup saya. Dalam masa 3 bulan saya beralih dari sifar ke RM 8,000/bulan menggunakan Instagram dan TikTok sahaja. Alat kandungan AI sangat luar biasa.',
+          text: 'Mova mengubah hidup saya. Dalam masa 3 bulan saya beralih dari sifar ke RM 8,000/bulan menggunakan Instagram dan TikTok sahaja. Sistem penjejakan dan komisen sangat lancar.',
           earnings: 'RM 8,000 / bln',
         },
         {
           name: 'James Okafor',
           role: 'Pengulas Teknologi, Nigeria',
-          text: 'Saya mencuba 5 platform afiliasi lain. AI Mova benar-benar memahami audiens saya. CTR saya berganda dalam bulan pertama.',
+          text: 'Saya mencuba 5 platform afiliasi lain. Penjejakan Mova paling tepat yang pernah saya gunakan. Saya sambungkan ChatGPT melalui API dan aliran kerja kandungan saya kini sepenuhnya automatik.',
           earnings: '$3,200 / bln',
         },
         {
           name: 'Priya Sharma',
           role: 'Pencipta Kesihatan & Wellness, India',
-          text: 'Komuniti sahaja sudah berbaloi untuk disertai. Afiliasi terbaik berkongsi strategi secara terbuka. Tambahan pula AI menjimatkan lebih 10 jam setiap minggu.',
+          text: 'Komuniti sahaja sudah berbaloi untuk disertai. Afiliasi terbaik berkongsi strategi secara terbuka. Saya guna integrasi API AI dengan Gemini untuk menulis siaran promosi — menjimatkan berjam-jam setiap minggu.',
           earnings: '$2,800 / bln',
         },
       ],
@@ -277,14 +277,14 @@ export const translations = {
     cta: {
       badge: 'Akses Awal Terhad',
       title: 'Bersedia untuk Bina',
-      titleHighlight: 'Aliran Pendapatan AI Anda?',
-      subtitle: 'Sertai 50,000+ pencipta yang sudah menggunakan Mova untuk memonetisasi dengan lebih bijak. Pelan percuma selama-lamanya tersedia.',
+      titleHighlight: 'Aliran Pendapatan Afiliasi Anda?',
+      subtitle: 'Sertai 50,000+ pencipta yang sudah menggunakan Mova untuk jana cashback dan komisen. Sambungkan alat AI anda sendiri untuk bekerja lebih bijak.',
       btn1: 'Mulakan Percuma',
       btn2: 'Tempah Panggilan Demo',
       note: 'Tiada kad kredit diperlukan · Batalkan bila-bila masa',
     },
     footer: {
-      tagline: 'Pemasaran afiliasi berkuasa AI untuk generasi pencipta seterusnya.',
+      tagline: 'Platform pemasaran afiliasi & cashback pintar untuk generasi pencipta seterusnya.',
       product: 'Produk',
       company: 'Syarikat',
       legal: 'Undang-undang',
@@ -317,7 +317,7 @@ export const translations = {
       joinNow: '免费加入',
     },
     hero: {
-      badge: 'AI 驱动的联盟营销平台',
+      badge: '联盟营销 & 返券变现平台',
       title1: '用智能 AI 将你的',
       title2: '影响力',
       title3: '转化为持续收入',
@@ -328,7 +328,7 @@ export const translations = {
       stat1: '活跃会员',
       stat2: '覆盖国家',
       stat3: '月均收益',
-      stat4: 'AI 工具数量',
+      stat4: '合作平台数量',
     },
     stats: {
       members: '50,000+',
@@ -345,27 +345,27 @@ export const translations = {
       title: '助你',
       titleHighlight: '收入规模化的一切工具',
       subtitle:
-        'Mova 为你提供完整的 AI 工具集——创作内容、追踪效果、最大化联盟佣金，一站搞定。',
+        'Mova 为你提供完整的选品、追踪与结算工具——并支持通过 API 接入你喜欢的 AI 工具，让推广更高效。',
       items: [
         {
-          title: 'AI 内容工作室',
-          desc: '秒级生成高转化的帖子、文案和视频脚本，精准适配抖音、小红书、微博、YouTube 等平台。',
+          title: '智能选品中心',
+          desc: '浏览 Shopee、TikTok Shop、Lazada、Tiket.com、Trip.com 上的海量商品，快速找到最适合你受众的好产品。',
         },
         {
           title: '智能链接追踪',
-          desc: '实时点击分析、转化追踪与自动 A/B 测试，让每条推广链接都发挥最大价值。',
+          desc: '实时点击分析、转化追踪与详细数据报告，让每条推广链接都发挥最大价值。',
         },
         {
-          title: '多平台内容管理',
-          desc: '在一个智能仪表盘中统一管理和定时发布所有社媒平台的内容。',
+          title: '多平台推广管理',
+          desc: '在一个清晰的仪表盘中统一管理所有平台的联盟链接和推广活动。',
         },
         {
           title: '全球佣金结算系统',
-          desc: '与全球品牌合作赚取佣金，支持多币种，透明结算，按时打款。',
+          desc: '获取返券和销售佣金，多币种支持，透明结算，按时打款。',
         },
         {
-          title: 'AI 市场洞察',
-          desc: 'AI 驱动的竞品分析与垂类机会预警，让你始终走在趋势前面。',
+          title: 'AI 工具接入',
+          desc: '通过 API 接入 ChatGPT、Gemini 等外部 AI 工具，辅助撰写推广文案、标题和视频脚本。',
         },
         {
           title: '社群与培训学院',
@@ -385,13 +385,13 @@ export const translations = {
         },
         {
           number: '02',
-          title: '创建 AI 内容',
-          desc: '使用 AI 工作室为你的垂直领域生成爆款内容，从 500+ 品牌合作方中自由选品。',
+          title: '选品并获取专属推广链接',
+          desc: '浏览 500+ 品牌合作方，选择适合你受众的商品，立即获取带追踪功能的专属联盟链接。',
         },
         {
           number: '03',
-          title: '持续成长，稳定变现',
-          desc: '发布、追踪、用 AI 洞察持续优化，随着粉丝增长，佣金也同步增长。',
+          title: '推广、追踪并稳定变现',
+          desc: '将链接分享到任意社媒渠道，用你喜欢的 AI 工具创作内容，随着粉丝增长佣金持续滚入。',
         },
       ],
     },
@@ -403,19 +403,19 @@ export const translations = {
         {
           name: 'Sarah Lim',
           role: '生活方式博主，马来西亚',
-          text: 'Mova 改变了我的生活。仅用 Instagram 和 TikTok，3 个月内我就从零做到月收入 RM 8,000。AI 内容工具真的太强了。',
+          text: 'Mova 改变了我的生活。仅用 Instagram 和 TikTok，3 个月内我就从零做到月收入 RM 8,000。链接追踪和佣金系统非常流畅，完全不用操心后台。',
           earnings: 'RM 8,000 / 月',
         },
         {
           name: 'James Okafor',
           role: '科技评测博主，尼日利亚',
-          text: '我试过 5 个联盟营销平台，Mova 的 AI 是唯一真正懂我受众的。第一个月点击率就翻倍了。',
+          text: '我试过 5 个联盟营销平台，Mova 的数据追踪是最精准的。通过 API 接入了 ChatGPT，我的内容工作流现在已经全自动了。',
           earnings: '$3,200 / 月',
         },
         {
           name: 'Priya Sharma',
           role: '健康养生创作者，印度',
-          text: '光是社群就值回票价。顶级会员毫无保留地分享策略，而且 AI 每周帮我节省 10 多小时。',
+          text: '光是社群就值回票价。顶级会员毫无保留地分享策略。我用 Gemini 的 API 接口写推广帖子，每周省下好几个小时。',
           earnings: '$2,800 / 月',
         },
       ],
@@ -429,14 +429,14 @@ export const translations = {
     cta: {
       badge: '限时早期名额',
       title: '准备好搭建你的',
-      titleHighlight: 'AI 收入体系了吗？',
-      subtitle: '加入已有 50,000+ 创作者的 Mova，更聪明地实现变现。永久免费方案长期开放。',
+      titleHighlight: '联盟变现收入体系了吗？',
+      subtitle: '加入已有 50,000+ 创作者的 Mova，赚取返券与销售佣金。接入你自己的 AI 工具，让变现效率更上一层楼。',
       btn1: '免费开始',
       btn2: '预约演示通话',
       note: '无需信用卡 · 随时取消',
     },
     footer: {
-      tagline: '为下一代创作者打造的 AI 联盟营销平台。',
+      tagline: '为下一代创作者打造的智能联盟营销与返券变现平台。',
       product: '产品',
       company: '公司',
       legal: '法律',
