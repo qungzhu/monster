@@ -1,6 +1,6 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Navigation } from './components/Navigation';
-import { WelcomePage } from './pages/WelcomePage';
+import { GameHomePage } from './pages/GameHomePage';
 import { ChatPage } from './pages/ChatPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { MoodPage } from './pages/MoodPage';
@@ -16,11 +16,28 @@ function AppContent() {
         <Route
           path="/"
           element={
-            <WelcomePage
-              userName={store.userName}
-              setUserName={store.setUserName}
+            <GameHomePage
+              character={store.selectedCharacter}
+              characters={store.characters}
               selectCharacter={store.selectCharacter}
               selectedCharacterId={store.selectedCharacterId}
+              userName={store.userName}
+              setUserName={store.setUserName}
+              coins={store.coins}
+              addCoins={store.addCoins}
+              xp={store.xp}
+              addXP={store.addXP}
+              levelInfo={store.levelInfo}
+              getPetStats={store.getPetStats}
+              updatePetStat={store.updatePetStat}
+              getQuestProgress={store.getQuestProgress}
+              updateQuestProgress={store.updateQuestProgress}
+              inventory={store.inventory}
+              buyItem={store.buyItem}
+              useItem={store.useItem}
+              getReaction={store.getReaction}
+              addIntimacy={store.addIntimacy}
+              intimacyLevels={store.intimacyLevels}
               isCheckedIn={store.isCheckedIn}
               checkIn={() => {
                 const streak = store.checkIn();
@@ -31,7 +48,6 @@ function AppContent() {
               }}
               checkInStreak={store.checkInStreak}
               getCheckInReward={store.getCheckInReward}
-              intimacyLevels={store.intimacyLevels}
             />
           }
         />
@@ -47,6 +63,9 @@ function AppContent() {
               addIntimacy={store.addIntimacy}
               userName={store.userName}
               apiKey={store.apiKey}
+              addXP={store.addXP}
+              addCoins={store.addCoins}
+              updateQuestProgress={store.updateQuestProgress}
             />
           }
         />

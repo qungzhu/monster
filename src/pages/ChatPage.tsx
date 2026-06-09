@@ -1,13 +1,10 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Smile, PawPrint, Sparkles, Sticker, Bot } from 'lucide-react';
+import { Send, Smile, ChevronUp, Bot } from 'lucide-react';
 import type { Character, ChatMessage, MoodType } from '../data/characters';
 import { moodEmojis, moodLabels } from '../data/characters';
 import { detectEmotion, getTimeOfDay } from '../utils/emotion';
 import { sendAIMessage } from '../utils/ai';
-import { TypingIndicator } from '../components/TypingIndicator';
-import { IntimacyBar } from '../components/IntimacyBar';
-import { PetStickers } from '../components/PetStickers';
 import { PetScene } from '../components/pets/PetScene';
 
 interface ChatPageProps {
@@ -19,6 +16,9 @@ interface ChatPageProps {
   addIntimacy: (characterId: string, amount: number) => void;
   userName: string;
   apiKey: string;
+  addXP: (n: number) => void;
+  addCoins: (n: number) => void;
+  updateQuestProgress: (type: string, amount?: number) => void;
 }
 
 const moodOptions: MoodType[] = ['happy', 'sad', 'angry', 'anxious', 'lonely'];
@@ -32,13 +32,21 @@ export function ChatPage({
   addIntimacy,
   userName,
   apiKey,
+  addXP,
+  addCoins,
+  updateQuestProgress,
 }: ChatPageProps) {
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const [showMoodPicker, setShowMoodPicker] = useState(false);
-  const [showStickers, setShowStickers] = useState(false);
   const [isAIMode, setIsAIMode] = useState(!!apiKey);
+  const [showHistory, setShowHistory] = useState(false);
+  const [displayedText, setDisplayedText] = useState('');
+  const [isRevealing, setIsRevealing] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const lastCharMessage = chatHistory.filter(m => m.role === 'character').slice(-1)[0];
+  const lastUserMessage = chatHistory.filter(m => m.role === 'user').slice(-1)[0];
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -48,12 +56,29 @@ export function ChatPage({
     scrollToBottom();
   }, [chatHistory, isTyping, scrollToBottom]);
 
+  // Typewriter effect for latest character message
+  useEffect(() => {
+    if (!lastCharMessage) return;
+    const text = lastCharMessage.content;
+    setIsRevealing(true);
+    setDisplayedText('');
+    let i = 0;
+    const interval = setInterval(() => {
+      i++;
+      setDisplayedText(text.slice(0, i));
+      if (i >= text.length) {
+        clearInterval(interval);
+        setIsRevealing(false);
+      }
+    }, 30);
+    return () => clearInterval(interval);
+  }, [lastCharMessage?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+
   useEffect(() => {
     if (character && chatHistory.length === 0) {
       const timeOfDay = getTimeOfDay();
       const dailyMessages = character.dailyMessages[timeOfDay];
       const greeting = dailyMessages[Math.floor(Math.random() * dailyMessages.length)];
-
       setTimeout(() => {
         addMessage(character.id, {
           id: `${Date.now()}`,
@@ -73,13 +98,16 @@ export function ChatPage({
     return (
       <div className="h-full flex items-center justify-center pb-20">
         <div className="text-center">
-          <Sparkles size={48} className="text-text-muted mx-auto mb-4" />
+          <span className="text-5xl block mb-4">💬</span>
           <p className="text-text-secondary">请先选择一只小可爱</p>
           <p className="text-text-muted text-sm mt-1">回到首页选择你的萌宠伙伴</p>
         </div>
       </div>
     );
   }
+
+  const themeColor = character.theme === 'tuantuan' ? '#d97706' :
+    character.theme === 'xiaoxue' ? '#7c3aed' : '#ec4899';
 
   const sendMessage = async (content: string, mood?: MoodType) => {
     if (!content.trim() || isTyping) return;
@@ -95,26 +123,21 @@ export function ChatPage({
     addMessage(character.id, userMessage);
     setInput('');
     setShowMoodPicker(false);
-    setShowStickers(false);
     setIsTyping(true);
+
+    updateQuestProgress('chat');
+    addXP(5);
+    addCoins(2);
 
     if (isAIMode && apiKey) {
       try {
-        const result = await sendAIMessage(
-          content,
-          character,
-          chatHistory,
-          intimacyLevel,
-          userName,
-          apiKey,
-        );
-        const charMessage: ChatMessage = {
+        const result = await sendAIMessage(content, character, chatHistory, intimacyLevel, userName, apiKey);
+        addMessage(character.id, {
           id: `char-${Date.now()}`,
           role: 'character',
           content: result.response,
           timestamp: Date.now(),
-        };
-        addMessage(character.id, charMessage);
+        });
         addIntimacy(character.id, 2);
       } catch {
         const response = getCharacterResponse(character, detectedMood as MoodType);
@@ -153,190 +176,252 @@ export function ChatPage({
     sendMessage(moodMessage, mood);
   };
 
-  const handleStickerSelect = (sticker: string) => {
-    sendMessage(sticker);
+  const skipReveal = () => {
+    if (isRevealing && lastCharMessage) {
+      setDisplayedText(lastCharMessage.content);
+      setIsRevealing(false);
+    }
   };
 
-  const themeColor = character.theme === 'tuantuan' ? '#d97706' :
-    character.theme === 'xiaoxue' ? '#7c3aed' : '#ec4899';
-
   return (
-    <div className={`h-full flex flex-col theme-${character.theme}`}>
-      {/* Chat Header */}
-      <div className="glass-strong px-4 py-3 flex items-center gap-3">
-        <div className="w-10 h-10 shrink-0 rounded-full overflow-hidden">
-          <PetScene characterId={character.id} size="tiny" interactive={false} />
-        </div>
-        <div className="flex-1">
-          <h2 className="font-bold text-sm">{character.name}</h2>
-          <div className="w-32">
-            <IntimacyBar level={intimacyLevel} maxLevel={character.maxIntimacy} />
-          </div>
-        </div>
-        <div className="flex items-center gap-2">
-          {isAIMode && (
-            <span className="flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full" style={{ background: `${themeColor}22`, color: themeColor }}>
-              <Bot size={10} />
-              AI
-            </span>
-          )}
-          <div className="flex items-center gap-1 text-xs text-text-muted">
-            <span className="w-2 h-2 rounded-full bg-green-400" />
-            在线
-          </div>
-        </div>
-      </div>
-
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
-        <AnimatePresence initial={false}>
-          {chatHistory.map(message => (
-            <motion.div
-              key={message.id}
-              initial={{ opacity: 0, y: 20, scale: 0.95 }}
-              animate={{ opacity: 1, y: 0, scale: 1 }}
-              transition={{ duration: 0.3 }}
-              className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-            >
-              {message.role === 'character' && (
-                <div
-                  className="w-8 h-8 rounded-full flex items-center justify-center text-sm mr-2 shrink-0 mt-1"
-                  style={{
-                    background: `${themeColor}22`,
-                    border: `1px solid ${themeColor}33`,
-                  }}
-                >
-                  {character.avatar}
-                </div>
-              )}
-              <div
-                className={`max-w-[75%] rounded-2xl px-4 py-3 ${
-                  message.role === 'user'
-                    ? 'rounded-tr-sm'
-                    : 'glass rounded-tl-sm'
-                }`}
-                style={message.role === 'user' ? {
-                  background: `${themeColor}22`,
-                  border: `1px solid ${themeColor}22`,
-                } : undefined}
-              >
-                <p className="text-sm leading-relaxed text-text-primary">{message.content}</p>
-                {message.emotion && (
-                  <span className="text-xs text-text-muted mt-1 block">
-                    {moodEmojis[message.emotion]} {moodLabels[message.emotion]}
-                  </span>
-                )}
-                <span className="text-[10px] text-text-muted mt-1 block text-right">
-                  {new Date(message.timestamp).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}
-                </span>
-              </div>
-            </motion.div>
-          ))}
-        </AnimatePresence>
-
-        {isTyping && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            className="flex items-start"
-          >
-            <div
-              className="w-8 h-8 rounded-full flex items-center justify-center text-sm mr-2 shrink-0"
-              style={{
-                background: `${themeColor}22`,
-                border: `1px solid ${themeColor}33`,
-              }}
-            >
-              {character.avatar}
-            </div>
-            <div className="glass rounded-2xl rounded-tl-sm">
-              <TypingIndicator />
-            </div>
-          </motion.div>
-        )}
-
-        <div ref={messagesEndRef} />
-      </div>
-
-      {/* Mood Picker */}
-      <AnimatePresence>
-        {showMoodPicker && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            className="overflow-hidden glass"
-          >
-            <div className="px-4 py-3">
-              <p className="text-xs text-text-muted mb-2">现在的心情是...</p>
-              <div className="flex gap-2 justify-center">
-                {moodOptions.map(mood => (
-                  <button
-                    key={mood}
-                    onClick={() => handleMoodSelect(mood)}
-                    className="flex flex-col items-center gap-1 p-2 rounded-xl hover:bg-surface-lighter transition-colors"
-                  >
-                    <span className="text-2xl">{moodEmojis[mood]}</span>
-                    <span className="text-[10px] text-text-muted">{moodLabels[mood]}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-
-      {/* Pet Stickers */}
-      <PetStickers
-        show={showStickers && !showMoodPicker}
-        onSelect={handleStickerSelect}
-        characterId={character.id}
+    <div className={`h-full flex flex-col relative overflow-hidden theme-${character.theme}`}>
+      {/* Background scene */}
+      <div
+        className="absolute inset-0"
+        style={{
+          background: `radial-gradient(ellipse at 50% 30%, ${themeColor}12 0%, transparent 60%), linear-gradient(180deg, #0d0a08 0%, #1a1025 50%, #0d0a08 100%)`,
+        }}
       />
 
-      {/* Input Area */}
-      <div className="glass-strong px-4 py-3 pb-20">
-        <form onSubmit={handleSubmit} className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={() => { setShowMoodPicker(!showMoodPicker); setShowStickers(false); }}
-            className={`p-2 rounded-xl transition-colors ${showMoodPicker ? 'bg-primary/20' : 'hover:bg-surface-lighter'}`}
-          >
-            <Smile size={20} className="text-text-muted" />
-          </button>
-          <button
-            type="button"
-            onClick={() => { setShowStickers(!showStickers); setShowMoodPicker(false); }}
-            className={`p-2 rounded-xl transition-colors ${showStickers ? 'bg-primary/20' : 'hover:bg-surface-lighter'}`}
-          >
-            <Sticker size={20} className="text-text-muted" />
-          </button>
-          <input
-            type="text"
-            value={input}
-            onChange={e => setInput(e.target.value)}
-            placeholder={`对${character.name}说些什么...`}
-            className="flex-1 bg-surface-light rounded-xl px-4 py-2.5 text-sm text-text-primary placeholder:text-text-muted outline-none border border-transparent focus:border-primary/20 transition-colors"
-            disabled={isTyping}
-          />
-          <motion.button
-            type="submit"
-            disabled={!input.trim() || isTyping}
-            whileTap={{ scale: 0.9 }}
-            className="p-2.5 rounded-xl transition-colors disabled:opacity-30"
-            style={{ background: input.trim() ? `${themeColor}33` : undefined }}
-          >
-            <Send size={18} style={{ color: input.trim() ? themeColor : undefined }} className={input.trim() ? '' : 'text-text-muted'} />
-          </motion.button>
-          <motion.button
-            type="button"
-            whileTap={{ scale: 0.9 }}
-            onClick={() => { if (character) addIntimacy(character.id, 1); }}
-            className="p-2 rounded-xl hover:bg-surface-lighter transition-colors"
-            title="摸摸头"
-          >
-            <PawPrint size={18} style={{ color: themeColor }} />
-          </motion.button>
-        </form>
+      {/* Character name bar */}
+      <div className="relative z-10 flex items-center justify-between px-4 pt-3 pb-2">
+        <div className="flex items-center gap-2">
+          <span className="text-sm">{character.avatar}</span>
+          <span className="text-sm font-bold text-text-primary">{character.name}</span>
+          {isAIMode && (
+            <span className="flex items-center gap-1 text-[9px] px-1.5 py-0.5 rounded-full" style={{ background: `${themeColor}22`, color: themeColor }}>
+              <Bot size={9} /> AI
+            </span>
+          )}
+        </div>
+        <div className="flex items-center gap-1 text-[10px] text-text-muted">
+          <span className="w-1.5 h-1.5 rounded-full bg-green-400" /> 在线
+        </div>
+      </div>
+
+      {/* Character display area */}
+      <div className="flex-1 relative z-10 flex items-center justify-center" onClick={skipReveal}>
+        {/* 3D Pet - offset to the left like a VN character */}
+        <motion.div
+          initial={{ opacity: 0, x: -40 }}
+          animate={{ opacity: 1, x: 0 }}
+          className="absolute bottom-20 left-4"
+        >
+          <PetScene characterId={character.id} size="medium" interactive={false} />
+        </motion.div>
+
+        {/* History toggle */}
+        <motion.button
+          whileTap={{ scale: 0.9 }}
+          onClick={() => setShowHistory(!showHistory)}
+          className="absolute top-2 right-3 glass rounded-full px-3 py-1 text-[10px] text-text-muted flex items-center gap-1"
+        >
+          <ChevronUp size={12} className={`transition-transform ${showHistory ? 'rotate-180' : ''}`} />
+          对话记录
+        </motion.button>
+
+        {/* Chat history overlay */}
+        <AnimatePresence>
+          {showHistory && (
+            <motion.div
+              initial={{ opacity: 0, y: -20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="absolute inset-x-3 top-10 bottom-4 z-20 rounded-2xl overflow-hidden"
+              style={{
+                background: 'rgba(10, 8, 20, 0.92)',
+                border: '1px solid rgba(255,255,255,0.1)',
+              }}
+            >
+              <div className="h-full overflow-y-auto p-4 space-y-3">
+                {chatHistory.map(message => (
+                  <div key={message.id} className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                    <div
+                      className={`max-w-[80%] rounded-xl px-3 py-2 ${
+                        message.role === 'user' ? 'rounded-tr-sm' : 'rounded-tl-sm'
+                      }`}
+                      style={{
+                        background: message.role === 'user' ? `${themeColor}22` : 'rgba(255,255,255,0.05)',
+                        border: `1px solid ${message.role === 'user' ? `${themeColor}22` : 'rgba(255,255,255,0.05)'}`,
+                      }}
+                    >
+                      <p className="text-xs leading-relaxed text-text-primary">{message.content}</p>
+                      {message.emotion && (
+                        <span className="text-[10px] text-text-muted">{moodEmojis[message.emotion]} {moodLabels[message.emotion]}</span>
+                      )}
+                      <span className="text-[9px] text-text-muted block text-right mt-0.5">
+                        {new Date(message.timestamp).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+                <div ref={messagesEndRef} />
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+
+      {/* Visual Novel dialogue box */}
+      <div className="relative z-20">
+        {/* Last user message label */}
+        {lastUserMessage && (
+          <div className="px-5 mb-1 flex justify-end">
+            <span className="text-[10px] text-text-muted bg-white/5 rounded-full px-2 py-0.5">
+              {lastUserMessage.content.length > 30 ? lastUserMessage.content.slice(0, 30) + '...' : lastUserMessage.content}
+            </span>
+          </div>
+        )}
+
+        {/* Dialogue display */}
+        <div
+          className="mx-3 rounded-t-2xl p-4 min-h-[100px]"
+          style={{
+            background: 'linear-gradient(180deg, rgba(20, 15, 35, 0.95) 0%, rgba(15, 10, 25, 0.98) 100%)',
+            border: '1px solid rgba(255,255,255,0.12)',
+            borderBottom: 'none',
+          }}
+          onClick={skipReveal}
+        >
+          {/* Character name tag */}
+          <div className="flex items-center gap-2 mb-2">
+            <div
+              className="px-2 py-0.5 rounded-md text-xs font-bold"
+              style={{ background: `${themeColor}33`, color: themeColor }}
+            >
+              {character.name}
+            </div>
+            <div className="flex-1 h-px" style={{ background: `${themeColor}33` }} />
+          </div>
+
+          {/* Dialogue text with typewriter */}
+          <div className="min-h-[48px]">
+            {isTyping ? (
+              <div className="flex items-center gap-1">
+                <motion.span
+                  animate={{ opacity: [0.3, 1, 0.3] }}
+                  transition={{ duration: 1.2, repeat: Infinity }}
+                  className="text-sm text-text-secondary"
+                >
+                  {character.name}正在思考
+                </motion.span>
+                <motion.span
+                  animate={{ opacity: [0, 1, 0] }}
+                  transition={{ duration: 1.2, repeat: Infinity }}
+                  className="text-text-muted"
+                >
+                  ...
+                </motion.span>
+              </div>
+            ) : lastCharMessage ? (
+              <p className="text-sm leading-relaxed text-text-primary">
+                {displayedText}
+                {isRevealing && (
+                  <motion.span
+                    animate={{ opacity: [0, 1] }}
+                    transition={{ duration: 0.5, repeat: Infinity, repeatType: 'reverse' }}
+                    className="inline-block w-0.5 h-4 ml-0.5 align-middle"
+                    style={{ background: themeColor }}
+                  />
+                )}
+              </p>
+            ) : (
+              <p className="text-sm text-text-muted">和{character.name}说些什么吧...</p>
+            )}
+          </div>
+
+          {!isRevealing && !isTyping && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="flex justify-end mt-1"
+            >
+              <motion.span
+                animate={{ y: [0, 3, 0] }}
+                transition={{ duration: 1, repeat: Infinity }}
+                className="text-text-muted text-xs"
+              >
+                ▼
+              </motion.span>
+            </motion.div>
+          )}
+        </div>
+
+        {/* Mood picker */}
+        <AnimatePresence>
+          {showMoodPicker && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: 'auto', opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              className="overflow-hidden mx-3"
+              style={{ background: 'rgba(20, 15, 35, 0.95)', borderLeft: '1px solid rgba(255,255,255,0.12)', borderRight: '1px solid rgba(255,255,255,0.12)' }}
+            >
+              <div className="px-4 py-3">
+                <p className="text-[10px] text-text-muted mb-2">选择当前心情...</p>
+                <div className="flex gap-2 justify-center">
+                  {moodOptions.map(mood => (
+                    <button
+                      key={mood}
+                      onClick={() => handleMoodSelect(mood)}
+                      className="flex flex-col items-center gap-1 p-2 rounded-xl hover:bg-white/10 transition-colors"
+                    >
+                      <span className="text-xl">{moodEmojis[mood]}</span>
+                      <span className="text-[9px] text-text-muted">{moodLabels[mood]}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Input area */}
+        <div
+          className="mx-3 rounded-b-2xl px-4 py-3 pb-20"
+          style={{
+            background: 'rgba(15, 10, 25, 0.98)',
+            border: '1px solid rgba(255,255,255,0.12)',
+            borderTop: '1px solid rgba(255,255,255,0.06)',
+          }}
+        >
+          <form onSubmit={handleSubmit} className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setShowMoodPicker(!showMoodPicker)}
+              className={`p-2 rounded-xl transition-colors ${showMoodPicker ? 'bg-white/15' : 'hover:bg-white/10'}`}
+            >
+              <Smile size={18} className="text-text-muted" />
+            </button>
+            <input
+              type="text"
+              value={input}
+              onChange={e => setInput(e.target.value)}
+              placeholder={`对${character.name}说些什么...`}
+              className="flex-1 bg-white/5 rounded-xl px-4 py-2.5 text-sm text-text-primary placeholder:text-text-muted outline-none border border-white/10 focus:border-white/20 transition-colors"
+              disabled={isTyping}
+            />
+            <motion.button
+              type="submit"
+              disabled={!input.trim() || isTyping}
+              whileTap={{ scale: 0.9 }}
+              className="p-2.5 rounded-xl transition-colors disabled:opacity-30"
+              style={{ background: input.trim() ? `${themeColor}33` : undefined }}
+            >
+              <Send size={16} style={{ color: input.trim() ? themeColor : undefined }} className={input.trim() ? '' : 'text-text-muted'} />
+            </motion.button>
+          </form>
+        </div>
       </div>
     </div>
   );
