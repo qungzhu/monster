@@ -55,26 +55,19 @@ export function Navbar() {
         <div className="hidden md:flex items-center gap-4">
           {/* Language Switcher */}
           <div className="flex items-center gap-1 bg-white/5 border border-white/10 rounded-full p-1">
-            <button
-              onClick={() => setLang('en')}
-              className={`px-3 py-1 rounded-full text-xs font-medium transition-all duration-200 ${
-                lang === 'en'
-                  ? 'bg-[#8B9E8B] text-white'
-                  : 'text-[#A09890] hover:text-[#E8E4DC]'
-              }`}
-            >
-              EN
-            </button>
-            <button
-              onClick={() => setLang('my')}
-              className={`px-3 py-1 rounded-full text-xs font-medium transition-all duration-200 ${
-                lang === 'my'
-                  ? 'bg-[#8B9E8B] text-white'
-                  : 'text-[#A09890] hover:text-[#E8E4DC]'
-              }`}
-            >
-              MY
-            </button>
+            {(['en', 'my', 'zh'] as const).map((l) => (
+              <button
+                key={l}
+                onClick={() => setLang(l)}
+                className={`px-3 py-1 rounded-full text-xs font-medium transition-all duration-200 ${
+                  lang === l
+                    ? 'bg-[#8B9E8B] text-white'
+                    : 'text-[#A09890] hover:text-[#E8E4DC]'
+                }`}
+              >
+                {l.toUpperCase()}
+              </button>
+            ))}
           </div>
 
           <a
@@ -114,14 +107,15 @@ export function Navbar() {
           ))}
           <div className="flex items-center gap-3 pt-2 border-t border-white/5">
             <div className="flex items-center gap-1 bg-white/5 border border-white/10 rounded-full p-1">
-              <button
-                onClick={() => setLang('en')}
-                className={`px-3 py-1 rounded-full text-xs font-medium transition-all ${lang === 'en' ? 'bg-[#8B9E8B] text-white' : 'text-[#A09890]'}`}
-              >EN</button>
-              <button
-                onClick={() => setLang('my')}
-                className={`px-3 py-1 rounded-full text-xs font-medium transition-all ${lang === 'my' ? 'bg-[#8B9E8B] text-white' : 'text-[#A09890]'}`}
-              >MY</button>
+              {(['en', 'my', 'zh'] as const).map((l) => (
+                <button
+                  key={l}
+                  onClick={() => setLang(l)}
+                  className={`px-3 py-1 rounded-full text-xs font-medium transition-all ${lang === l ? 'bg-[#8B9E8B] text-white' : 'text-[#A09890]'}`}
+                >
+                  {l.toUpperCase()}
+                </button>
+              ))}
             </div>
             <a
               href="#cta"

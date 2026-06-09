@@ -1,4 +1,4 @@
-export type Language = 'en' | 'my';
+export type Language = 'en' | 'my' | 'zh';
 
 export const translations = {
   en: {
@@ -299,6 +299,156 @@ export const translations = {
       },
       rights: '© 2025 Mova. Hak cipta terpelihara.',
       madeWith: 'Dibuat dengan AI untuk pencipta di seluruh dunia.',
+    },
+  },
+  zh: {
+    nav: {
+      home: '首页',
+      features: '功能',
+      howItWorks: '运作方式',
+      community: '社群',
+      partners: '合作品牌',
+      joinNow: '免费加入',
+    },
+    hero: {
+      badge: 'AI 驱动的联盟营销平台',
+      title1: '用智能 AI 将你的',
+      title2: '影响力',
+      title3: '转化为持续收入',
+      subtitle:
+        'Mova 将前沿 AI 与社媒运营深度融合，将你的内容变成稳定、可规模化的联盟佣金收入——适用于任何市场、任何语言。',
+      cta1: '立即开始赚钱',
+      cta2: '观看演示',
+      stat1: '活跃会员',
+      stat2: '覆盖国家',
+      stat3: '月均收益',
+      stat4: 'AI 工具数量',
+    },
+    stats: {
+      members: '50,000+',
+      membersLabel: '活跃会员',
+      countries: '120+',
+      countriesLabel: '覆盖国家',
+      earnings: '¥17,000',
+      earningsLabel: '月均收益',
+      brands: '500+',
+      brandsLabel: '合作品牌',
+    },
+    features: {
+      sectionBadge: '平台功能',
+      title: '助你',
+      titleHighlight: '收入规模化的一切工具',
+      subtitle:
+        'Mova 为你提供完整的 AI 工具集——创作内容、追踪效果、最大化联盟佣金，一站搞定。',
+      items: [
+        {
+          title: 'AI 内容工作室',
+          desc: '秒级生成高转化的帖子、文案和视频脚本，精准适配抖音、小红书、微博、YouTube 等平台。',
+        },
+        {
+          title: '智能链接追踪',
+          desc: '实时点击分析、转化追踪与自动 A/B 测试，让每条推广链接都发挥最大价值。',
+        },
+        {
+          title: '多平台内容管理',
+          desc: '在一个智能仪表盘中统一管理和定时发布所有社媒平台的内容。',
+        },
+        {
+          title: '全球佣金结算系统',
+          desc: '与全球品牌合作赚取佣金，支持多币种，透明结算，按时打款。',
+        },
+        {
+          title: 'AI 市场洞察',
+          desc: 'AI 驱动的竞品分析与垂类机会预警，让你始终走在趋势前面。',
+        },
+        {
+          title: '社群与培训学院',
+          desc: '获取独家培训课程、直播辅导，以及超过 50,000 名联盟营销人组成的全球网络。',
+        },
+      ],
+    },
+    howItWorks: {
+      sectionBadge: '简单三步',
+      title: '从零起步，',
+      titleHighlight: '三步开始赚钱',
+      steps: [
+        {
+          number: '01',
+          title: '免费加入 Mova',
+          desc: '2 分钟内完成注册，无需任何技术背景——Mova 从第一天起就全程引导你。',
+        },
+        {
+          number: '02',
+          title: '创建 AI 内容',
+          desc: '使用 AI 工作室为你的垂直领域生成爆款内容，从 500+ 品牌合作方中自由选品。',
+        },
+        {
+          number: '03',
+          title: '持续成长，稳定变现',
+          desc: '发布、追踪、用 AI 洞察持续优化，随着粉丝增长，佣金也同步增长。',
+        },
+      ],
+    },
+    testimonials: {
+      sectionBadge: '会员故事',
+      title: '真实的人，',
+      titleHighlight: '真实的成果',
+      items: [
+        {
+          name: 'Sarah Lim',
+          role: '生活方式博主，马来西亚',
+          text: 'Mova 改变了我的生活。仅用 Instagram 和 TikTok，3 个月内我就从零做到月收入 RM 8,000。AI 内容工具真的太强了。',
+          earnings: 'RM 8,000 / 月',
+        },
+        {
+          name: 'James Okafor',
+          role: '科技评测博主，尼日利亚',
+          text: '我试过 5 个联盟营销平台，Mova 的 AI 是唯一真正懂我受众的。第一个月点击率就翻倍了。',
+          earnings: '$3,200 / 月',
+        },
+        {
+          name: 'Priya Sharma',
+          role: '健康养生创作者，印度',
+          text: '光是社群就值回票价。顶级会员毫无保留地分享策略，而且 AI 每周帮我节省 10 多小时。',
+          earnings: '$2,800 / 月',
+        },
+      ],
+    },
+    brands: {
+      sectionBadge: '合作品牌',
+      title: '500+ 品牌',
+      titleHighlight: '随时等你来变现',
+      subtitle: '从全球电商巨头到垂类订阅服务，为你的受众找到最匹配的好产品。',
+    },
+    cta: {
+      badge: '限时早期名额',
+      title: '准备好搭建你的',
+      titleHighlight: 'AI 收入体系了吗？',
+      subtitle: '加入已有 50,000+ 创作者的 Mova，更聪明地实现变现。永久免费方案长期开放。',
+      btn1: '免费开始',
+      btn2: '预约演示通话',
+      note: '无需信用卡 · 随时取消',
+    },
+    footer: {
+      tagline: '为下一代创作者打造的 AI 联盟营销平台。',
+      product: '产品',
+      company: '公司',
+      legal: '法律',
+      links: {
+        features: '功能介绍',
+        pricing: '定价方案',
+        academy: '培训学院',
+        affiliateProgram: '联盟计划',
+        about: '关于 Mova',
+        blog: '博客',
+        careers: '加入我们',
+        contact: '联系我们',
+        privacy: '隐私政策',
+        terms: '服务条款',
+        cookies: 'Cookie 政策',
+      },
+      rights: '© 2025 Mova 保留所有权利。',
+      madeWith: '用 AI 为全球创作者倾心打造。',
     },
   },
 };
