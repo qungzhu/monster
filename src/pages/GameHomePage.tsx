@@ -10,6 +10,7 @@ import { QuestPanel } from '../components/game/QuestPanel';
 import { ShopPanel } from '../components/game/ShopPanel';
 import { RewardPopup } from '../components/game/RewardPopup';
 import { PetScene } from '../components/pets/PetScene';
+import { PetSelectStage } from '../components/pets/PetSelectStage';
 import type { GameItem } from '../data/gameConfig';
 
 interface GameHomePageProps {
@@ -199,75 +200,56 @@ export function GameHomePage(props: GameHomePageProps) {
     );
   }
 
-  // Character select screen
+  // Character select — all three pets share one 3D stage, tap to choose
   if (showCharSelect || !character) {
     return (
-      <div className="h-full overflow-y-auto pb-20 relative">
+      <div className="h-full relative overflow-hidden">
+        {/* Tri-color ambience */}
         <div
           className="absolute inset-0"
-          style={{ background: 'radial-gradient(ellipse at top, rgba(217, 119, 6, 0.1) 0%, transparent 60%)' }}
+          style={{
+            background: `
+              radial-gradient(ellipse at 20% 45%, rgba(217, 119, 6, 0.14) 0%, transparent 45%),
+              radial-gradient(ellipse at 50% 40%, rgba(124, 58, 237, 0.14) 0%, transparent 45%),
+              radial-gradient(ellipse at 80% 45%, rgba(236, 72, 153, 0.14) 0%, transparent 45%)
+            `,
+          }}
         />
-        <div className="relative z-10 px-6 pt-10">
-          <motion.div
+
+        {/* Title */}
+        <div className="absolute top-0 left-0 right-0 z-20 pt-12 text-center pointer-events-none">
+          <motion.h1
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-center mb-8"
+            className="text-xl font-bold text-text-primary mb-1"
           >
-            <h1 className="text-xl font-bold text-text-primary mb-1">选择你的萌宠伙伴</h1>
-            <p className="text-text-muted text-xs">每一只都有独特的个性和故事</p>
-          </motion.div>
+            选择你的萌宠伙伴
+          </motion.h1>
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.3 }}
+            className="text-text-muted text-xs"
+          >
+            轻点其中一只，开始你们的故事 ✨
+          </motion.p>
+        </div>
 
-          <div className="space-y-4 max-w-sm mx-auto pb-8">
-            {characters.map((char, index) => (
-              <motion.div
-                key={char.id}
-                initial={{ opacity: 0, x: -30 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: 0.1 * index + 0.2 }}
-                onClick={() => { selectCharacter(char.id); setShowCharSelect(false); }}
-                className="relative rounded-2xl overflow-hidden cursor-pointer group"
-                style={{ border: `1px solid ${themeColors[char.id]}33` }}
-              >
-                <div
-                  className="absolute inset-0 opacity-30"
-                  style={{ background: `radial-gradient(ellipse at center, ${themeColors[char.id]}22 0%, transparent 70%)` }}
-                />
-                <div className="glass relative p-5 flex items-center gap-4">
-                  <div className="shrink-0">
-                    <PetScene characterId={char.id} size="small" interactive={false} />
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-bold text-text-primary mb-0.5">{char.name}</h3>
-                    <span
-                      className="text-[10px] px-2 py-0.5 rounded-full inline-block mb-1.5"
-                      style={{ background: `${themeColors[char.id]}22`, color: themeColors[char.id] }}
-                    >
-                      {char.title}
-                    </span>
-                    <p className="text-text-secondary text-xs line-clamp-2">{char.description}</p>
-                    <div className="flex flex-wrap gap-1 mt-2">
-                      {char.personality.map(p => (
-                        <span key={p} className="text-[10px] text-text-muted bg-surface-lighter rounded-full px-2 py-0.5">
-                          {p}
-                        </span>
-                      ))}
-                    </div>
-                    {intimacyLevels[char.id] > 0 && (
-                      <div className="mt-2 flex items-center gap-1.5">
-                        <div className="flex-1 h-1 bg-surface-lighter rounded-full overflow-hidden">
-                          <div
-                            className="h-full rounded-full"
-                            style={{ width: `${intimacyLevels[char.id]}%`, background: themeColors[char.id] }}
-                          />
-                        </div>
-                        <span className="text-[10px] text-text-muted">Lv.{intimacyLevels[char.id]}</span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
+        {/* Shared 3D stage */}
+        <PetSelectStage
+          characters={characters}
+          onSelect={(id) => { selectCharacter(id); setShowCharSelect(false); }}
+        />
+
+        {/* Intimacy footnote */}
+        <div className="absolute bottom-24 left-0 right-0 z-20 flex justify-center gap-4 pointer-events-none">
+          {characters.map(char => (
+            intimacyLevels[char.id] > 0 && (
+              <span key={char.id} className="text-[10px] text-text-muted glass rounded-full px-2.5 py-1">
+                {char.avatar} 亲密度 {intimacyLevels[char.id]}
+              </span>
+            )
+          ))}
         </div>
       </div>
     );
