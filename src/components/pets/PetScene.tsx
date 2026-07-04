@@ -1,11 +1,14 @@
-import { useState, Suspense, useMemo } from 'react';
+import { useState, Suspense, useMemo, Component } from 'react';
+import type { ReactNode } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { OrbitControls, Environment, ContactShadows } from '@react-three/drei';
+import { OrbitControls, ContactShadows } from '@react-three/drei';
 import { EffectComposer, Bloom, Vignette } from '@react-three/postprocessing';
 import { DogModel } from './DogModel';
 import { CatModel } from './CatModel';
 import { HamsterModel } from './HamsterModel';
 import { PetParticles } from './PetParticles';
+import { GLBPet } from './GLBPet';
+import { glbModels } from '../../data/petModels';
 import * as THREE from 'three';
 
 interface PetSceneProps {
@@ -27,7 +30,7 @@ const sizeMap = {
   large: 'h-64 w-64',
 };
 
-function PetModel({ characterId, isHovered }: { characterId: string; isHovered: boolean }) {
+function ProceduralModel({ characterId, isHovered }: { characterId: string; isHovered: boolean }) {
   switch (characterId) {
     case 'tuantuan': return <DogModel isHovered={isHovered} />;
     case 'xiaoxue': return <CatModel isHovered={isHovered} />;
@@ -36,13 +39,39 @@ function PetModel({ characterId, isHovered }: { characterId: string; isHovered: 
   }
 }
 
+/** Falls back to the procedural model if the GLB fails to load. */
+class ModelErrorBoundary extends Component<{ fallback: ReactNode; children: ReactNode }, { failed: boolean }> {
+  state = { failed: false };
+  static getDerivedStateFromError() {
+    return { failed: true };
+  }
+  render() {
+    return this.state.failed ? this.props.fallback : this.props.children;
+  }
+}
+
+function PetModel({ characterId, isHovered }: { characterId: string; isHovered: boolean }) {
+  const glbConfig = glbModels[characterId];
+  const procedural = <ProceduralModel characterId={characterId} isHovered={isHovered} />;
+
+  if (!glbConfig) return procedural;
+
+  return (
+    <ModelErrorBoundary fallback={procedural}>
+      <Suspense fallback={procedural}>
+        <GLBPet config={glbConfig} isHovered={isHovered} />
+      </Suspense>
+    </ModelErrorBoundary>
+  );
+}
+
 function ToonLighting({ color }: { color: string }) {
   return (
     <>
-      <ambientLight intensity={0.5} color="#f8f0ff" />
+      <ambientLight intensity={0.75} color="#f8f0ff" />
       <directionalLight
         position={[4, 6, 4]}
-        intensity={1.2}
+        intensity={1.5}
         color="#fff8f0"
         castShadow
         shadow-mapSize-width={512}
@@ -114,6 +143,7 @@ export function PetScene({ characterId, size = 'medium', interactive = true }: P
         }}
       />
 
+      <ModelErrorBoundary fallback={<div className="absolute inset-0 flex items-center justify-center text-4xl">🐾</div>}>
       <Canvas
         camera={{ position: config.camera, fov: isTiny ? 50 : 40 }}
         style={{ background: 'transparent' }}
@@ -139,8 +169,6 @@ export function PetScene({ characterId, size = 'medium', interactive = true }: P
             />
           )}
 
-          <Environment preset="apartment" />
-
           {!isTiny && (
             <EffectComposer>
               <Bloom
@@ -154,6 +182,7 @@ export function PetScene({ characterId, size = 'medium', interactive = true }: P
           )}
         </Suspense>
       </Canvas>
+      </ModelErrorBoundary>
 
       {/* Interaction hint */}
       {isHovered && interactive && !isTiny && (
