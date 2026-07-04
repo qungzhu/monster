@@ -1,175 +1,251 @@
-import { useRef } from 'react';
+import { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
+import * as THREE from 'three';
 import type { Group } from 'three';
+
+function useToonGradient(steps: number = 4) {
+  return useMemo(() => {
+    const colors = new Uint8Array(steps);
+    for (let i = 0; i < steps; i++) {
+      colors[i] = Math.floor((i / (steps - 1)) * 255);
+    }
+    const tex = new THREE.DataTexture(colors, steps, 1, THREE.RedFormat);
+    tex.minFilter = THREE.NearestFilter;
+    tex.magFilter = THREE.NearestFilter;
+    tex.needsUpdate = true;
+    return tex;
+  }, [steps]);
+}
 
 export function CatModel({ isHovered }: { isHovered: boolean }) {
   const group = useRef<Group>(null);
   const tailRef = useRef<Group>(null);
+  const tailTipRef = useRef<Group>(null);
   const earLRef = useRef<Group>(null);
   const earRRef = useRef<Group>(null);
+  const gradientMap = useToonGradient(4);
 
   useFrame((state) => {
     if (!group.current) return;
     const t = state.clock.elapsedTime;
 
-    // Elegant breathing
     group.current.scale.y = 1 + Math.sin(t * 1.5) * 0.015;
-
-    // Subtle sway
     group.current.position.y = Math.sin(t * 1.2) * 0.03;
     group.current.rotation.y = Math.sin(t * 0.4) * 0.1;
 
-    // Tail sway - elegant S-curve
     if (tailRef.current) {
-      tailRef.current.rotation.x = -0.8 + Math.sin(t * 1.5) * 0.15;
-      tailRef.current.rotation.z = Math.sin(t * 2) * 0.3;
+      tailRef.current.rotation.z = Math.sin(t * 1.8) * 0.35;
+      tailRef.current.rotation.x = -0.7 + Math.sin(t * 1.2) * 0.15;
+    }
+    if (tailTipRef.current) {
+      tailTipRef.current.rotation.z = Math.sin(t * 2.5 + 1) * 0.4;
     }
 
-    // Ear twitch
-    if (earLRef.current) {
-      earLRef.current.rotation.z = -0.2 + (Math.sin(t * 3) > 0.95 ? 0.15 : 0);
-    }
-    if (earRRef.current) {
-      earRRef.current.rotation.z = 0.2 - (Math.cos(t * 2.7) > 0.95 ? 0.15 : 0);
-    }
+    if (earLRef.current) earLRef.current.rotation.z = -0.15 + (Math.sin(t * 3) > 0.93 ? 0.18 : 0);
+    if (earRRef.current) earRRef.current.rotation.z = 0.15 - (Math.cos(t * 2.7) > 0.93 ? 0.18 : 0);
 
-    // Slow blink when hovered (pretending not to care)
     if (isHovered) {
-      group.current.rotation.y = Math.sin(t * 0.3) * 0.05; // less movement = aloof
+      group.current.rotation.y = Math.sin(t * 0.3) * 0.05;
+      group.current.scale.y = 1 + Math.sin(t * 1) * 0.01;
     }
   });
 
+  const mainColor = '#F0EAE8';
+  const pointColor = '#C8B8B0';
+  const darkPointColor = '#A89890';
+  const pinkColor = '#FFD0D0';
+  const noseColor = '#FFB0B0';
+
   return (
     <group ref={group}>
-      {/* Body - more elongated than dog */}
-      <mesh position={[0, 0, 0]}>
-        <sphereGeometry args={[0.45, 32, 32]} />
-        <meshStandardMaterial color="#F5F0F0" roughness={0.9} />
+      {/* Body */}
+      <mesh position={[0, -0.05, 0]} castShadow>
+        <sphereGeometry args={[0.48, 48, 48]} />
+        <meshToonMaterial color={mainColor} gradientMap={gradientMap} />
       </mesh>
 
-      {/* Chest fluff */}
-      <mesh position={[0, 0.15, 0.2]}>
-        <sphereGeometry args={[0.35, 32, 32]} />
-        <meshStandardMaterial color="#FAFAFA" roughness={1} />
+      {/* Chest fluff - layered */}
+      <mesh position={[0, 0.1, 0.2]}>
+        <sphereGeometry args={[0.36, 32, 32]} />
+        <meshToonMaterial color="#FAFAFA" gradientMap={gradientMap} />
+      </mesh>
+      <mesh position={[0, 0.02, 0.25]}>
+        <sphereGeometry args={[0.32, 24, 24]} />
+        <meshToonMaterial color="#FFFFFF" gradientMap={gradientMap} />
       </mesh>
 
-      {/* Head */}
-      <mesh position={[0, 0.5, 0.2]}>
-        <sphereGeometry args={[0.35, 32, 32]} />
-        <meshStandardMaterial color="#F5F0F0" roughness={0.9} />
+      {/* Head - larger for cuteness */}
+      <mesh position={[0, 0.48, 0.18]} castShadow>
+        <sphereGeometry args={[0.38, 48, 48]} />
+        <meshToonMaterial color={mainColor} gradientMap={gradientMap} />
+      </mesh>
+
+      {/* Face markings - ragdoll pattern */}
+      <mesh position={[0, 0.52, 0.35]}>
+        <sphereGeometry args={[0.22, 24, 24]} />
+        <meshToonMaterial color={pointColor} gradientMap={gradientMap} />
+      </mesh>
+
+      {/* Cheeks */}
+      <mesh position={[-0.2, 0.4, 0.38]}>
+        <sphereGeometry args={[0.12, 20, 20]} />
+        <meshToonMaterial color="#FAFAFA" gradientMap={gradientMap} />
+      </mesh>
+      <mesh position={[0.2, 0.4, 0.38]}>
+        <sphereGeometry args={[0.12, 20, 20]} />
+        <meshToonMaterial color="#FAFAFA" gradientMap={gradientMap} />
       </mesh>
 
       {/* Nose */}
-      <mesh position={[0, 0.44, 0.52]}>
-        <sphereGeometry args={[0.04, 16, 16]} />
-        <meshStandardMaterial color="#FFB0B0" roughness={0.3} />
+      <mesh position={[0, 0.43, 0.53]}>
+        <sphereGeometry args={[0.035, 20, 20]} />
+        <meshStandardMaterial color={noseColor} roughness={0.2} metalness={0.1} />
       </mesh>
 
-      {/* Eyes - big and blue (ragdoll cat) */}
-      <mesh position={[-0.13, 0.55, 0.45]}>
-        <sphereGeometry args={[0.08, 16, 16]} />
-        <meshStandardMaterial color="#4466CC" roughness={0.2} />
+      {/* Mouth */}
+      <mesh position={[-0.02, 0.39, 0.5]} rotation={[0.1, 0.1, 0]}>
+        <torusGeometry args={[0.025, 0.005, 8, 12, Math.PI]} />
+        <meshToonMaterial color={darkPointColor} gradientMap={gradientMap} />
       </mesh>
-      <mesh position={[0.13, 0.55, 0.45]}>
-        <sphereGeometry args={[0.08, 16, 16]} />
-        <meshStandardMaterial color="#4466CC" roughness={0.2} />
-      </mesh>
-
-      {/* Pupils */}
-      <mesh position={[-0.13, 0.55, 0.52]}>
-        <sphereGeometry args={[0.04, 12, 12]} />
-        <meshStandardMaterial color="#111" roughness={0.1} />
-      </mesh>
-      <mesh position={[0.13, 0.55, 0.52]}>
-        <sphereGeometry args={[0.04, 12, 12]} />
-        <meshStandardMaterial color="#111" roughness={0.1} />
+      <mesh position={[0.02, 0.39, 0.5]} rotation={[0.1, -0.1, 0]}>
+        <torusGeometry args={[0.025, 0.005, 8, 12, Math.PI]} />
+        <meshToonMaterial color={darkPointColor} gradientMap={gradientMap} />
       </mesh>
 
-      {/* Eye highlights */}
-      <mesh position={[-0.11, 0.57, 0.53]}>
-        <sphereGeometry args={[0.02, 8, 8]} />
-        <meshStandardMaterial color="#fff" emissive="#fff" emissiveIntensity={0.5} />
-      </mesh>
-      <mesh position={[0.15, 0.57, 0.53]}>
-        <sphereGeometry args={[0.02, 8, 8]} />
-        <meshStandardMaterial color="#fff" emissive="#fff" emissiveIntensity={0.5} />
-      </mesh>
-
-      {/* Left Ear - pointed triangle */}
-      <group ref={earLRef} position={[-0.2, 0.82, 0.18]}>
+      {/* Eyes - big, blue, expressive */}
+      <group position={[-0.13, 0.54, 0.44]}>
         <mesh>
-          <coneGeometry args={[0.1, 0.22, 4]} />
-          <meshStandardMaterial color="#E8E0E0" roughness={0.9} />
+          <sphereGeometry args={[0.09, 24, 24]} />
+          <meshStandardMaterial color="#fff" roughness={0.05} />
         </mesh>
-        {/* Inner ear */}
-        <mesh position={[0, -0.02, 0.02]}>
-          <coneGeometry args={[0.06, 0.15, 4]} />
-          <meshStandardMaterial color="#FFD0D0" roughness={0.9} />
+        <mesh position={[0.01, -0.01, 0.04]}>
+          <sphereGeometry args={[0.065, 24, 24]} />
+          <meshStandardMaterial color="#5588DD" roughness={0.1} metalness={0.2} />
+        </mesh>
+        <mesh position={[0.015, -0.015, 0.07]}>
+          <sphereGeometry args={[0.04, 20, 20]} />
+          <meshStandardMaterial color="#111" roughness={0.05} />
+        </mesh>
+        <mesh position={[-0.02, 0.03, 0.085]}>
+          <sphereGeometry args={[0.025, 12, 12]} />
+          <meshBasicMaterial color="#fff" toneMapped={false} />
+        </mesh>
+        <mesh position={[0.025, -0.015, 0.08]}>
+          <sphereGeometry args={[0.01, 8, 8]} />
+          <meshBasicMaterial color="#fff" toneMapped={false} />
         </mesh>
       </group>
 
-      {/* Right Ear */}
-      <group ref={earRRef} position={[0.2, 0.82, 0.18]}>
+      <group position={[0.13, 0.54, 0.44]}>
         <mesh>
-          <coneGeometry args={[0.1, 0.22, 4]} />
-          <meshStandardMaterial color="#E8E0E0" roughness={0.9} />
+          <sphereGeometry args={[0.09, 24, 24]} />
+          <meshStandardMaterial color="#fff" roughness={0.05} />
         </mesh>
-        <mesh position={[0, -0.02, 0.02]}>
-          <coneGeometry args={[0.06, 0.15, 4]} />
-          <meshStandardMaterial color="#FFD0D0" roughness={0.9} />
+        <mesh position={[-0.01, -0.01, 0.04]}>
+          <sphereGeometry args={[0.065, 24, 24]} />
+          <meshStandardMaterial color="#5588DD" roughness={0.1} metalness={0.2} />
+        </mesh>
+        <mesh position={[-0.015, -0.015, 0.07]}>
+          <sphereGeometry args={[0.04, 20, 20]} />
+          <meshStandardMaterial color="#111" roughness={0.05} />
+        </mesh>
+        <mesh position={[0.02, 0.03, 0.085]}>
+          <sphereGeometry args={[0.025, 12, 12]} />
+          <meshBasicMaterial color="#fff" toneMapped={false} />
+        </mesh>
+        <mesh position={[-0.025, -0.015, 0.08]}>
+          <sphereGeometry args={[0.01, 8, 8]} />
+          <meshBasicMaterial color="#fff" toneMapped={false} />
+        </mesh>
+      </group>
+
+      {/* Ears - pointed, with inner detail */}
+      <group ref={earLRef} position={[-0.22, 0.82, 0.15]}>
+        <mesh rotation={[0, 0, -0.15]}>
+          <coneGeometry args={[0.1, 0.24, 4]} />
+          <meshToonMaterial color={pointColor} gradientMap={gradientMap} />
+        </mesh>
+        <mesh position={[0, -0.01, 0.025]} rotation={[0, 0, -0.15]}>
+          <coneGeometry args={[0.065, 0.16, 4]} />
+          <meshToonMaterial color={pinkColor} gradientMap={gradientMap} />
+        </mesh>
+      </group>
+      <group ref={earRRef} position={[0.22, 0.82, 0.15]}>
+        <mesh rotation={[0, 0, 0.15]}>
+          <coneGeometry args={[0.1, 0.24, 4]} />
+          <meshToonMaterial color={pointColor} gradientMap={gradientMap} />
+        </mesh>
+        <mesh position={[0, -0.01, 0.025]} rotation={[0, 0, 0.15]}>
+          <coneGeometry args={[0.065, 0.16, 4]} />
+          <meshToonMaterial color={pinkColor} gradientMap={gradientMap} />
         </mesh>
       </group>
 
-      {/* Whiskers (thin lines) */}
-      <mesh position={[-0.2, 0.44, 0.48]} rotation={[0, 0, 0.1]}>
-        <capsuleGeometry args={[0.005, 0.15, 4, 4]} />
-        <meshStandardMaterial color="#ddd" />
-      </mesh>
-      <mesh position={[-0.2, 0.42, 0.48]} rotation={[0, 0, 0.2]}>
-        <capsuleGeometry args={[0.005, 0.15, 4, 4]} />
-        <meshStandardMaterial color="#ddd" />
-      </mesh>
-      <mesh position={[0.2, 0.44, 0.48]} rotation={[0, 0, -0.1]}>
-        <capsuleGeometry args={[0.005, 0.15, 4, 4]} />
-        <meshStandardMaterial color="#ddd" />
-      </mesh>
-      <mesh position={[0.2, 0.42, 0.48]} rotation={[0, 0, -0.2]}>
-        <capsuleGeometry args={[0.005, 0.15, 4, 4]} />
-        <meshStandardMaterial color="#ddd" />
-      </mesh>
-
-      {/* Front Paws */}
-      <mesh position={[-0.15, -0.38, 0.15]}>
-        <capsuleGeometry args={[0.07, 0.2, 8, 16]} />
-        <meshStandardMaterial color="#F5F0F0" roughness={0.9} />
-      </mesh>
-      <mesh position={[0.15, -0.38, 0.15]}>
-        <capsuleGeometry args={[0.07, 0.2, 8, 16]} />
-        <meshStandardMaterial color="#F5F0F0" roughness={0.9} />
-      </mesh>
-
-      {/* Back Paws */}
-      <mesh position={[-0.18, -0.38, -0.12]}>
-        <capsuleGeometry args={[0.08, 0.2, 8, 16]} />
-        <meshStandardMaterial color="#F5F0F0" roughness={0.9} />
-      </mesh>
-      <mesh position={[0.18, -0.38, -0.12]}>
-        <capsuleGeometry args={[0.08, 0.2, 8, 16]} />
-        <meshStandardMaterial color="#F5F0F0" roughness={0.9} />
-      </mesh>
-
-      {/* Tail - long and fluffy */}
-      <group ref={tailRef} position={[0, 0.1, -0.45]}>
-        <mesh rotation={[-0.8, 0, 0]}>
-          <capsuleGeometry args={[0.06, 0.45, 8, 16]} />
-          <meshStandardMaterial color="#E8E0E0" roughness={1} />
+      {/* Whiskers - delicate */}
+      {[
+        [-0.18, 0.43, 0.5, 0.12],
+        [-0.2, 0.41, 0.49, 0.2],
+        [-0.17, 0.39, 0.5, 0.08],
+        [0.18, 0.43, 0.5, -0.12],
+        [0.2, 0.41, 0.49, -0.2],
+        [0.17, 0.39, 0.5, -0.08],
+      ].map(([x, y, z, rot], i) => (
+        <mesh key={i} position={[x, y, z]} rotation={[0, 0, rot]}>
+          <capsuleGeometry args={[0.004, 0.16, 4, 4]} />
+          <meshToonMaterial color="#ddd" gradientMap={gradientMap} />
         </mesh>
-        {/* Tail tip */}
-        <mesh position={[0, 0.05, -0.4]} rotation={[-0.5, 0, 0]}>
-          <sphereGeometry args={[0.08, 12, 12]} />
-          <meshStandardMaterial color="#FAFAFA" roughness={1} />
+      ))}
+
+      {/* Paws with pads */}
+      {[
+        [-0.15, -0.42, 0.15],
+        [0.15, -0.42, 0.15],
+        [-0.18, -0.42, -0.1],
+        [0.18, -0.42, -0.1],
+      ].map((pos, i) => (
+        <group key={i} position={pos as [number, number, number]}>
+          <mesh castShadow>
+            <capsuleGeometry args={[0.08, 0.18, 12, 16]} />
+            <meshToonMaterial color={i < 2 ? pointColor : darkPointColor} gradientMap={gradientMap} />
+          </mesh>
+          <mesh position={[0, -0.14, 0.03]}>
+            <sphereGeometry args={[0.08, 12, 12]} />
+            <meshToonMaterial color={pinkColor} gradientMap={gradientMap} />
+          </mesh>
+        </group>
+      ))}
+
+      {/* Tail - fluffy, segmented */}
+      <group ref={tailRef} position={[0, 0.08, -0.42]}>
+        <mesh rotation={[-0.7, 0, 0]}>
+          <capsuleGeometry args={[0.065, 0.3, 12, 16]} />
+          <meshToonMaterial color={pointColor} gradientMap={gradientMap} />
         </mesh>
+        <group ref={tailTipRef} position={[0, 0.1, -0.28]}>
+          <mesh rotation={[-0.3, 0, 0]}>
+            <capsuleGeometry args={[0.06, 0.2, 12, 16]} />
+            <meshToonMaterial color={darkPointColor} gradientMap={gradientMap} />
+          </mesh>
+          <mesh position={[0, 0.12, -0.08]}>
+            <sphereGeometry args={[0.08, 16, 16]} />
+            <meshToonMaterial color="#FAFAFA" gradientMap={gradientMap} />
+          </mesh>
+        </group>
       </group>
+
+      {/* Blush (when hovered) */}
+      {isHovered && (
+        <>
+          <mesh position={[-0.24, 0.42, 0.42]}>
+            <sphereGeometry args={[0.05, 12, 12]} />
+            <meshBasicMaterial color="#ffaaaa" transparent opacity={0.35} toneMapped={false} />
+          </mesh>
+          <mesh position={[0.24, 0.42, 0.42]}>
+            <sphereGeometry args={[0.05, 12, 12]} />
+            <meshBasicMaterial color="#ffaaaa" transparent opacity={0.35} toneMapped={false} />
+          </mesh>
+        </>
+      )}
     </group>
   );
 }
