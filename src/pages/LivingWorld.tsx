@@ -16,6 +16,7 @@ import { MoodCalendar } from '../components/MoodCalendar';
 import { MoodStats } from '../components/MoodStats';
 import { IntimacyBar } from '../components/IntimacyBar';
 import { IntimacyUnlocks } from '../components/IntimacyUnlocks';
+import { WinterBackdrop } from '../components/world/WinterBackdrop';
 
 type CardType = 'quests' | 'shop' | 'memories' | 'bond' | 'settings' | 'help' | null;
 
@@ -304,7 +305,9 @@ export function LivingWorld(props: LivingWorldProps) {
   // ————— The Living World —————
   return (
     <div className={`h-full relative overflow-hidden theme-${character.theme}`}>
-      <div className="absolute inset-0" style={{ background: `radial-gradient(ellipse at 50% 38%, ${color}16 0%, transparent 62%)` }} />
+      <WinterBackdrop />
+      {/* Subtle character-color aura around the pet's spot */}
+      <div className="absolute inset-0 pointer-events-none" style={{ background: `radial-gradient(ellipse at 50% 42%, ${color}14 0%, transparent 50%)` }} />
 
       {/* Ambient status — one line, tappable, no panels */}
       <div className="absolute top-0 left-0 right-0 z-30 px-4 pt-3 flex items-center justify-between">
@@ -335,10 +338,14 @@ export function LivingWorld(props: LivingWorldProps) {
         )}
       </AnimatePresence>
 
-      {/* The companion — tap to pet */}
-      <div className="absolute inset-0 flex items-center justify-center" style={{ top: '-40px' }}>
-        <div className="relative" onClick={handlePetTap}>
-          <PetScene characterId={character.id} size="large" interactive={true} />
+      {/* The world — full-screen winter scene with the pet at center */}
+      <div className="absolute inset-0">
+        <PetScene characterId={character.id} size="world" interactive={true} />
+      </div>
+
+      {/* Pet tap zone + bubble anchor (over the pet's spot in the scene) */}
+      <div className="absolute left-1/2 top-[56%] -translate-x-1/2 -translate-y-1/2 z-10">
+        <div className="relative w-48 h-48" onClick={handlePetTap}>
 
           {/* Speech bubble */}
           <AnimatePresence>
@@ -411,7 +418,8 @@ export function LivingWorld(props: LivingWorldProps) {
               key={chip}
               whileTap={{ scale: 0.94 }}
               onClick={() => handleSubmit(chip)}
-              className="shrink-0 glass rounded-full px-3.5 py-1.5 text-xs text-text-secondary hover:text-text-primary transition-colors"
+              className="shrink-0 rounded-full px-3.5 py-1.5 text-xs text-text-secondary hover:text-text-primary transition-colors"
+              style={{ background: 'rgba(10, 8, 20, 0.65)', border: '1px solid rgba(255,255,255,0.14)', backdropFilter: 'blur(12px)' }}
             >
               {chip}
             </motion.button>

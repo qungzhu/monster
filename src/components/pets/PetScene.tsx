@@ -9,11 +9,13 @@ import { HamsterModel } from './HamsterModel';
 import { PetParticles } from './PetParticles';
 import { GLBPet } from './GLBPet';
 import { glbModels } from '../../data/petModels';
+import { WinterScene } from '../world/WinterScene';
 import * as THREE from 'three';
 
 interface PetSceneProps {
   characterId: string;
-  size?: 'tiny' | 'small' | 'medium' | 'large';
+  /** 'world' fills its container and renders the full winter set — used by the Living World. */
+  size?: 'tiny' | 'small' | 'medium' | 'large' | 'world';
   interactive?: boolean;
 }
 
@@ -28,6 +30,7 @@ const sizeMap = {
   small: 'h-32 w-32',
   medium: 'h-48 w-48',
   large: 'h-64 w-64',
+  world: 'h-full w-full',
 };
 
 function ProceduralModel({ characterId, isHovered }: { characterId: string; isHovered: boolean }) {
@@ -123,29 +126,32 @@ export function PetScene({ characterId, size = 'medium', interactive = true }: P
   const config = sceneConfig[characterId] || sceneConfig.tuantuan;
   const sizeClass = sizeMap[size];
   const isTiny = size === 'tiny';
-  const isLarge = size === 'large';
+  const isWorld = size === 'world';
+  const isLarge = size === 'large' || isWorld;
 
   return (
     <div
-      className={`${sizeClass} rounded-2xl overflow-hidden relative cursor-pointer`}
+      className={`${sizeClass} ${isWorld ? '' : 'rounded-2xl cursor-pointer'} overflow-hidden relative`}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       onTouchStart={() => setIsHovered(true)}
       onTouchEnd={() => setTimeout(() => setIsHovered(false), 1000)}
     >
       {/* Glow effect */}
-      <div
-        className="absolute inset-0 rounded-2xl"
-        style={{
-          background: `radial-gradient(ellipse at 50% 60%, ${config.color}28 0%, transparent 65%)`,
-          opacity: isHovered ? 0.8 : 0.4,
-          transition: 'opacity 0.3s',
-        }}
-      />
+      {!isWorld && (
+        <div
+          className="absolute inset-0 rounded-2xl"
+          style={{
+            background: `radial-gradient(ellipse at 50% 60%, ${config.color}28 0%, transparent 65%)`,
+            opacity: isHovered ? 0.8 : 0.4,
+            transition: 'opacity 0.3s',
+          }}
+        />
+      )}
 
       <ModelErrorBoundary fallback={<div className="absolute inset-0 flex items-center justify-center text-4xl">🐾</div>}>
       <Canvas
-        camera={{ position: config.camera, fov: isTiny ? 50 : 40 }}
+        camera={{ position: isWorld ? [0, 0.75, 5.6] : config.camera, fov: isTiny ? 50 : isWorld ? 45 : 40 }}
         style={{ background: 'transparent' }}
         gl={{ alpha: true, antialias: true, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.1 }}
         shadows
@@ -155,9 +161,16 @@ export function PetScene({ characterId, size = 'medium', interactive = true }: P
 
           <PetModel characterId={characterId} isHovered={isHovered} />
 
-          {!isTiny && <GroundPlane color={config.color} />}
+          {/* Large view = the Living World: full Frozen winter set.
+              Smaller views keep the lightweight color disc. */}
+          {isLarge ? (
+            <>
+              <WinterScene />
+              <ContactShadows position={[0, -0.65, 0]} opacity={0.35} scale={3.5} blur={2.2} far={1.2} color="#2a4a7a" />
+            </>
+          ) : !isTiny && <GroundPlane color={config.color} />}
 
-          {isLarge && <PetParticles color={config.color} />}
+          {isLarge && <PetParticles color={isWorld ? '#cfe6ff' : config.color} count={12} />}
 
           {interactive && !isTiny && (
             <OrbitControls
@@ -185,7 +198,7 @@ export function PetScene({ characterId, size = 'medium', interactive = true }: P
       </ModelErrorBoundary>
 
       {/* Interaction hint */}
-      {isHovered && interactive && !isTiny && (
+      {isHovered && interactive && !isTiny && !isWorld && (
         <div className="absolute bottom-1 left-0 right-0 text-center">
           <span className="text-[9px] text-text-muted bg-surface/60 backdrop-blur-sm px-2 py-0.5 rounded-full">
             拖动旋转 ✨
