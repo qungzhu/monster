@@ -1,22 +1,8 @@
-import { useRef, useMemo } from 'react';
+import { useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
-import * as THREE from 'three';
 import type { Group } from 'three';
 import type { CatParams } from '../../data/breeds';
-
-function useToonGradient(steps: number = 4) {
-  return useMemo(() => {
-    const colors = new Uint8Array(steps);
-    for (let i = 0; i < steps; i++) {
-      colors[i] = Math.floor((i / (steps - 1)) * 255);
-    }
-    const tex = new THREE.DataTexture(colors, steps, 1, THREE.RedFormat);
-    tex.minFilter = THREE.NearestFilter;
-    tex.magFilter = THREE.NearestFilter;
-    tex.needsUpdate = true;
-    return tex;
-  }, [steps]);
-}
+import { useFur } from './furTexture';
 
 const ragdollDefaults: CatParams = {
   bodyColor: '#F0EAE8',
@@ -27,8 +13,9 @@ const ragdollDefaults: CatParams = {
 };
 
 /**
- * Parametric cat: colors, eye color and ear style (pointed/folded)
- * come from breed params so one model renders many breeds.
+ * Parametric cat, realism pass: procedural fur on PBR materials,
+ * ovoid anatomy with haunches and chest ruff, big glossy eyes with
+ * clearcoat cornea and vertical-feel pupils.
  */
 export function CatModel({ isHovered, params }: { isHovered: boolean; params?: CatParams }) {
   const p = params ?? ragdollDefaults;
@@ -37,13 +24,16 @@ export function CatModel({ isHovered, params }: { isHovered: boolean; params?: C
   const tailTipRef = useRef<Group>(null);
   const earLRef = useRef<Group>(null);
   const earRRef = useRef<Group>(null);
-  const gradientMap = useToonGradient(4);
+
+  const bodyFur = useFur(p.bodyColor, 13);
+  const pointFur = useFur(p.pointColor, 12);
+  const bellyFur = useFur(p.bellyColor, 14);
 
   useFrame((state) => {
     if (!group.current) return;
     const t = state.clock.elapsedTime;
 
-    group.current.scale.y = 1 + Math.sin(t * 1.5) * 0.015;
+    group.current.scale.y = 1 + Math.sin(t * 1.5) * 0.014;
     group.current.position.y = Math.sin(t * 1.2) * 0.03;
     group.current.rotation.y = Math.sin(t * 0.4) * 0.1;
 
@@ -51,234 +41,195 @@ export function CatModel({ isHovered, params }: { isHovered: boolean; params?: C
       tailRef.current.rotation.z = Math.sin(t * 1.8) * 0.35;
       tailRef.current.rotation.x = -0.7 + Math.sin(t * 1.2) * 0.15;
     }
-    if (tailTipRef.current) {
-      tailTipRef.current.rotation.z = Math.sin(t * 2.5 + 1) * 0.4;
-    }
+    if (tailTipRef.current) tailTipRef.current.rotation.z = Math.sin(t * 2.5 + 1) * 0.4;
 
     if (earLRef.current) earLRef.current.rotation.z = -0.15 + (Math.sin(t * 3) > 0.93 ? 0.18 : 0);
     if (earRRef.current) earRRef.current.rotation.z = 0.15 - (Math.cos(t * 2.7) > 0.93 ? 0.18 : 0);
 
     if (isHovered) {
       group.current.rotation.y = Math.sin(t * 0.3) * 0.05;
-      group.current.scale.y = 1 + Math.sin(t * 1) * 0.01;
     }
   });
 
-  const mainColor = p.bodyColor;
-  const pointColor = p.pointColor;
-  const darkPointColor = p.pointColor;
-  const pinkColor = '#FFD0D0';
-  const noseColor = p.noseColor ?? '#FFB0B0';
+  const furBody = <meshStandardMaterial map={bodyFur.map} bumpMap={bodyFur.bumpMap} bumpScale={2.4} roughness={0.93} />;
+  const furPoint = <meshStandardMaterial map={pointFur.map} bumpMap={pointFur.bumpMap} bumpScale={2.6} roughness={0.94} />;
+  const furBelly = <meshStandardMaterial map={bellyFur.map} bumpMap={bellyFur.bumpMap} bumpScale={2} roughness={0.9} />;
 
   return (
     <group ref={group}>
-      {/* Body */}
-      <mesh position={[0, -0.05, 0]} castShadow>
+      {/* Body — pear-shaped, wider at the haunches */}
+      <mesh position={[0, -0.08, -0.02]} scale={[0.92, 0.9, 1.08]} castShadow>
         <sphereGeometry args={[0.48, 48, 48]} />
-        <meshToonMaterial color={mainColor} gradientMap={gradientMap} />
+        {furBody}
       </mesh>
 
-      {/* Chest fluff - layered */}
-      <mesh position={[0, 0.1, 0.2]}>
-        <sphereGeometry args={[0.36, 32, 32]} />
-        <meshToonMaterial color={p.bellyColor} gradientMap={gradientMap} />
+      {/* Haunches */}
+      <mesh position={[-0.26, -0.24, -0.22]} scale={[0.6, 0.9, 0.9]}>
+        <sphereGeometry args={[0.26, 24, 24]} />
+        {furBody}
       </mesh>
-      <mesh position={[0, 0.02, 0.25]}>
-        <sphereGeometry args={[0.32, 24, 24]} />
-        <meshToonMaterial color={p.bellyColor} gradientMap={gradientMap} />
+      <mesh position={[0.26, -0.24, -0.22]} scale={[0.6, 0.9, 0.9]}>
+        <sphereGeometry args={[0.26, 24, 24]} />
+        {furBody}
       </mesh>
 
-      {/* Head - larger for cuteness */}
-      <mesh position={[0, 0.48, 0.18]} castShadow>
+      {/* Chest ruff — layered fluff */}
+      <mesh position={[0, 0.08, 0.22]} scale={[0.85, 1, 0.8]}>
+        <sphereGeometry args={[0.34, 32, 32]} />
+        {furBelly}
+      </mesh>
+
+      {/* Head */}
+      <mesh position={[0, 0.48, 0.16]} scale={[0.98, 0.9, 0.92]} castShadow>
         <sphereGeometry args={[0.38, 48, 48]} />
-        <meshToonMaterial color={mainColor} gradientMap={gradientMap} />
+        {furBody}
       </mesh>
 
-      {/* Face markings - ragdoll pattern */}
-      <mesh position={[0, 0.52, 0.35]}>
+      {/* Cheek fluff */}
+      <mesh position={[-0.24, 0.4, 0.3]} scale={[0.9, 0.75, 0.7]}>
+        <sphereGeometry args={[0.15, 20, 20]} />
+        {furBelly}
+      </mesh>
+      <mesh position={[0.24, 0.4, 0.3]} scale={[0.9, 0.75, 0.7]}>
+        <sphereGeometry args={[0.15, 20, 20]} />
+        {furBelly}
+      </mesh>
+
+      {/* Face mask marking */}
+      <mesh position={[0, 0.52, 0.33]} scale={[1, 0.85, 0.85]}>
         <sphereGeometry args={[0.22, 24, 24]} />
-        <meshToonMaterial color={pointColor} gradientMap={gradientMap} />
+        {furPoint}
       </mesh>
 
-      {/* Cheeks */}
-      <mesh position={[-0.2, 0.4, 0.38]}>
-        <sphereGeometry args={[0.12, 20, 20]} />
-        <meshToonMaterial color={p.bellyColor} gradientMap={gradientMap} />
-      </mesh>
-      <mesh position={[0.2, 0.4, 0.38]}>
-        <sphereGeometry args={[0.12, 20, 20]} />
-        <meshToonMaterial color={p.bellyColor} gradientMap={gradientMap} />
+      {/* Muzzle */}
+      <mesh position={[0, 0.42, 0.47]} scale={[0.8, 0.55, 0.7]}>
+        <sphereGeometry args={[0.14, 24, 24]} />
+        {furBelly}
       </mesh>
 
-      {/* Nose */}
-      <mesh position={[0, 0.43, 0.53]}>
-        <sphereGeometry args={[0.035, 20, 20]} />
-        <meshStandardMaterial color={noseColor} roughness={0.2} metalness={0.1} />
+      {/* Nose — small glossy triangle feel */}
+      <mesh position={[0, 0.455, 0.55]} scale={[1.2, 0.8, 0.7]}>
+        <sphereGeometry args={[0.032, 20, 20]} />
+        <meshPhysicalMaterial color={p.noseColor ?? '#D98A8A'} roughness={0.3} clearcoat={0.7} />
       </mesh>
 
-      {/* Mouth */}
-      <mesh position={[-0.02, 0.39, 0.5]} rotation={[0.1, 0.1, 0]}>
-        <torusGeometry args={[0.025, 0.005, 8, 12, Math.PI]} />
-        <meshToonMaterial color={darkPointColor} gradientMap={gradientMap} />
-      </mesh>
-      <mesh position={[0.02, 0.39, 0.5]} rotation={[0.1, -0.1, 0]}>
-        <torusGeometry args={[0.025, 0.005, 8, 12, Math.PI]} />
-        <meshToonMaterial color={darkPointColor} gradientMap={gradientMap} />
-      </mesh>
+      {/* Eyes — large, glossy, slightly angled */}
+      {[-0.14, 0.14].map((x, side) => (
+        <group key={side} position={[x, 0.55, 0.42]} rotation={[0, side === 0 ? -0.2 : 0.2, side === 0 ? 0.08 : -0.08]}>
+          <mesh position={[0, 0, -0.008]} scale={[1.18, 1.15, 0.7]}>
+            <sphereGeometry args={[0.08, 20, 20]} />
+            <meshStandardMaterial color={p.pointColor} roughness={1} />
+          </mesh>
+          <mesh scale={[1, 1.08, 0.72]}>
+            <sphereGeometry args={[0.075, 24, 24]} />
+            <meshStandardMaterial color="#f5f2ec" roughness={0.3} />
+          </mesh>
+          <mesh position={[side === 0 ? 0.008 : -0.008, -0.006, 0.035]} scale={[1, 1.1, 0.8]}>
+            <sphereGeometry args={[0.056, 20, 20]} />
+            <meshPhysicalMaterial color={p.eyeColor} roughness={0.12} clearcoat={1} clearcoatRoughness={0.08} />
+          </mesh>
+          {/* Vertical-ellipse pupil */}
+          <mesh position={[side === 0 ? 0.012 : -0.012, -0.008, 0.058]} scale={[0.55, 1.15, 0.7]}>
+            <sphereGeometry args={[0.032, 16, 16]} />
+            <meshPhysicalMaterial color="#0a0806" roughness={0.05} clearcoat={1} />
+          </mesh>
+          <mesh position={[-0.014 + side * 0.028, 0.022, 0.065]}>
+            <sphereGeometry args={[0.016, 10, 10]} />
+            <meshBasicMaterial color="#fff" toneMapped={false} />
+          </mesh>
+        </group>
+      ))}
 
-      {/* Eyes - big, blue, expressive */}
-      <group position={[-0.13, 0.54, 0.44]}>
-        <mesh>
-          <sphereGeometry args={[0.09, 24, 24]} />
-          <meshStandardMaterial color="#fff" roughness={0.05} />
-        </mesh>
-        <mesh position={[0.01, -0.01, 0.04]}>
-          <sphereGeometry args={[0.065, 24, 24]} />
-          <meshStandardMaterial color={p.eyeColor} roughness={0.1} metalness={0.2} />
-        </mesh>
-        <mesh position={[0.015, -0.015, 0.07]}>
-          <sphereGeometry args={[0.04, 20, 20]} />
-          <meshStandardMaterial color="#111" roughness={0.05} />
-        </mesh>
-        <mesh position={[-0.02, 0.03, 0.085]}>
-          <sphereGeometry args={[0.025, 12, 12]} />
-          <meshBasicMaterial color="#fff" toneMapped={false} />
-        </mesh>
-        <mesh position={[0.025, -0.015, 0.08]}>
-          <sphereGeometry args={[0.01, 8, 8]} />
-          <meshBasicMaterial color="#fff" toneMapped={false} />
-        </mesh>
-      </group>
-
-      <group position={[0.13, 0.54, 0.44]}>
-        <mesh>
-          <sphereGeometry args={[0.09, 24, 24]} />
-          <meshStandardMaterial color="#fff" roughness={0.05} />
-        </mesh>
-        <mesh position={[-0.01, -0.01, 0.04]}>
-          <sphereGeometry args={[0.065, 24, 24]} />
-          <meshStandardMaterial color={p.eyeColor} roughness={0.1} metalness={0.2} />
-        </mesh>
-        <mesh position={[-0.015, -0.015, 0.07]}>
-          <sphereGeometry args={[0.04, 20, 20]} />
-          <meshStandardMaterial color="#111" roughness={0.05} />
-        </mesh>
-        <mesh position={[0.02, 0.03, 0.085]}>
-          <sphereGeometry args={[0.025, 12, 12]} />
-          <meshBasicMaterial color="#fff" toneMapped={false} />
-        </mesh>
-        <mesh position={[-0.025, -0.015, 0.08]}>
-          <sphereGeometry args={[0.01, 8, 8]} />
-          <meshBasicMaterial color="#fff" toneMapped={false} />
-        </mesh>
-      </group>
-
-      {/* Ears — pointed cones, or folded caps pressed to the head */}
+      {/* Ears */}
       {p.earStyle === 'point' ? (
         <>
-          <group ref={earLRef} position={[-0.22, 0.82, 0.15]}>
-            <mesh rotation={[0, 0, -0.15]}>
-              <coneGeometry args={[0.1, 0.24, 4]} />
-              <meshToonMaterial color={pointColor} gradientMap={gradientMap} />
+          <group ref={earLRef} position={[-0.21, 0.8, 0.12]}>
+            <mesh rotation={[0.05, 0, -0.15]} scale={[1, 1, 0.5]}>
+              <coneGeometry args={[0.11, 0.26, 24]} />
+              {furPoint}
             </mesh>
-            <mesh position={[0, -0.01, 0.025]} rotation={[0, 0, -0.15]}>
-              <coneGeometry args={[0.065, 0.16, 4]} />
-              <meshToonMaterial color={pinkColor} gradientMap={gradientMap} />
+            <mesh position={[0, -0.02, 0.04]} rotation={[0.1, 0, -0.15]} scale={[0.55, 0.7, 0.35]}>
+              <coneGeometry args={[0.09, 0.19, 16]} />
+              <meshStandardMaterial color="#D9A8A8" roughness={0.85} />
             </mesh>
           </group>
-          <group ref={earRRef} position={[0.22, 0.82, 0.15]}>
-            <mesh rotation={[0, 0, 0.15]}>
-              <coneGeometry args={[0.1, 0.24, 4]} />
-              <meshToonMaterial color={pointColor} gradientMap={gradientMap} />
+          <group ref={earRRef} position={[0.21, 0.8, 0.12]}>
+            <mesh rotation={[0.05, 0, 0.15]} scale={[1, 1, 0.5]}>
+              <coneGeometry args={[0.11, 0.26, 24]} />
+              {furPoint}
             </mesh>
-            <mesh position={[0, -0.01, 0.025]} rotation={[0, 0, 0.15]}>
-              <coneGeometry args={[0.065, 0.16, 4]} />
-              <meshToonMaterial color={pinkColor} gradientMap={gradientMap} />
+            <mesh position={[0, -0.02, 0.04]} rotation={[0.1, 0, 0.15]} scale={[0.55, 0.7, 0.35]}>
+              <coneGeometry args={[0.09, 0.19, 16]} />
+              <meshStandardMaterial color="#D9A8A8" roughness={0.85} />
             </mesh>
           </group>
         </>
       ) : (
         <>
-          <group ref={earLRef} position={[-0.2, 0.79, 0.16]}>
+          <group ref={earLRef} position={[-0.19, 0.77, 0.15]}>
             <mesh rotation={[0.5, 0, -0.4]} scale={[1, 0.45, 0.8]}>
               <sphereGeometry args={[0.11, 20, 20]} />
-              <meshToonMaterial color={pointColor} gradientMap={gradientMap} />
+              {furPoint}
             </mesh>
           </group>
-          <group ref={earRRef} position={[0.2, 0.79, 0.16]}>
+          <group ref={earRRef} position={[0.19, 0.77, 0.15]}>
             <mesh rotation={[0.5, 0, 0.4]} scale={[1, 0.45, 0.8]}>
               <sphereGeometry args={[0.11, 20, 20]} />
-              <meshToonMaterial color={pointColor} gradientMap={gradientMap} />
+              {furPoint}
             </mesh>
           </group>
         </>
       )}
 
-      {/* Whiskers - delicate */}
+      {/* Whiskers */}
       {[
-        [-0.18, 0.43, 0.5, 0.12],
-        [-0.2, 0.41, 0.49, 0.2],
-        [-0.17, 0.39, 0.5, 0.08],
-        [0.18, 0.43, 0.5, -0.12],
-        [0.2, 0.41, 0.49, -0.2],
-        [0.17, 0.39, 0.5, -0.08],
+        [-0.2, 0.44, 0.48, 0.15], [-0.22, 0.41, 0.47, 0.28], [-0.19, 0.38, 0.48, 0.05],
+        [0.2, 0.44, 0.48, -0.15], [0.22, 0.41, 0.47, -0.28], [0.19, 0.38, 0.48, -0.05],
       ].map(([x, y, z, rot], i) => (
         <mesh key={i} position={[x, y, z]} rotation={[0, 0, rot]}>
-          <capsuleGeometry args={[0.004, 0.16, 4, 4]} />
-          <meshToonMaterial color="#ddd" gradientMap={gradientMap} />
+          <capsuleGeometry args={[0.0028, 0.18, 4, 4]} />
+          <meshStandardMaterial color="#e8e4de" roughness={0.4} transparent opacity={0.75} />
         </mesh>
       ))}
 
-      {/* Paws with pads */}
-      {[
-        [-0.15, -0.42, 0.15],
-        [0.15, -0.42, 0.15],
-        [-0.18, -0.42, -0.1],
-        [0.18, -0.42, -0.1],
-      ].map((pos, i) => (
-        <group key={i} position={pos as [number, number, number]}>
+      {/* Front legs */}
+      {[-0.15, 0.15].map((x, i) => (
+        <group key={i} position={[x, -0.42, 0.16]}>
           <mesh castShadow>
-            <capsuleGeometry args={[0.08, 0.18, 12, 16]} />
-            <meshToonMaterial color={i < 2 ? pointColor : darkPointColor} gradientMap={gradientMap} />
+            <capsuleGeometry args={[0.075, 0.2, 12, 16]} />
+            {furBody}
           </mesh>
-          <mesh position={[0, -0.14, 0.03]}>
-            <sphereGeometry args={[0.08, 12, 12]} />
-            <meshToonMaterial color={pinkColor} gradientMap={gradientMap} />
+          <mesh position={[0, -0.15, 0.03]} scale={[1, 0.7, 1.2]}>
+            <sphereGeometry args={[0.08, 16, 16]} />
+            {furBelly}
           </mesh>
         </group>
       ))}
+      {/* Rear paws peeking out */}
+      {[-0.26, 0.26].map((x, i) => (
+        <mesh key={i} position={[x, -0.5, -0.08]} scale={[1, 0.65, 1.3]} castShadow>
+          <sphereGeometry args={[0.085, 16, 16]} />
+          {furBody}
+        </mesh>
+      ))}
 
-      {/* Tail - fluffy, segmented */}
-      <group ref={tailRef} position={[0, 0.08, -0.42]}>
+      {/* Tail — long, tapering, fluffy tip */}
+      <group ref={tailRef} position={[0, 0.06, -0.44]}>
         <mesh rotation={[-0.7, 0, 0]}>
-          <capsuleGeometry args={[0.065, 0.3, 12, 16]} />
-          <meshToonMaterial color={pointColor} gradientMap={gradientMap} />
+          <capsuleGeometry args={[0.06, 0.3, 12, 16]} />
+          {furPoint}
         </mesh>
         <group ref={tailTipRef} position={[0, 0.1, -0.28]}>
           <mesh rotation={[-0.3, 0, 0]}>
-            <capsuleGeometry args={[0.06, 0.2, 12, 16]} />
-            <meshToonMaterial color={darkPointColor} gradientMap={gradientMap} />
+            <capsuleGeometry args={[0.055, 0.2, 12, 16]} />
+            {furPoint}
           </mesh>
-          <mesh position={[0, 0.12, -0.08]}>
-            <sphereGeometry args={[0.08, 16, 16]} />
-            <meshToonMaterial color={p.bellyColor} gradientMap={gradientMap} />
+          <mesh position={[0, 0.12, -0.08]} scale={[1, 1.2, 1]}>
+            <sphereGeometry args={[0.075, 16, 16]} />
+            {furBelly}
           </mesh>
         </group>
       </group>
-
-      {/* Blush (when hovered) */}
-      {isHovered && (
-        <>
-          <mesh position={[-0.24, 0.42, 0.42]}>
-            <sphereGeometry args={[0.05, 12, 12]} />
-            <meshBasicMaterial color="#ffaaaa" transparent opacity={0.35} toneMapped={false} />
-          </mesh>
-          <mesh position={[0.24, 0.42, 0.42]}>
-            <sphereGeometry args={[0.05, 12, 12]} />
-            <meshBasicMaterial color="#ffaaaa" transparent opacity={0.35} toneMapped={false} />
-          </mesh>
-        </>
-      )}
     </group>
   );
 }
