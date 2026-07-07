@@ -10,6 +10,8 @@ import { glbModels } from '../../data/petModels';
 interface GLBPetProps {
   config: GLBModelConfig;
   isHovered: boolean;
+  /** Multiplied into every material color — '#ffffff' keeps the original look. */
+  tint?: string;
 }
 
 /**
@@ -18,7 +20,7 @@ interface GLBPetProps {
  * animation and back. The scene graph is cloned per instance so the
  * same GLB can appear in several canvases at once.
  */
-export function GLBPet({ config, isHovered }: GLBPetProps) {
+export function GLBPet({ config, isHovered, tint }: GLBPetProps) {
   const group = useRef<Group>(null);
   const { scene, animations } = useGLTF(config.url);
 
@@ -27,17 +29,24 @@ export function GLBPet({ config, isHovered }: GLBPetProps) {
   const { actions, mixer } = useAnimations(animations, group);
 
   useEffect(() => {
+    const tintColor = tint ? new THREE.Color(tint) : null;
     clonedScene.traverse(obj => {
       if ((obj as THREE.Mesh).isMesh) {
         obj.castShadow = true;
         const mesh = obj as THREE.Mesh;
-        const mat = mesh.material as THREE.MeshStandardMaterial;
+        // Clone materials before mutating: SkeletonUtils.clone shares
+        // them across instances, and tinting one pet must not recolor
+        // every other pet using the same GLB.
+        let mat = mesh.material as THREE.MeshStandardMaterial;
         if (mat && 'roughness' in mat) {
+          mat = mat.clone();
           mat.roughness = Math.min(mat.roughness ?? 1, 0.9);
+          if (tintColor) mat.color.copy(tintColor);
+          mesh.material = mat;
         }
       }
     });
-  }, [clonedScene]);
+  }, [clonedScene, tint]);
 
   useEffect(() => {
     const idle = actions[config.idleAnimation];

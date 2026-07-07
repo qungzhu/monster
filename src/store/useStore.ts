@@ -3,6 +3,7 @@ import type { Character, ChatMessage, MoodEntry, MoodType } from '../data/charac
 import { characters } from '../data/characters';
 import type { PetStats } from '../data/gameConfig';
 import { DEFAULT_PET_STATS, STAT_DECAY_PER_HOUR, getLevelFromXP, shopItems, petReactions } from '../data/gameConfig';
+import { getBreed, characterDefaultBreed } from '../data/breeds';
 
 const STORAGE_KEYS = {
   selectedCharacter: 'fp-selected-character',
@@ -20,6 +21,7 @@ const STORAGE_KEYS = {
   questProgress: 'fp-quest-progress',
   lastStatDecay: 'fp-last-stat-decay',
   inventory: 'fp-inventory',
+  adoptedBreed: 'fp-adopted-breed',
 };
 
 function loadFromStorage<T>(key: string, defaultValue: T): T {
@@ -90,11 +92,34 @@ export function useAppStore() {
     loadFromStorage(STORAGE_KEYS.inventory, {})
   );
 
+  const [adoptedBreedId, setAdoptedBreedId] = useState<string | null>(
+    loadFromStorage(STORAGE_KEYS.adoptedBreed, null)
+  );
+
   const selectedCharacter = characters.find(c => c.id === selectedCharacterId) || null;
+  const adoptedBreed = getBreed(adoptedBreedId);
+  /** Display name: the adopted breed's pet name, falling back to the base character. */
+  const petName = adoptedBreed?.petName ?? selectedCharacter?.name ?? '';
 
   const selectCharacter = useCallback((id: string) => {
     setSelectedCharacterId(id);
     saveToStorage(STORAGE_KEYS.selectedCharacter, id);
+    // Quick-start picks map to their default breed so visuals stay consistent
+    const defaultBreed = characterDefaultBreed[id];
+    if (defaultBreed) {
+      setAdoptedBreedId(defaultBreed);
+      saveToStorage(STORAGE_KEYS.adoptedBreed, defaultBreed);
+    }
+  }, []);
+
+  /** Adopt a breed: sets both the visual breed and its personality character. */
+  const adoptBreed = useCallback((breedId: string) => {
+    const breed = getBreed(breedId);
+    if (!breed) return;
+    setAdoptedBreedId(breedId);
+    saveToStorage(STORAGE_KEYS.adoptedBreed, breedId);
+    setSelectedCharacterId(breed.characterId);
+    saveToStorage(STORAGE_KEYS.selectedCharacter, breed.characterId);
   }, []);
 
   const setUserName = useCallback((name: string) => {
@@ -301,12 +326,17 @@ export function useAppStore() {
     setPetStats({});
     setQuestProgress({});
     setInventory({});
+    setAdoptedBreedId(null);
   }, []);
 
   return {
     selectedCharacter,
     selectedCharacterId,
     selectCharacter,
+    adoptedBreedId,
+    adoptedBreed,
+    adoptBreed,
+    petName,
     chatHistories,
     addMessage,
     getCharacterResponse,

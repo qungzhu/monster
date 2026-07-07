@@ -14,6 +14,7 @@ export type IntentType =
   | 'checkin'
   | 'quests'
   | 'shop'
+  | 'adopt'
   | 'memories'
   | 'bond'
   | 'settings'
@@ -37,6 +38,7 @@ const intentPatterns: Array<{ type: IntentType; patterns: RegExp }> = [
   { type: 'checkin', patterns: /签到|打卡/ },
   { type: 'quests', patterns: /任务|挑战|今天要做|待办/ },
   { type: 'shop', patterns: /商店|购买|买东西|物品|背包|道具/ },
+  { type: 'adopt', patterns: /领养|换伙伴|新伙伴|换宠|图鉴|品种|其他宠物|别的宠物/ },
   { type: 'memories', patterns: /回忆|日记|历史|记录|日历|以前|心情统计/ },
   { type: 'bond', patterns: /档案|资料|羁绊|亲密度|成就|等级|我们的关系/ },
   { type: 'settings', patterns: /设置|api|清除数据|改名/i },

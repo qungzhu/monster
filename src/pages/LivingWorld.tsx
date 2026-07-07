@@ -17,8 +17,9 @@ import { MoodStats } from '../components/MoodStats';
 import { IntimacyBar } from '../components/IntimacyBar';
 import { IntimacyUnlocks } from '../components/IntimacyUnlocks';
 import { WinterBackdrop } from '../components/world/WinterBackdrop';
+import { AdoptionGallery } from '../components/game/AdoptionGallery';
 
-type CardType = 'quests' | 'shop' | 'memories' | 'bond' | 'settings' | 'help' | null;
+type CardType = 'quests' | 'shop' | 'adopt' | 'memories' | 'bond' | 'settings' | 'help' | null;
 
 interface LivingWorldProps {
   character: Character | null;
@@ -52,6 +53,9 @@ interface LivingWorldProps {
   checkInStreak: number;
   getCheckInReward: () => number;
   chatCount: number;
+  adoptedBreedId: string | null;
+  adoptBreed: (id: string) => void;
+  petName: string;
 }
 
 const themeColors: Record<string, string> = {
@@ -68,6 +72,7 @@ export function LivingWorld(props: LivingWorldProps) {
     coins, addCoins, addXP, levelInfo, getPetStats,
     getQuestProgress, updateQuestProgress, inventory, buyItem, useItem,
     getReaction, isCheckedIn, checkIn, checkInStreak, getCheckInReward, chatCount,
+    adoptedBreedId, adoptBreed, petName,
   } = props;
 
   const [input, setInput] = useState('');
@@ -136,7 +141,10 @@ export function LivingWorld(props: LivingWorldProps) {
     addCoins(2);
     setIsThinking(true);
 
-    const finish = (response: string) => {
+    const finish = (raw: string) => {
+      const response = petName && petName !== character.name
+        ? raw.split(character.name).join(petName)
+        : raw;
       addMessage(character.id, {
         id: `char-${Date.now()}`,
         role: 'character',
@@ -197,6 +205,7 @@ export function LivingWorld(props: LivingWorldProps) {
         break;
       case 'quests': setActiveCard('quests'); break;
       case 'shop': setActiveCard('shop'); break;
+      case 'adopt': setActiveCard('adopt'); break;
       case 'memories': setActiveCard('memories'); break;
       case 'bond': setActiveCard('bond'); break;
       case 'settings': setActiveCard('settings'); break;
@@ -340,7 +349,7 @@ export function LivingWorld(props: LivingWorldProps) {
 
       {/* The world — full-screen winter scene with the pet at center */}
       <div className="absolute inset-0">
-        <PetScene characterId={character.id} size="world" interactive={true} />
+        <PetScene characterId={character.id} breedId={adoptedBreedId} size="world" interactive={true} />
       </div>
 
       {/* Pet tap zone + bubble anchor (over the pet's spot in the scene) */}
@@ -360,7 +369,7 @@ export function LivingWorld(props: LivingWorldProps) {
                   style={{ background: `${color}26`, border: `1px solid ${color}44` }}>
                   {isThinking ? (
                     <motion.span animate={{ opacity: [0.4, 1, 0.4] }} transition={{ duration: 1.2, repeat: Infinity }}>
-                      {character.name}正在想...
+                      {petName || character.name}正在想...
                     </motion.span>
                   ) : bubble}
                   <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 rotate-45"
@@ -433,7 +442,7 @@ export function LivingWorld(props: LivingWorldProps) {
         >
           <input
             type="text" value={input} onChange={e => setInput(e.target.value)}
-            placeholder={`和${character.name}说话，或说"喂它""看任务"...`}
+            placeholder={`和${petName || character.name}说话，或说"喂它""领养"...`}
             disabled={isThinking}
             className="flex-1 bg-transparent px-2 py-1.5 text-sm text-text-primary placeholder:text-text-muted outline-none"
           />
@@ -455,6 +464,12 @@ export function LivingWorld(props: LivingWorldProps) {
         onClaimReward={handleClaimQuest}
         claimedQuests={claimedQuests}
       />
+      <AdoptionGallery
+        show={activeCard === 'adopt'}
+        onClose={() => setActiveCard(null)}
+        onAdopt={(id) => { adoptBreed(id); }}
+        currentBreedId={adoptedBreedId}
+      />
       <ShopPanel
         show={activeCard === 'shop'}
         onClose={() => setActiveCard(null)}
@@ -473,7 +488,7 @@ export function LivingWorld(props: LivingWorldProps) {
             <motion.div initial={{ scale: 0.88, y: 24 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.88, y: 24 }}
               className="relative w-full max-w-sm max-h-[78vh] overflow-y-auto rounded-2xl game-panel p-5" onClick={e => e.stopPropagation()}>
               <h2 className="text-base font-bold text-text-primary mb-1">我们的回忆 📖</h2>
-              <p className="text-[11px] text-text-muted mb-4">和{character.name}在一起的 {chatCount} 次对话 · {moodEntries.length} 条心情</p>
+              <p className="text-[11px] text-text-muted mb-4">和{petName || character.name}在一起的 {chatCount} 次对话 · {moodEntries.length} 条心情</p>
               <MoodCalendar entries={moodEntries} />
               <div className="mt-4">
                 <MoodStats entries={moodEntries} />
@@ -497,7 +512,7 @@ export function LivingWorld(props: LivingWorldProps) {
               <div className="flex items-center gap-3 mb-4">
                 <span className="text-3xl">{character.avatar}</span>
                 <div>
-                  <h2 className="text-base font-bold text-text-primary">{character.name} · {character.title}</h2>
+                  <h2 className="text-base font-bold text-text-primary">{petName || character.name} · {character.title}</h2>
                   <p className="text-[11px] text-text-muted">{userName} 的 Lv.{levelInfo.level} {levelInfo.title}</p>
                 </div>
               </div>
@@ -539,10 +554,10 @@ export function LivingWorld(props: LivingWorldProps) {
                 className="w-full bg-surface-light rounded-xl px-3 py-2.5 text-sm text-text-primary placeholder:text-text-muted outline-none border border-transparent focus:border-white/20 mb-4"
               />
               <button
-                onClick={() => setActiveCard(null) /* switch pet via world */}
+                onClick={() => setActiveCard('adopt')}
                 className="w-full glass rounded-xl py-2.5 text-sm text-text-secondary mb-2"
               >
-                想换伙伴？对我说"换伙伴"暂未开放，敬请期待
+                🏠 去领养小屋换一只伙伴
               </button>
               <button
                 onClick={() => { if (confirm('确定清除所有数据吗？此操作不可恢复')) { clearAllData(); setActiveCard(null); } }}
@@ -570,6 +585,7 @@ export function LivingWorld(props: LivingWorldProps) {
                 <p>🎾 说 <span style={{ color }}>"陪它玩"</span> — 玩耍</p>
                 <p>📋 说 <span style={{ color }}>"看任务"</span> — 每日任务</p>
                 <p>🛍 说 <span style={{ color }}>"商店"</span> — 买东西</p>
+                <p>🏠 说 <span style={{ color }}>"领养"</span> — 领养新品种伙伴</p>
                 <p>📖 说 <span style={{ color }}>"回忆"</span> — 心情日历</p>
                 <p>💛 说 <span style={{ color }}>"羁绊"</span> — 你们的关系</p>
                 <p>😢 直接说心情 — 它会安慰你并记进日记</p>

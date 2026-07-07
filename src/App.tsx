@@ -43,6 +43,9 @@ export default function App() {
         checkInStreak={store.checkInStreak}
         getCheckInReward={store.getCheckInReward}
         chatCount={store.selectedCharacterId ? (store.chatHistories[store.selectedCharacterId]?.length || 0) : 0}
+        adoptedBreedId={store.adoptedBreedId}
+        adoptBreed={store.adoptBreed}
+        petName={store.petName}
       />
     </div>
   );

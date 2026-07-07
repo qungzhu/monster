@@ -2,6 +2,7 @@ import { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
 import type { Group } from 'three';
+import type { CatParams } from '../../data/breeds';
 
 function useToonGradient(steps: number = 4) {
   return useMemo(() => {
@@ -17,7 +18,20 @@ function useToonGradient(steps: number = 4) {
   }, [steps]);
 }
 
-export function CatModel({ isHovered }: { isHovered: boolean }) {
+const ragdollDefaults: CatParams = {
+  bodyColor: '#F0EAE8',
+  pointColor: '#C8B8B0',
+  bellyColor: '#FAFAFA',
+  eyeColor: '#5588DD',
+  earStyle: 'point',
+};
+
+/**
+ * Parametric cat: colors, eye color and ear style (pointed/folded)
+ * come from breed params so one model renders many breeds.
+ */
+export function CatModel({ isHovered, params }: { isHovered: boolean; params?: CatParams }) {
+  const p = params ?? ragdollDefaults;
   const group = useRef<Group>(null);
   const tailRef = useRef<Group>(null);
   const tailTipRef = useRef<Group>(null);
@@ -50,11 +64,11 @@ export function CatModel({ isHovered }: { isHovered: boolean }) {
     }
   });
 
-  const mainColor = '#F0EAE8';
-  const pointColor = '#C8B8B0';
-  const darkPointColor = '#A89890';
+  const mainColor = p.bodyColor;
+  const pointColor = p.pointColor;
+  const darkPointColor = p.pointColor;
   const pinkColor = '#FFD0D0';
-  const noseColor = '#FFB0B0';
+  const noseColor = p.noseColor ?? '#FFB0B0';
 
   return (
     <group ref={group}>
@@ -67,11 +81,11 @@ export function CatModel({ isHovered }: { isHovered: boolean }) {
       {/* Chest fluff - layered */}
       <mesh position={[0, 0.1, 0.2]}>
         <sphereGeometry args={[0.36, 32, 32]} />
-        <meshToonMaterial color="#FAFAFA" gradientMap={gradientMap} />
+        <meshToonMaterial color={p.bellyColor} gradientMap={gradientMap} />
       </mesh>
       <mesh position={[0, 0.02, 0.25]}>
         <sphereGeometry args={[0.32, 24, 24]} />
-        <meshToonMaterial color="#FFFFFF" gradientMap={gradientMap} />
+        <meshToonMaterial color={p.bellyColor} gradientMap={gradientMap} />
       </mesh>
 
       {/* Head - larger for cuteness */}
@@ -89,11 +103,11 @@ export function CatModel({ isHovered }: { isHovered: boolean }) {
       {/* Cheeks */}
       <mesh position={[-0.2, 0.4, 0.38]}>
         <sphereGeometry args={[0.12, 20, 20]} />
-        <meshToonMaterial color="#FAFAFA" gradientMap={gradientMap} />
+        <meshToonMaterial color={p.bellyColor} gradientMap={gradientMap} />
       </mesh>
       <mesh position={[0.2, 0.4, 0.38]}>
         <sphereGeometry args={[0.12, 20, 20]} />
-        <meshToonMaterial color="#FAFAFA" gradientMap={gradientMap} />
+        <meshToonMaterial color={p.bellyColor} gradientMap={gradientMap} />
       </mesh>
 
       {/* Nose */}
@@ -120,7 +134,7 @@ export function CatModel({ isHovered }: { isHovered: boolean }) {
         </mesh>
         <mesh position={[0.01, -0.01, 0.04]}>
           <sphereGeometry args={[0.065, 24, 24]} />
-          <meshStandardMaterial color="#5588DD" roughness={0.1} metalness={0.2} />
+          <meshStandardMaterial color={p.eyeColor} roughness={0.1} metalness={0.2} />
         </mesh>
         <mesh position={[0.015, -0.015, 0.07]}>
           <sphereGeometry args={[0.04, 20, 20]} />
@@ -143,7 +157,7 @@ export function CatModel({ isHovered }: { isHovered: boolean }) {
         </mesh>
         <mesh position={[-0.01, -0.01, 0.04]}>
           <sphereGeometry args={[0.065, 24, 24]} />
-          <meshStandardMaterial color="#5588DD" roughness={0.1} metalness={0.2} />
+          <meshStandardMaterial color={p.eyeColor} roughness={0.1} metalness={0.2} />
         </mesh>
         <mesh position={[-0.015, -0.015, 0.07]}>
           <sphereGeometry args={[0.04, 20, 20]} />
@@ -159,27 +173,46 @@ export function CatModel({ isHovered }: { isHovered: boolean }) {
         </mesh>
       </group>
 
-      {/* Ears - pointed, with inner detail */}
-      <group ref={earLRef} position={[-0.22, 0.82, 0.15]}>
-        <mesh rotation={[0, 0, -0.15]}>
-          <coneGeometry args={[0.1, 0.24, 4]} />
-          <meshToonMaterial color={pointColor} gradientMap={gradientMap} />
-        </mesh>
-        <mesh position={[0, -0.01, 0.025]} rotation={[0, 0, -0.15]}>
-          <coneGeometry args={[0.065, 0.16, 4]} />
-          <meshToonMaterial color={pinkColor} gradientMap={gradientMap} />
-        </mesh>
-      </group>
-      <group ref={earRRef} position={[0.22, 0.82, 0.15]}>
-        <mesh rotation={[0, 0, 0.15]}>
-          <coneGeometry args={[0.1, 0.24, 4]} />
-          <meshToonMaterial color={pointColor} gradientMap={gradientMap} />
-        </mesh>
-        <mesh position={[0, -0.01, 0.025]} rotation={[0, 0, 0.15]}>
-          <coneGeometry args={[0.065, 0.16, 4]} />
-          <meshToonMaterial color={pinkColor} gradientMap={gradientMap} />
-        </mesh>
-      </group>
+      {/* Ears — pointed cones, or folded caps pressed to the head */}
+      {p.earStyle === 'point' ? (
+        <>
+          <group ref={earLRef} position={[-0.22, 0.82, 0.15]}>
+            <mesh rotation={[0, 0, -0.15]}>
+              <coneGeometry args={[0.1, 0.24, 4]} />
+              <meshToonMaterial color={pointColor} gradientMap={gradientMap} />
+            </mesh>
+            <mesh position={[0, -0.01, 0.025]} rotation={[0, 0, -0.15]}>
+              <coneGeometry args={[0.065, 0.16, 4]} />
+              <meshToonMaterial color={pinkColor} gradientMap={gradientMap} />
+            </mesh>
+          </group>
+          <group ref={earRRef} position={[0.22, 0.82, 0.15]}>
+            <mesh rotation={[0, 0, 0.15]}>
+              <coneGeometry args={[0.1, 0.24, 4]} />
+              <meshToonMaterial color={pointColor} gradientMap={gradientMap} />
+            </mesh>
+            <mesh position={[0, -0.01, 0.025]} rotation={[0, 0, 0.15]}>
+              <coneGeometry args={[0.065, 0.16, 4]} />
+              <meshToonMaterial color={pinkColor} gradientMap={gradientMap} />
+            </mesh>
+          </group>
+        </>
+      ) : (
+        <>
+          <group ref={earLRef} position={[-0.2, 0.79, 0.16]}>
+            <mesh rotation={[0.5, 0, -0.4]} scale={[1, 0.45, 0.8]}>
+              <sphereGeometry args={[0.11, 20, 20]} />
+              <meshToonMaterial color={pointColor} gradientMap={gradientMap} />
+            </mesh>
+          </group>
+          <group ref={earRRef} position={[0.2, 0.79, 0.16]}>
+            <mesh rotation={[0.5, 0, 0.4]} scale={[1, 0.45, 0.8]}>
+              <sphereGeometry args={[0.11, 20, 20]} />
+              <meshToonMaterial color={pointColor} gradientMap={gradientMap} />
+            </mesh>
+          </group>
+        </>
+      )}
 
       {/* Whiskers - delicate */}
       {[
@@ -228,7 +261,7 @@ export function CatModel({ isHovered }: { isHovered: boolean }) {
           </mesh>
           <mesh position={[0, 0.12, -0.08]}>
             <sphereGeometry args={[0.08, 16, 16]} />
-            <meshToonMaterial color="#FAFAFA" gradientMap={gradientMap} />
+            <meshToonMaterial color={p.bellyColor} gradientMap={gradientMap} />
           </mesh>
         </group>
       </group>

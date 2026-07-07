@@ -10,10 +10,14 @@ import { PetParticles } from './PetParticles';
 import { GLBPet } from './GLBPet';
 import { glbModels } from '../../data/petModels';
 import { WinterScene } from '../world/WinterScene';
+import { getBreed } from '../../data/breeds';
+import type { CatParams, DogParams, FoxParams } from '../../data/breeds';
 import * as THREE from 'three';
 
 interface PetSceneProps {
   characterId: string;
+  /** When set, visuals come from the breed registry instead of the legacy character. */
+  breedId?: string | null;
   /** 'world' fills its container and renders the full winter set — used by the Living World. */
   size?: 'tiny' | 'small' | 'medium' | 'large' | 'world';
   interactive?: boolean;
@@ -53,7 +57,33 @@ class ModelErrorBoundary extends Component<{ fallback: ReactNode; children: Reac
   }
 }
 
-function PetModel({ characterId, isHovered }: { characterId: string; isHovered: boolean }) {
+function PetModel({ characterId, breedId, isHovered }: { characterId: string; breedId?: string | null; isHovered: boolean }) {
+  const breed = getBreed(breedId ?? null);
+
+  // Breed-driven rendering: parametric bodies for cats/dogs/hamsters,
+  // tinted GLB for foxes.
+  if (breed) {
+    switch (breed.species) {
+      case 'cat':
+        return <CatModel isHovered={isHovered} params={breed.params as CatParams} />;
+      case 'dog':
+        return <DogModel isHovered={isHovered} params={breed.params as DogParams} />;
+      case 'hamster':
+        return <HamsterModel isHovered={isHovered} />;
+      case 'fox': {
+        const foxConfig = glbModels.tuantuan;
+        const fallback = <DogModel isHovered={isHovered} />;
+        return (
+          <ModelErrorBoundary fallback={fallback}>
+            <Suspense fallback={fallback}>
+              <GLBPet config={foxConfig} isHovered={isHovered} tint={(breed.params as FoxParams)?.tint} />
+            </Suspense>
+          </ModelErrorBoundary>
+        );
+      }
+    }
+  }
+
   const glbConfig = glbModels[characterId];
   const procedural = <ProceduralModel characterId={characterId} isHovered={isHovered} />;
 
@@ -121,7 +151,7 @@ function GroundPlane({ color }: { color: string }) {
   );
 }
 
-export function PetScene({ characterId, size = 'medium', interactive = true }: PetSceneProps) {
+export function PetScene({ characterId, breedId, size = 'medium', interactive = true }: PetSceneProps) {
   const [isHovered, setIsHovered] = useState(false);
   const config = sceneConfig[characterId] || sceneConfig.tuantuan;
   const sizeClass = sizeMap[size];
@@ -159,7 +189,7 @@ export function PetScene({ characterId, size = 'medium', interactive = true }: P
         <Suspense fallback={null}>
           <ToonLighting color={config.color} />
 
-          <PetModel characterId={characterId} isHovered={isHovered} />
+          <PetModel characterId={characterId} breedId={breedId} isHovered={isHovered} />
 
           {/* Large view = the Living World: full Frozen winter set.
               Smaller views keep the lightweight color disc. */}
