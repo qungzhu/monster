@@ -108,6 +108,62 @@ app.post('/api/chat', async (req, res) => {
   }
 });
 
+// Analyze a pet photo with Claude vision and return parametric
+// model params so the app can rebuild the pet as a 3D companion.
+app.post('/api/analyze-pet', async (req, res) => {
+  try {
+    const { imageBase64, mediaType } = req.body;
+    const apiKey = req.headers['x-api-key'] || process.env.ANTHROPIC_API_KEY;
+    if (!apiKey) {
+      return res.status(400).json({ error: 'no_api_key', message: 'API key not configured' });
+    }
+    if (!imageBase64) {
+      return res.status(400).json({ error: 'no_image', message: 'imageBase64 required' });
+    }
+
+    const client = new Anthropic({ apiKey });
+    const response = await client.messages.create({
+      model: 'claude-fable-5',
+      max_tokens: 400,
+      messages: [{
+        role: 'user',
+        content: [
+          {
+            type: 'image',
+            source: { type: 'base64', media_type: mediaType || 'image/jpeg', data: imageBase64 },
+          },
+          {
+            type: 'text',
+            text: `分析这张宠物照片，返回严格的JSON（不要其他文字）：
+{
+  "species": "cat"或"dog",
+  "bodyColor": "身体主毛色hex",
+  "accentColor": "耳朵/斑纹等深色部位hex",
+  "bellyColor": "肚子/胸口浅色部位hex",
+  "eyeColor": "眼睛颜色hex",
+  "earStyle": 狗用"floppy"(垂耳)或"pointy"(立耳)，猫用"point"(尖耳)或"fold"(折耳),
+  "tailStyle": "wag"(直尾)或"curl"(卷尾)，仅狗需要,
+  "legScale": 腿长比例0.55到1，短腿如柯基用0.55,
+  "personality": ["三个中文性格标签"],
+  "suggestedName": "根据外形起的可爱中文小名",
+  "breedGuess": "推测的品种中文名"
+}
+颜色要贴近照片真实毛色。如果不是猫狗，species按最接近的选。`,
+          },
+        ],
+      }],
+    });
+
+    const text = response.content[0]?.type === 'text' ? response.content[0].text : '';
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (!jsonMatch) throw new Error('no JSON in response');
+    res.json(JSON.parse(jsonMatch[0]));
+  } catch (error) {
+    console.error('Analyze API error:', error.message);
+    res.status(500).json({ error: 'api_error', message: error.message });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`FurryPal API server running on http://localhost:${PORT}`);
 });

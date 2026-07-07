@@ -11,13 +11,15 @@ import { GLBPet } from './GLBPet';
 import { glbModels } from '../../data/petModels';
 import { WinterScene } from '../world/WinterScene';
 import { getBreed } from '../../data/breeds';
-import type { CatParams, DogParams, FoxParams } from '../../data/breeds';
+import type { Breed, CatParams, DogParams, FoxParams } from '../../data/breeds';
 import * as THREE from 'three';
 
 interface PetSceneProps {
   characterId: string;
   /** When set, visuals come from the breed registry instead of the legacy character. */
   breedId?: string | null;
+  /** Inline breed object (photo-generated custom pets, live previews). Wins over breedId. */
+  customBreed?: Breed | null;
   /** 'world' fills its container and renders the full winter set — used by the Living World. */
   size?: 'tiny' | 'small' | 'medium' | 'large' | 'world';
   interactive?: boolean;
@@ -57,8 +59,8 @@ class ModelErrorBoundary extends Component<{ fallback: ReactNode; children: Reac
   }
 }
 
-function PetModel({ characterId, breedId, isHovered }: { characterId: string; breedId?: string | null; isHovered: boolean }) {
-  const breed = getBreed(breedId ?? null);
+function PetModel({ characterId, breedId, customBreed, isHovered }: { characterId: string; breedId?: string | null; customBreed?: Breed | null; isHovered: boolean }) {
+  const breed = customBreed ?? getBreed(breedId ?? null);
 
   // Breed-driven rendering: parametric bodies for cats/dogs/hamsters,
   // tinted GLB for foxes.
@@ -151,7 +153,7 @@ function GroundPlane({ color }: { color: string }) {
   );
 }
 
-export function PetScene({ characterId, breedId, size = 'medium', interactive = true }: PetSceneProps) {
+export function PetScene({ characterId, breedId, customBreed, size = 'medium', interactive = true }: PetSceneProps) {
   const [isHovered, setIsHovered] = useState(false);
   const config = sceneConfig[characterId] || sceneConfig.tuantuan;
   const sizeClass = sizeMap[size];
@@ -189,7 +191,7 @@ export function PetScene({ characterId, breedId, size = 'medium', interactive = 
         <Suspense fallback={null}>
           <ToonLighting color={config.color} />
 
-          <PetModel characterId={characterId} breedId={breedId} isHovered={isHovered} />
+          <PetModel characterId={characterId} breedId={breedId} customBreed={customBreed} isHovered={isHovered} />
 
           {/* Large view = the Living World: full Frozen winter set.
               Smaller views keep the lightweight color disc. */}

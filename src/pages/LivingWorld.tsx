@@ -18,8 +18,10 @@ import { IntimacyBar } from '../components/IntimacyBar';
 import { IntimacyUnlocks } from '../components/IntimacyUnlocks';
 import { WinterBackdrop } from '../components/world/WinterBackdrop';
 import { AdoptionGallery } from '../components/game/AdoptionGallery';
+import { CustomPetStudio } from '../components/game/CustomPetStudio';
+import type { Breed } from '../data/breeds';
 
-type CardType = 'quests' | 'shop' | 'adopt' | 'memories' | 'bond' | 'settings' | 'help' | null;
+type CardType = 'quests' | 'shop' | 'adopt' | 'custom' | 'memories' | 'bond' | 'settings' | 'help' | null;
 
 interface LivingWorldProps {
   character: Character | null;
@@ -56,6 +58,8 @@ interface LivingWorldProps {
   adoptedBreedId: string | null;
   adoptBreed: (id: string) => void;
   petName: string;
+  customPet: Breed | null;
+  saveCustomPet: (pet: Breed) => void;
 }
 
 const themeColors: Record<string, string> = {
@@ -72,7 +76,7 @@ export function LivingWorld(props: LivingWorldProps) {
     coins, addCoins, addXP, levelInfo, getPetStats,
     getQuestProgress, updateQuestProgress, inventory, buyItem, useItem,
     getReaction, isCheckedIn, checkIn, checkInStreak, getCheckInReward, chatCount,
-    adoptedBreedId, adoptBreed, petName,
+    adoptedBreedId, adoptBreed, petName, customPet, saveCustomPet,
   } = props;
 
   const [input, setInput] = useState('');
@@ -206,6 +210,7 @@ export function LivingWorld(props: LivingWorldProps) {
       case 'quests': setActiveCard('quests'); break;
       case 'shop': setActiveCard('shop'); break;
       case 'adopt': setActiveCard('adopt'); break;
+      case 'custom': setActiveCard('custom'); break;
       case 'memories': setActiveCard('memories'); break;
       case 'bond': setActiveCard('bond'); break;
       case 'settings': setActiveCard('settings'); break;
@@ -349,7 +354,7 @@ export function LivingWorld(props: LivingWorldProps) {
 
       {/* The world — full-screen winter scene with the pet at center */}
       <div className="absolute inset-0">
-        <PetScene characterId={character.id} breedId={adoptedBreedId} size="world" interactive={true} />
+        <PetScene characterId={character.id} breedId={adoptedBreedId} customBreed={adoptedBreedId === 'custom' ? customPet : null} size="world" interactive={true} />
       </div>
 
       {/* Pet tap zone + bubble anchor (over the pet's spot in the scene) */}
@@ -469,6 +474,13 @@ export function LivingWorld(props: LivingWorldProps) {
         onClose={() => setActiveCard(null)}
         onAdopt={(id) => { adoptBreed(id); }}
         currentBreedId={adoptedBreedId}
+        onOpenStudio={() => setActiveCard('custom')}
+      />
+      <CustomPetStudio
+        show={activeCard === 'custom'}
+        onClose={() => setActiveCard(null)}
+        onSave={(pet) => { saveCustomPet(pet); }}
+        apiKey={apiKey}
       />
       <ShopPanel
         show={activeCard === 'shop'}
@@ -586,6 +598,7 @@ export function LivingWorld(props: LivingWorldProps) {
                 <p>📋 说 <span style={{ color }}>"看任务"</span> — 每日任务</p>
                 <p>🛍 说 <span style={{ color }}>"商店"</span> — 买东西</p>
                 <p>🏠 说 <span style={{ color }}>"领养"</span> — 领养新品种伙伴</p>
+                <p>📸 说 <span style={{ color }}>"上传照片"</span> — 用你家宝贝的照片定制3D形象</p>
                 <p>📖 说 <span style={{ color }}>"回忆"</span> — 心情日历</p>
                 <p>💛 说 <span style={{ color }}>"羁绊"</span> — 你们的关系</p>
                 <p>😢 直接说心情 — 它会安慰你并记进日记</p>

@@ -3,7 +3,8 @@ import type { Character, ChatMessage, MoodEntry, MoodType } from '../data/charac
 import { characters } from '../data/characters';
 import type { PetStats } from '../data/gameConfig';
 import { DEFAULT_PET_STATS, STAT_DECAY_PER_HOUR, getLevelFromXP, shopItems, petReactions } from '../data/gameConfig';
-import { getBreed, characterDefaultBreed } from '../data/breeds';
+import { getBreed, characterDefaultBreed, CUSTOM_BREED_ID } from '../data/breeds';
+import type { Breed } from '../data/breeds';
 
 const STORAGE_KEYS = {
   selectedCharacter: 'fp-selected-character',
@@ -22,6 +23,7 @@ const STORAGE_KEYS = {
   lastStatDecay: 'fp-last-stat-decay',
   inventory: 'fp-inventory',
   adoptedBreed: 'fp-adopted-breed',
+  customPet: 'fp-custom-pet',
 };
 
 function loadFromStorage<T>(key: string, defaultValue: T): T {
@@ -95,9 +97,12 @@ export function useAppStore() {
   const [adoptedBreedId, setAdoptedBreedId] = useState<string | null>(
     loadFromStorage(STORAGE_KEYS.adoptedBreed, null)
   );
+  const [customPet, setCustomPet] = useState<Breed | null>(
+    loadFromStorage(STORAGE_KEYS.customPet, null)
+  );
 
   const selectedCharacter = characters.find(c => c.id === selectedCharacterId) || null;
-  const adoptedBreed = getBreed(adoptedBreedId);
+  const adoptedBreed = adoptedBreedId === CUSTOM_BREED_ID ? customPet : getBreed(adoptedBreedId);
   /** Display name: the adopted breed's pet name, falling back to the base character. */
   const petName = adoptedBreed?.petName ?? selectedCharacter?.name ?? '';
 
@@ -110,6 +115,16 @@ export function useAppStore() {
       setAdoptedBreedId(defaultBreed);
       saveToStorage(STORAGE_KEYS.adoptedBreed, defaultBreed);
     }
+  }, []);
+
+  /** Save the photo-generated pet and make it the active companion. */
+  const saveCustomPet = useCallback((pet: Breed) => {
+    setCustomPet(pet);
+    saveToStorage(STORAGE_KEYS.customPet, pet);
+    setAdoptedBreedId(CUSTOM_BREED_ID);
+    saveToStorage(STORAGE_KEYS.adoptedBreed, CUSTOM_BREED_ID);
+    setSelectedCharacterId(pet.characterId);
+    saveToStorage(STORAGE_KEYS.selectedCharacter, pet.characterId);
   }, []);
 
   /** Adopt a breed: sets both the visual breed and its personality character. */
@@ -327,6 +342,7 @@ export function useAppStore() {
     setQuestProgress({});
     setInventory({});
     setAdoptedBreedId(null);
+    setCustomPet(null);
   }, []);
 
   return {
@@ -337,6 +353,8 @@ export function useAppStore() {
     adoptedBreed,
     adoptBreed,
     petName,
+    customPet,
+    saveCustomPet,
     chatHistories,
     addMessage,
     getCharacterResponse,

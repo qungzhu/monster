@@ -46,6 +46,8 @@ export default function App() {
         adoptedBreedId={store.adoptedBreedId}
         adoptBreed={store.adoptBreed}
         petName={store.petName}
+        customPet={store.customPet}
+        saveCustomPet={store.saveCustomPet}
       />
     </div>
   );

@@ -10,6 +10,7 @@ interface AdoptionGalleryProps {
   onClose: () => void;
   onAdopt: (breedId: string) => void;
   currentBreedId: string | null;
+  onOpenStudio?: () => void;
 }
 
 const speciesTabs: Species[] = ['dog', 'cat', 'fox', 'hamster'];
@@ -18,7 +19,7 @@ const speciesTabs: Species[] = ['dog', 'cat', 'fox', 'hamster'];
  * The adoption hall: browse every breed with a live 3D preview and
  * take your favorite home. Summoned by saying "领养" in the world.
  */
-export function AdoptionGallery({ show, onClose, onAdopt, currentBreedId }: AdoptionGalleryProps) {
+export function AdoptionGallery({ show, onClose, onAdopt, currentBreedId, onOpenStudio }: AdoptionGalleryProps) {
   const [species, setSpecies] = useState<Species>('dog');
   const [previewId, setPreviewId] = useState<string | null>(null);
 
@@ -54,9 +55,20 @@ export function AdoptionGallery({ show, onClose, onAdopt, currentBreedId }: Adop
               </button>
             </div>
 
-            <div className="px-5 pt-2 pb-1">
-              <h2 className="text-lg font-bold text-text-primary">领养小屋 🏠</h2>
-              <p className="text-[11px] text-text-muted">每一只都在等一个家</p>
+            <div className="px-5 pt-2 pb-1 flex items-start justify-between">
+              <div>
+                <h2 className="text-lg font-bold text-text-primary">领养小屋 🏠</h2>
+                <p className="text-[11px] text-text-muted">每一只都在等一个家</p>
+              </div>
+              {onOpenStudio && (
+                <button
+                  onClick={() => { onClose(); onOpenStudio(); }}
+                  className="shrink-0 rounded-full px-3 py-1.5 text-[11px] font-medium text-white mt-1"
+                  style={{ background: 'linear-gradient(135deg, #8b5cf6, #ec4899)' }}
+                >
+                  📸 照片定制
+                </button>
+              )}
             </div>
 
             {/* Species tabs */}

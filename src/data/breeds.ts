@@ -215,9 +215,34 @@ export const breeds: Breed[] = [
   },
 ];
 
+export const CUSTOM_BREED_ID = 'custom';
+
 export function getBreed(id: string | null): Breed | null {
   if (!id) return null;
   return breeds.find(b => b.id === id) || null;
+}
+
+/** Build a Breed record for the user's own photo-generated pet. */
+export function buildCustomBreed(input: {
+  species: 'cat' | 'dog';
+  petName: string;
+  personality: string[];
+  breedGuess: string;
+  params: CatParams | DogParams;
+}): Breed {
+  return {
+    id: CUSTOM_BREED_ID,
+    species: input.species,
+    name: input.breedGuess || '我的专属萌宠',
+    englishName: 'My Own Pet',
+    petName: input.petName,
+    emoji: input.species === 'cat' ? '🐱' : '🐶',
+    rarity: 'legendary',
+    description: '从你的照片里走出来的独一无二的小家伙',
+    personality: input.personality,
+    characterId: input.species === 'cat' ? 'xiaoxue' : 'tuantuan',
+    params: input.params,
+  };
 }
 
 /** Default breed for each legacy character (quick-start stage picks). */
