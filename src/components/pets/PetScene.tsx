@@ -63,8 +63,27 @@ function PetModel({ characterId, breedId, customBreed, isHovered }: { characterI
   const breed = customBreed ?? getBreed(breedId ?? null);
 
   // Breed-driven rendering: parametric bodies for cats/dogs/hamsters,
-  // tinted GLB for foxes.
+  // tinted GLB for foxes. A photo-reconstructed mesh wins over params.
   if (breed) {
+    if (breed.glbUrl) {
+      const meshConfig = {
+        url: breed.glbUrl,
+        scale: 1,
+        yOffset: -0.65,
+        idleAnimation: '',
+        hoverAnimation: '',
+      };
+      const fallback = breed.species === 'cat'
+        ? <CatModel isHovered={isHovered} params={breed.params as CatParams} />
+        : <DogModel isHovered={isHovered} params={breed.params as DogParams} />;
+      return (
+        <ModelErrorBoundary fallback={fallback}>
+          <Suspense fallback={fallback}>
+            <GLBPet config={meshConfig} isHovered={isHovered} normalize />
+          </Suspense>
+        </ModelErrorBoundary>
+      );
+    }
     switch (breed.species) {
       case 'cat':
         return <CatModel isHovered={isHovered} params={breed.params as CatParams} />;

@@ -142,6 +142,48 @@ export function analyzeLocally(dataUrl: string, species: 'cat' | 'dog'): Promise
   });
 }
 
+// ————— Meshy photo-to-mesh pipeline —————
+
+export interface MeshyProgress {
+  status: 'PENDING' | 'IN_PROGRESS' | 'SUCCEEDED' | 'FAILED';
+  progress: number;
+  glbUrl: string | null;
+  error: string | null;
+}
+
+/** Kick off a Meshy image-to-3D task. Returns the task id. */
+export async function startMeshyGeneration(dataUrl: string): Promise<string> {
+  const res = await fetch(`${API_BASE}/api/meshy/generate`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ imageDataUrl: dataUrl }),
+  });
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    throw new Error(body.error === 'no_meshy_key' ? 'no_meshy_key' : `generate failed: ${res.status}`);
+  }
+  const { taskId } = await res.json();
+  return taskId;
+}
+
+export async function pollMeshyStatus(taskId: string): Promise<MeshyProgress> {
+  const res = await fetch(`${API_BASE}/api/meshy/status/${taskId}`);
+  if (!res.ok) throw new Error(`status failed: ${res.status}`);
+  return res.json();
+}
+
+/** Ask the backend to download the finished GLB into public/models/. */
+export async function fetchMeshyModel(glbUrl: string, taskId: string): Promise<string> {
+  const res = await fetch(`${API_BASE}/api/meshy/fetch-model`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ glbUrl, taskId }),
+  });
+  if (!res.ok) throw new Error(`fetch-model failed: ${res.status}`);
+  const { localUrl } = await res.json();
+  return localUrl;
+}
+
 /** Claude-vision analysis via the local backend proxy. */
 export async function analyzeWithAI(dataUrl: string, apiKey: string): Promise<PetAnalysis> {
   const [header, base64] = dataUrl.split(',');

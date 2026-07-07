@@ -164,6 +164,90 @@ app.post('/api/analyze-pet', async (req, res) => {
   }
 });
 
+// ————— Meshy image-to-3D pipeline —————
+// Turns a pet photo into a real textured 3D mesh. Generation takes
+// 2-5 minutes; the client polls status then asks us to download the
+// finished GLB into public/models/ so the app can load it locally.
+
+const MESHY_BASE = 'https://api.meshy.ai/openapi/v1';
+
+function meshyKey(req) {
+  return req.headers['x-meshy-key'] || process.env.MESHY_API_KEY;
+}
+
+app.post('/api/meshy/generate', async (req, res) => {
+  try {
+    const key = meshyKey(req);
+    if (!key) return res.status(400).json({ error: 'no_meshy_key' });
+    const { imageDataUrl } = req.body;
+    if (!imageDataUrl) return res.status(400).json({ error: 'no_image' });
+
+    const response = await fetch(`${MESHY_BASE}/image-to-3d`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        image_url: imageDataUrl,
+        should_texture: true,
+        should_remesh: true,
+        target_polycount: 30000,
+        topology: 'triangle',
+      }),
+    });
+    const data = await response.json();
+    if (!response.ok) {
+      return res.status(response.status).json({ error: 'meshy_error', detail: data });
+    }
+    res.json({ taskId: data.result });
+  } catch (error) {
+    console.error('Meshy generate error:', error.message);
+    res.status(500).json({ error: 'api_error', message: error.message });
+  }
+});
+
+app.get('/api/meshy/status/:taskId', async (req, res) => {
+  try {
+    const key = meshyKey(req);
+    if (!key) return res.status(400).json({ error: 'no_meshy_key' });
+    const response = await fetch(`${MESHY_BASE}/image-to-3d/${req.params.taskId}`, {
+      headers: { 'Authorization': `Bearer ${key}` },
+    });
+    const data = await response.json();
+    res.json({
+      status: data.status,           // PENDING | IN_PROGRESS | SUCCEEDED | FAILED
+      progress: data.progress ?? 0,
+      glbUrl: data.model_urls?.glb ?? null,
+      error: data.task_error?.message ?? null,
+    });
+  } catch (error) {
+    res.status(500).json({ error: 'api_error', message: error.message });
+  }
+});
+
+// Download the finished GLB into public/models/ so the dev server can
+// serve it same-origin (Meshy URLs expire and block CORS).
+app.post('/api/meshy/fetch-model', async (req, res) => {
+  try {
+    const { glbUrl, taskId } = req.body;
+    if (!glbUrl || !glbUrl.includes('meshy')) {
+      return res.status(400).json({ error: 'bad_url' });
+    }
+    const response = await fetch(glbUrl);
+    if (!response.ok) return res.status(502).json({ error: 'download_failed' });
+    const buffer = Buffer.from(await response.arrayBuffer());
+
+    const fs = await import('fs');
+    const path = await import('path');
+    const filename = `custom-${(taskId || Date.now()).toString().replace(/[^a-zA-Z0-9_-]/g, '')}.glb`;
+    const dir = path.join(process.cwd(), 'public', 'models');
+    fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(path.join(dir, filename), buffer);
+    res.json({ localUrl: `/models/${filename}`, bytes: buffer.length });
+  } catch (error) {
+    console.error('Meshy fetch-model error:', error.message);
+    res.status(500).json({ error: 'api_error', message: error.message });
+  }
+});
+
 app.listen(PORT, () => {
   console.log(`FurryPal API server running on http://localhost:${PORT}`);
 });

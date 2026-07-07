@@ -44,6 +44,8 @@ export interface Breed {
   /** Which base character supplies chat personality + AI prompt. */
   characterId: 'tuantuan' | 'xiaoxue' | 'mianhuatang';
   params?: CatParams | DogParams | FoxParams;
+  /** Real 3D mesh (Meshy photo reconstruction). Wins over params. */
+  glbUrl?: string;
 }
 
 export const rarityLabels: Record<Rarity, { label: string; color: string }> = {
@@ -229,6 +231,7 @@ export function buildCustomBreed(input: {
   personality: string[];
   breedGuess: string;
   params: CatParams | DogParams;
+  glbUrl?: string;
 }): Breed {
   return {
     id: CUSTOM_BREED_ID,
@@ -242,6 +245,7 @@ export function buildCustomBreed(input: {
     personality: input.personality,
     characterId: input.species === 'cat' ? 'xiaoxue' : 'tuantuan',
     params: input.params,
+    glbUrl: input.glbUrl,
   };
 }
 

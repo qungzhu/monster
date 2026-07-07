@@ -4,7 +4,7 @@ import { X, Camera, Sparkles, Heart, RefreshCw } from 'lucide-react';
 import { buildCustomBreed } from '../../data/breeds';
 import type { Breed, CatParams, DogParams } from '../../data/breeds';
 import type { PetAnalysis } from '../../utils/petAnalysis';
-import { analyzeLocally, analyzeWithAI, extractVideoFrame, readImageScaled } from '../../utils/petAnalysis';
+import { analyzeLocally, analyzeWithAI, extractVideoFrame, readImageScaled, startMeshyGeneration, pollMeshyStatus, fetchMeshyModel } from '../../utils/petAnalysis';
 import { PetScene } from '../pets/PetScene';
 
 interface CustomPetStudioProps {
@@ -28,6 +28,10 @@ export function CustomPetStudio({ show, onClose, onSave, apiKey }: CustomPetStud
   const [analysis, setAnalysis] = useState<PetAnalysis | null>(null);
   const [name, setName] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [hdState, setHdState] = useState<'idle' | 'generating' | 'done' | 'failed'>('idle');
+  const [hdProgress, setHdProgress] = useState(0);
+  const [hdUrl, setHdUrl] = useState<string | null>(null);
+  const hdPolling = useRef(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
   const previewBreed: Breed | null = useMemo(() => {
@@ -55,8 +59,9 @@ export function CustomPetStudio({ show, onClose, onSave, apiKey }: CustomPetStud
       personality: analysis.personality,
       breedGuess: analysis.breedGuess,
       params,
+      glbUrl: hdUrl ?? undefined,
     });
-  }, [analysis, name]);
+  }, [analysis, name, hdUrl]);
 
   const reset = () => {
     setStage('upload');
@@ -64,6 +69,39 @@ export function CustomPetStudio({ show, onClose, onSave, apiKey }: CustomPetStud
     setAnalysis(null);
     setName('');
     setError(null);
+    setHdState('idle');
+    setHdProgress(0);
+    setHdUrl(null);
+    hdPolling.current = false;
+  };
+
+  /** Meshy photo-to-mesh: kicks off generation and polls every 10s
+   *  (a task usually takes 2-5 minutes and consumes Meshy credits). */
+  const startHD = async () => {
+    if (!photo || hdState === 'generating') return;
+    setHdState('generating');
+    setHdProgress(2);
+    hdPolling.current = true;
+    try {
+      const taskId = await startMeshyGeneration(photo);
+      while (hdPolling.current) {
+        await new Promise(r => setTimeout(r, 10000));
+        const s = await pollMeshyStatus(taskId);
+        setHdProgress(Math.max(5, s.progress));
+        if (s.status === 'SUCCEEDED' && s.glbUrl) {
+          const localUrl = await fetchMeshyModel(s.glbUrl, taskId);
+          setHdUrl(localUrl);
+          setHdState('done');
+          return;
+        }
+        if (s.status === 'FAILED') throw new Error(s.error || 'generation failed');
+      }
+    } catch (e) {
+      setHdState('failed');
+      setError(String(e).includes('no_meshy_key')
+        ? '未配置Meshy Key：请在项目根目录 .env 里设置 MESHY_API_KEY 并重启后端'
+        : '高清复刻失败了，稍后再试或继续用Q版形象');
+    }
   };
 
   const handleFile = async (file: File) => {
@@ -260,6 +298,34 @@ export function CustomPetStudio({ show, onClose, onSave, apiKey }: CustomPetStud
                         </label>
                       ))}
                     </div>
+                  </div>
+
+                  {/* HD photo-to-mesh reconstruction */}
+                  <div className="mb-3 rounded-xl p-3" style={{ background: 'rgba(139, 92, 246, 0.08)', border: '1px solid rgba(139, 92, 246, 0.25)' }}>
+                    {hdState === 'idle' && (
+                      <button onClick={startHD} className="w-full text-left">
+                        <p className="text-xs font-medium text-violet-300">✨ 高清3D复刻（Meshy）</p>
+                        <p className="text-[10px] text-text-muted mt-0.5">用真实3D网格重建你家宝贝的模样，约2-5分钟 · 消耗Meshy额度 · 点击开始</p>
+                      </button>
+                    )}
+                    {hdState === 'generating' && (
+                      <div>
+                        <p className="text-xs text-violet-300 mb-1.5">✨ 正在雕刻中... {hdProgress}%</p>
+                        <div className="h-1.5 bg-black/40 rounded-full overflow-hidden">
+                          <div className="h-full rounded-full bg-gradient-to-r from-violet-400 to-pink-400 transition-all duration-700" style={{ width: `${hdProgress}%` }} />
+                        </div>
+                        <p className="text-[10px] text-text-muted mt-1.5">可以先关掉面板去陪它玩，回来再看</p>
+                      </div>
+                    )}
+                    {hdState === 'done' && (
+                      <p className="text-xs text-green-400">✅ 高清模型完成！左侧预览已切换为真实3D网格</p>
+                    )}
+                    {hdState === 'failed' && (
+                      <button onClick={() => { setHdState('idle'); setError(null); }} className="w-full text-left">
+                        <p className="text-xs text-red-400">{error || '复刻失败'}</p>
+                        <p className="text-[10px] text-text-muted mt-0.5">点击重试</p>
+                      </button>
+                    )}
                   </div>
 
                   <div className="flex gap-2">

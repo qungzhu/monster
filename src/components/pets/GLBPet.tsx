@@ -12,6 +12,9 @@ interface GLBPetProps {
   isHovered: boolean;
   /** Multiplied into every material color — '#ffffff' keeps the original look. */
   tint?: string;
+  /** Auto-fit models of unknown size (e.g. Meshy generations): scale to
+   *  ~1.3 units tall and rest the feet on the ground plane. */
+  normalize?: boolean;
 }
 
 /**
@@ -20,13 +23,27 @@ interface GLBPetProps {
  * animation and back. The scene graph is cloned per instance so the
  * same GLB can appear in several canvases at once.
  */
-export function GLBPet({ config, isHovered, tint }: GLBPetProps) {
+export function GLBPet({ config, isHovered, tint, normalize }: GLBPetProps) {
   const group = useRef<Group>(null);
   const { scene, animations } = useGLTF(config.url);
 
   // SkeletonUtils.clone keeps skinned meshes bound to their own bone copies
   const clonedScene = useMemo(() => SkeletonUtils.clone(scene), [scene]);
   const { actions, mixer } = useAnimations(animations, group);
+
+  // Auto-fit unknown-size models: uniform scale to target height and
+  // shift so the lowest point rests at local y=0 (group adds yOffset).
+  const fit = useMemo(() => {
+    if (!normalize) return null;
+    const box = new THREE.Box3().setFromObject(clonedScene);
+    const size = new THREE.Vector3();
+    box.getSize(size);
+    const height = Math.max(size.y, 0.0001);
+    const scale = 1.3 / height;
+    const center = new THREE.Vector3();
+    box.getCenter(center);
+    return { scale, offsetX: -center.x * scale, offsetY: -box.min.y * scale, offsetZ: -center.z * scale };
+  }, [clonedScene, normalize]);
 
   useEffect(() => {
     const tintColor = tint ? new THREE.Color(tint) : null;
@@ -70,6 +87,16 @@ export function GLBPet({ config, isHovered, tint }: GLBPetProps) {
     const t = state.clock.elapsedTime;
     group.current.position.y = config.yOffset + (isHovered ? 0 : Math.sin(t * 1.2) * 0.015);
   });
+
+  if (fit) {
+    return (
+      <group ref={group} position={[0, config.yOffset, 0]} rotation={[0, config.rotationY ?? 0, 0]}>
+        <group position={[fit.offsetX, fit.offsetY, fit.offsetZ]} scale={fit.scale}>
+          <primitive object={clonedScene} />
+        </group>
+      </group>
+    );
+  }
 
   return (
     <group
