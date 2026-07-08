@@ -25,12 +25,12 @@ export function WinterBackdrop() {
         className="absolute inset-0"
         style={{
           background:
-            'linear-gradient(180deg, #060d24 0%, #0b1638 30%, #16264f 55%, #24395f 75%, #31486b 100%)',
+            'linear-gradient(180deg, #030818 0%, #081230 28%, #122148 52%, #1f3459 74%, #2c4468 100%)',
         }}
       />
 
       {/* Aurora ribbons */}
-      <div className="absolute inset-x-0 top-0 h-[55%]" style={{ filter: 'blur(38px)', opacity: 0.55 }}>
+      <div className="absolute inset-x-0 top-0 h-[55%]" style={{ filter: 'blur(34px)', opacity: 0.68 }}>
         <div
           className="absolute w-[160%] h-[38%] -left-[30%] top-[6%] aurora-band"
           style={{
