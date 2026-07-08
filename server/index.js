@@ -134,21 +134,21 @@ app.post('/api/analyze-pet', async (req, res) => {
           },
           {
             type: 'text',
-            text: `分析这张宠物照片，返回严格的JSON（不要其他文字）：
+            text: `仔细观察这张宠物照片，尽可能还原它的真实外形，返回严格的JSON（不要其他文字）：
 {
   "species": "cat"或"dog",
-  "bodyColor": "身体主毛色hex",
-  "accentColor": "耳朵/斑纹等深色部位hex",
-  "bellyColor": "肚子/胸口浅色部位hex",
-  "eyeColor": "眼睛颜色hex",
+  "bodyColor": "身体主毛色hex（取照片里最大面积的毛色）",
+  "accentColor": "耳朵/背部/斑纹等深色部位hex",
+  "bellyColor": "肚子/胸口/爪子等浅色部位hex",
+  "eyeColor": "眼睛虹膜颜色hex",
   "earStyle": 狗用"floppy"(垂耳)或"pointy"(立耳)，猫用"point"(尖耳)或"fold"(折耳),
-  "tailStyle": "wag"(直尾)或"curl"(卷尾)，仅狗需要,
-  "legScale": 腿长比例0.55到1，短腿如柯基用0.55,
-  "personality": ["三个中文性格标签"],
-  "suggestedName": "根据外形起的可爱中文小名",
-  "breedGuess": "推测的品种中文名"
+  "tailStyle": "wag"(直尾/短尾)或"curl"(卷尾/上翘尾)，仅狗需要,
+  "legScale": 腿长比例0.55到1，短腿犬如柯基/腊肠用0.55-0.7，正常腿用0.9-1,
+  "personality": ["三个贴合外形气质的中文性格标签"],
+  "suggestedName": "根据外形/毛色起的可爱中文小名",
+  "breedGuess": "推测的具体品种中文名（越具体越好）"
 }
-颜色要贴近照片真实毛色。如果不是猫狗，species按最接近的选。`,
+关键：颜色必须逐一对照照片取样，主色/深色/浅色要有明显区分，不要都取同一个色。如果不是猫狗，species按最接近的体型选。`,
           },
         ],
       }],
@@ -187,10 +187,15 @@ app.post('/api/meshy/generate', async (req, res) => {
       headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
         image_url: imageDataUrl,
+        // Highest-fidelity settings for 1:1 pet reconstruction:
+        ai_model: 'meshy-5',          // latest, best geometry/texture from a single photo
         should_texture: true,
+        enable_pbr: true,             // real PBR maps (roughness/metallic) = lifelike fur
         should_remesh: true,
-        target_polycount: 30000,
+        target_polycount: 100000,     // more polys → captures ear/muzzle/fur detail
         topology: 'triangle',
+        symmetry_mode: 'auto',        // don't force symmetry — real pets aren't symmetric
+        texture_prompt: 'realistic pet fur, true to the photo colors and markings',
       }),
     });
     const data = await response.json();

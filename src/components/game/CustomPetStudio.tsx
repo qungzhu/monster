@@ -171,7 +171,7 @@ export function CustomPetStudio({ show, onClose, onSave, apiKey }: CustomPetStud
               <h2 className="text-lg font-bold text-text-primary flex items-center gap-2">
                 <Camera size={17} className="text-pink-400" /> 萌宠照相馆
               </h2>
-              <p className="text-[11px] text-text-muted">上传你家宝贝的照片或视频，让它走进这个世界</p>
+              <p className="text-[11px] text-text-muted">Q版预览秒出 · 想1:1还原点结果页的「高清复刻」</p>
             </div>
 
             <div className="overflow-y-auto px-5 pb-8" style={{ maxHeight: 'calc(90vh - 100px)' }}>
@@ -304,8 +304,8 @@ export function CustomPetStudio({ show, onClose, onSave, apiKey }: CustomPetStud
                   <div className="mb-3 rounded-xl p-3" style={{ background: 'rgba(139, 92, 246, 0.08)', border: '1px solid rgba(139, 92, 246, 0.25)' }}>
                     {hdState === 'idle' && (
                       <button onClick={startHD} className="w-full text-left">
-                        <p className="text-xs font-medium text-violet-300">✨ 高清3D复刻（Meshy）</p>
-                        <p className="text-[10px] text-text-muted mt-0.5">用真实3D网格重建你家宝贝的模样，约2-5分钟 · 消耗Meshy额度 · 点击开始</p>
+                        <p className="text-xs font-medium text-violet-300">✨ 1:1 高清复刻（Meshy）</p>
+                        <p className="text-[10px] text-text-muted mt-0.5">左侧是Q版风格化预览。想要真正1:1还原你家宝贝？点这里用真实3D网格重建，约2-5分钟 · 消耗Meshy额度</p>
                       </button>
                     )}
                     {hdState === 'generating' && (
