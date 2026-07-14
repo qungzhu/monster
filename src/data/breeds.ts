@@ -215,6 +215,43 @@ export const breeds: Breed[] = [
     description: '腮帮子藏着全世界的呆萌小可爱',
     personality: ['呆萌', '贪吃', '暖心'],
   },
+
+  // ————— Meshy 高清复刻猫（真实3D网格，照片1:1重建，10万面+PBR）—————
+  {
+    id: 'meshy-tabby', species: 'cat', name: '虎斑豹猫', englishName: 'Tabby Leopard',
+    petName: '斑斑', emoji: '🐯', rarity: 'legendary', characterId: 'xiaoxue',
+    description: '照片1:1复刻的虎斑豹猫，额头M纹、琥珀大眼、粉鼻子，毛发根根分明',
+    personality: ['野性', '灵动', '独一无二'],
+    glbUrl: '/models/custom/cat1.glb',
+  },
+  {
+    id: 'meshy-chonk', species: 'cat', name: '胖虎斑', englishName: 'Chunky Tabby',
+    petName: '胖橘', emoji: '🐈', rarity: 'legendary', characterId: 'xiaoxue',
+    description: '圆滚滚的身材配卷卷短尾巴，走起路来一摇一摆',
+    personality: ['圆润', '憨厚', '治愈'],
+    glbUrl: '/models/custom/cat2.glb',
+  },
+  {
+    id: 'meshy-calico', species: 'cat', name: '三花猫', englishName: 'Calico',
+    petName: '三花', emoji: '🐱', rarity: 'legendary', characterId: 'xiaoxue',
+    description: '黑橘白三色斑块分布，招财又可爱',
+    personality: ['招财', '亲人', '甜美'],
+    glbUrl: '/models/custom/cat3.glb',
+  },
+  {
+    id: 'meshy-cream', species: 'cat', name: '奶油长毛', englishName: 'Cream Longhair',
+    petName: '奶茶', emoji: '🍮', rarity: 'legendary', characterId: 'xiaoxue',
+    description: '蓬松的胸毛、奶茶色调，软绵绵一大团',
+    personality: ['温柔', '慵懒', '软萌'],
+    glbUrl: '/models/custom/cat4.glb',
+  },
+  {
+    id: 'meshy-grey', species: 'cat', name: '灰白虎斑', englishName: 'Grey Tabby',
+    petName: '灰灰', emoji: '🐾', rarity: 'legendary', characterId: 'xiaoxue',
+    description: '灰色渐变条纹配白手套，粉鼻子圆脸颊',
+    personality: ['沉稳', '优雅', '粘人'],
+    glbUrl: '/models/custom/cat5.glb',
+  },
 ];
 
 export const CUSTOM_BREED_ID = 'custom';
