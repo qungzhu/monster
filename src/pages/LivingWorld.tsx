@@ -87,6 +87,8 @@ export function LivingWorld(props: LivingWorldProps) {
   const [claimedQuests, setClaimedQuests] = useState<Set<string>>(new Set());
   const [floatingRewards, setFloatingRewards] = useState<Array<{ id: number; text: string }>>([]);
   const [petTapCount, setPetTapCount] = useState(0);
+  const [emote, setEmote] = useState<'run' | 'roll' | 'groom' | 'cute' | null>(null);
+  const emoteTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const bubbleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const rewardId = useRef(0);
   const greetedRef = useRef(false);
@@ -95,6 +97,12 @@ export function LivingWorld(props: LivingWorldProps) {
   const stats = character ? getPetStats(character.id) : { hunger: 80, mood: 80, cleanliness: 80 };
   const lowStat = stats.hunger < 30 ? 'hunger' as const : stats.mood < 30 ? 'mood' as const : stats.cleanliness < 30 ? 'cleanliness' as const : null;
   const hasClaimableQuest = dailyQuests.some(q => getQuestProgress(q.type) >= q.target && !claimedQuests.has(q.id));
+
+  const playEmote = useCallback((kind: 'run' | 'roll' | 'groom' | 'cute', durationMs = 6000) => {
+    if (emoteTimer.current) clearTimeout(emoteTimer.current);
+    setEmote(kind);
+    emoteTimer.current = setTimeout(() => setEmote(null), durationMs);
+  }, []);
 
   const say = useCallback((text: string, durationMs = 4500) => {
     if (bubbleTimer.current) clearTimeout(bubbleTimer.current);
@@ -172,6 +180,8 @@ export function LivingWorld(props: LivingWorldProps) {
 
   const handleAction = (action: 'feed' | 'pet' | 'play' | 'clean') => {
     if (!character) return;
+    if (action === 'play') playEmote('run', 5000);
+    if (action === 'pet') playEmote('cute', 4000);
     updateQuestProgress(action);
     if (action === 'pet') addIntimacy(character.id, 1);
     addXP(3);
@@ -207,6 +217,10 @@ export function LivingWorld(props: LivingWorldProps) {
       case 'checkin':
         handleCheckIn();
         break;
+      case 'emote-run': playEmote('run', 7000); say('冲鸭——!🏃', 3000); addXP(3); break;
+      case 'emote-roll': playEmote('roll', 6000); say('肚皮献给你~', 3000); if (character) addIntimacy(character.id, 1); break;
+      case 'emote-groom': playEmote('groom', 6000); say('舔舔爪爪,保持干净~', 3000); break;
+      case 'emote-cute': playEmote('cute', 6000); say('喵呜~最喜欢你啦 💕', 3000); if (character) addIntimacy(character.id, 2); break;
       case 'quests': setActiveCard('quests'); break;
       case 'shop': setActiveCard('shop'); break;
       case 'adopt': setActiveCard('adopt'); break;
@@ -354,7 +368,7 @@ export function LivingWorld(props: LivingWorldProps) {
 
       {/* The world — full-screen winter scene with the pet at center */}
       <div className="absolute inset-0">
-        <PetScene characterId={character.id} breedId={adoptedBreedId} customBreed={adoptedBreedId === 'custom' ? customPet : null} size="world" interactive={true} />
+        <PetScene characterId={character.id} breedId={adoptedBreedId} customBreed={adoptedBreedId === 'custom' ? customPet : null} size="world" interactive={true} emote={emote} />
       </div>
 
       {/* Pet tap zone + bubble anchor (over the pet's spot in the scene) */}
@@ -370,15 +384,15 @@ export function LivingWorld(props: LivingWorldProps) {
                 exit={{ opacity: 0, y: -8, scale: 0.9 }}
                 className="absolute -top-4 left-1/2 -translate-x-1/2 z-20 w-max max-w-[260px]"
               >
-                <div className="px-4 py-2.5 rounded-2xl text-sm backdrop-blur-md relative text-text-primary leading-relaxed"
-                  style={{ background: `${color}26`, border: `1px solid ${color}44` }}>
+                <div className="px-4 py-2.5 rounded-2xl text-sm backdrop-blur-md relative text-white leading-relaxed"
+                  style={{ background: 'rgba(12, 8, 24, 0.78)', border: `1px solid ${color}66`, boxShadow: `0 4px 20px ${color}33` }}>
                   {isThinking ? (
                     <motion.span animate={{ opacity: [0.4, 1, 0.4] }} transition={{ duration: 1.2, repeat: Infinity }}>
                       {petName || character.name}正在想...
                     </motion.span>
                   ) : bubble}
                   <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 rotate-45"
-                    style={{ background: `${color}26`, borderRight: `1px solid ${color}44`, borderBottom: `1px solid ${color}44` }} />
+                    style={{ background: 'rgba(12, 8, 24, 0.78)', borderRight: `1px solid ${color}66`, borderBottom: `1px solid ${color}66` }} />
                 </div>
               </motion.div>
             )}

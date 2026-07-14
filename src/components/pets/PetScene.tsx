@@ -23,6 +23,8 @@ interface PetSceneProps {
   /** 'world' fills its container and renders the full winter set — used by the Living World. */
   size?: 'tiny' | 'small' | 'medium' | 'large' | 'world';
   interactive?: boolean;
+  /** Procedural emote for GLB pets (run/roll/groom/cute). */
+  emote?: 'run' | 'roll' | 'groom' | 'cute' | null;
 }
 
 const sceneConfig: Record<string, { camera: [number, number, number]; color: string }> = {
@@ -59,7 +61,7 @@ class ModelErrorBoundary extends Component<{ fallback: ReactNode; children: Reac
   }
 }
 
-function PetModel({ characterId, breedId, customBreed, isHovered }: { characterId: string; breedId?: string | null; customBreed?: Breed | null; isHovered: boolean }) {
+function PetModel({ characterId, breedId, customBreed, isHovered, emote }: { characterId: string; breedId?: string | null; customBreed?: Breed | null; isHovered: boolean; emote?: 'run' | 'roll' | 'groom' | 'cute' | null }) {
   const breed = customBreed ?? getBreed(breedId ?? null);
 
   // Breed-driven rendering: parametric bodies for cats/dogs/hamsters,
@@ -79,7 +81,7 @@ function PetModel({ characterId, breedId, customBreed, isHovered }: { characterI
       return (
         <ModelErrorBoundary fallback={fallback}>
           <Suspense fallback={fallback}>
-            <GLBPet config={meshConfig} isHovered={isHovered} normalize />
+            <GLBPet config={meshConfig} isHovered={isHovered} normalize emote={emote} />
           </Suspense>
         </ModelErrorBoundary>
       );
@@ -172,7 +174,7 @@ function GroundPlane({ color }: { color: string }) {
   );
 }
 
-export function PetScene({ characterId, breedId, customBreed, size = 'medium', interactive = true }: PetSceneProps) {
+export function PetScene({ characterId, breedId, customBreed, size = 'medium', interactive = true, emote }: PetSceneProps) {
   const [isHovered, setIsHovered] = useState(false);
   const config = sceneConfig[characterId] || sceneConfig.tuantuan;
   const sizeClass = sizeMap[size];
@@ -210,7 +212,7 @@ export function PetScene({ characterId, breedId, customBreed, size = 'medium', i
         <Suspense fallback={null}>
           <ToonLighting color={config.color} />
 
-          <PetModel characterId={characterId} breedId={breedId} customBreed={customBreed} isHovered={isHovered} />
+          <PetModel characterId={characterId} breedId={breedId} customBreed={customBreed} isHovered={isHovered} emote={emote} />
 
           {/* Large view = the Living World: full Frozen winter set.
               Smaller views keep the lightweight color disc. */}

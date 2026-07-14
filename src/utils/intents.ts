@@ -21,6 +21,7 @@ export type IntentType =
   | 'settings'
   | 'help'
   | 'mood'
+  | 'emote-run' | 'emote-roll' | 'emote-groom' | 'emote-cute'
   | 'chat';
 
 export interface Intent {
@@ -32,6 +33,10 @@ export interface Intent {
 }
 
 const intentPatterns: Array<{ type: IntentType; patterns: RegExp }> = [
+  { type: 'emote-run', patterns: /奔跑|跑一个|跑起来|快跑|冲刺/ },
+  { type: 'emote-roll', patterns: /翻肚子|打滚|躺下|露肚皮|翻身/ },
+  { type: 'emote-groom', patterns: /舔爪子|舔毛|洗脸|理毛|舔一舔/ },
+  { type: 'emote-cute', patterns: /撒娇|卖萌|求抱抱|可爱一个|来个萌的/ },
   { type: 'feed', patterns: /喂|吃的|吃饭|投食|零食|饿了吗|开饭/ },
   { type: 'pet', patterns: /摸摸|摸头|撸|抱抱|亲亲|rua/i },
   { type: 'play', patterns: /玩|接球|逗|游戏时间|遛/ },
