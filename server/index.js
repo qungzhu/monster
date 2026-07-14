@@ -179,30 +179,38 @@ app.post('/api/meshy/generate', async (req, res) => {
   try {
     const key = meshyKey(req);
     if (!key) return res.status(400).json({ error: 'no_meshy_key' });
-    const { imageDataUrl } = req.body;
-    if (!imageDataUrl) return res.status(400).json({ error: 'no_image' });
+    const { imageDataUrl, imageDataUrls } = req.body;
+    const urls = Array.isArray(imageDataUrls) && imageDataUrls.length
+      ? imageDataUrls.slice(0, 4)
+      : (imageDataUrl ? [imageDataUrl] : null);
+    if (!urls) return res.status(400).json({ error: 'no_image' });
 
-    const response = await fetch(`${MESHY_BASE}/image-to-3d`, {
+    // Multi-angle photos (front/side/back) give a big fidelity jump:
+    // real geometry for parts a single photo can't see.
+    const multi = urls.length > 1;
+    const endpoint = multi ? 'multi-image-to-3d' : 'image-to-3d';
+    const payload = {
+      ai_model: 'meshy-5',
+      should_texture: true,
+      enable_pbr: true,
+      should_remesh: true,
+      target_polycount: 100000,
+      topology: 'triangle',
+      ...(multi
+        ? { image_urls: urls }
+        : { image_url: urls[0], symmetry_mode: 'auto', texture_prompt: 'realistic pet fur, true to the photo colors and markings' }),
+    };
+
+    const response = await fetch(`${MESHY_BASE}/${endpoint}`, {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${key}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        image_url: imageDataUrl,
-        // Highest-fidelity settings for 1:1 pet reconstruction:
-        ai_model: 'meshy-5',          // latest, best geometry/texture from a single photo
-        should_texture: true,
-        enable_pbr: true,             // real PBR maps (roughness/metallic) = lifelike fur
-        should_remesh: true,
-        target_polycount: 100000,     // more polys → captures ear/muzzle/fur detail
-        topology: 'triangle',
-        symmetry_mode: 'auto',        // don't force symmetry — real pets aren't symmetric
-        texture_prompt: 'realistic pet fur, true to the photo colors and markings',
-      }),
+      body: JSON.stringify(payload),
     });
     const data = await response.json();
     if (!response.ok) {
       return res.status(response.status).json({ error: 'meshy_error', detail: data });
     }
-    res.json({ taskId: data.result });
+    res.json({ taskId: data.result, multi });
   } catch (error) {
     console.error('Meshy generate error:', error.message);
     res.status(500).json({ error: 'api_error', message: error.message });
@@ -213,7 +221,8 @@ app.get('/api/meshy/status/:taskId', async (req, res) => {
   try {
     const key = meshyKey(req);
     if (!key) return res.status(400).json({ error: 'no_meshy_key' });
-    const response = await fetch(`${MESHY_BASE}/image-to-3d/${req.params.taskId}`, {
+    const endpoint = req.query.multi === '1' ? 'multi-image-to-3d' : 'image-to-3d';
+    const response = await fetch(`${MESHY_BASE}/${endpoint}/${req.params.taskId}`, {
       headers: { 'Authorization': `Bearer ${key}` },
     });
     const data = await response.json();

@@ -31,8 +31,10 @@ export function CustomPetStudio({ show, onClose, onSave, apiKey }: CustomPetStud
   const [hdState, setHdState] = useState<'idle' | 'generating' | 'done' | 'failed'>('idle');
   const [hdProgress, setHdProgress] = useState(0);
   const [hdUrl, setHdUrl] = useState<string | null>(null);
+  const [anglePhotos, setAnglePhotos] = useState<string[]>([]);
   const hdPolling = useRef(false);
   const fileRef = useRef<HTMLInputElement>(null);
+  const angleRef = useRef<HTMLInputElement>(null);
 
   const previewBreed: Breed | null = useMemo(() => {
     if (!analysis) return null;
@@ -72,7 +74,17 @@ export function CustomPetStudio({ show, onClose, onSave, apiKey }: CustomPetStud
     setHdState('idle');
     setHdProgress(0);
     setHdUrl(null);
+    setAnglePhotos([]);
     hdPolling.current = false;
+  };
+
+  const addAnglePhoto = async (file: File) => {
+    try {
+      const dataUrl = file.type.startsWith('video/')
+        ? await extractVideoFrame(file)
+        : await readImageScaled(file);
+      setAnglePhotos(prev => [...prev, dataUrl].slice(0, 3));
+    } catch { /* ignore bad file */ }
   };
 
   /** Meshy photo-to-mesh: kicks off generation and polls every 10s
@@ -83,10 +95,10 @@ export function CustomPetStudio({ show, onClose, onSave, apiKey }: CustomPetStud
     setHdProgress(2);
     hdPolling.current = true;
     try {
-      const taskId = await startMeshyGeneration(photo);
+      const { taskId, multi } = await startMeshyGeneration([photo, ...anglePhotos]);
       while (hdPolling.current) {
         await new Promise(r => setTimeout(r, 10000));
-        const s = await pollMeshyStatus(taskId);
+        const s = await pollMeshyStatus(taskId, multi);
         setHdProgress(Math.max(5, s.progress));
         if (s.status === 'SUCCEEDED' && s.glbUrl) {
           const localUrl = await fetchMeshyModel(s.glbUrl, taskId);
@@ -303,10 +315,26 @@ export function CustomPetStudio({ show, onClose, onSave, apiKey }: CustomPetStud
                   {/* HD photo-to-mesh reconstruction */}
                   <div className="mb-3 rounded-xl p-3" style={{ background: 'rgba(139, 92, 246, 0.08)', border: '1px solid rgba(139, 92, 246, 0.25)' }}>
                     {hdState === 'idle' && (
-                      <button onClick={startHD} className="w-full text-left">
-                        <p className="text-xs font-medium text-violet-300">✨ 1:1 高清复刻（Meshy）</p>
-                        <p className="text-[10px] text-text-muted mt-0.5">左侧是Q版风格化预览。想要真正1:1还原你家宝贝？点这里用真实3D网格重建，约2-5分钟 · 消耗Meshy额度</p>
-                      </button>
+                      <div>
+                        <button onClick={startHD} className="w-full text-left">
+                          <p className="text-xs font-medium text-violet-300">✨ 1:1 高清复刻（Meshy）</p>
+                          <p className="text-[10px] text-text-muted mt-0.5">左侧是Q版风格化预览。点这里用真实3D网格重建，约2-5分钟 · 消耗Meshy额度</p>
+                        </button>
+                        <div className="flex items-center gap-2 mt-2 flex-wrap">
+                          {anglePhotos.map((p2, i) => (
+                            <img key={i} src={p2} className="w-9 h-9 object-cover rounded-lg border border-violet-400/40" />
+                          ))}
+                          {anglePhotos.length < 3 && (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); angleRef.current?.click(); }}
+                              className="w-9 h-9 rounded-lg border border-dashed border-violet-400/50 text-violet-300 text-lg leading-none"
+                            >+</button>
+                          )}
+                          <span className="text-[9px] text-text-muted">加侧面/背面照，几何还原度大幅提升（可选）</span>
+                          <input ref={angleRef} type="file" accept="image/*,video/*" className="hidden"
+                            onChange={e => { const f = e.target.files?.[0]; if (f) addAnglePhoto(f); e.target.value = ''; }} />
+                        </div>
+                      </div>
                     )}
                     {hdState === 'generating' && (
                       <div>

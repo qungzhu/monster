@@ -151,23 +151,24 @@ export interface MeshyProgress {
   error: string | null;
 }
 
-/** Kick off a Meshy image-to-3D task. Returns the task id. */
-export async function startMeshyGeneration(dataUrl: string): Promise<string> {
+/** Kick off a Meshy image-to-3D task. Multiple angle photos
+ *  (front/side/back, up to 4) produce far better geometry. */
+export async function startMeshyGeneration(dataUrls: string | string[]): Promise<{ taskId: string; multi: boolean }> {
+  const urls = Array.isArray(dataUrls) ? dataUrls : [dataUrls];
   const res = await fetch(`${API_BASE}/api/meshy/generate`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ imageDataUrl: dataUrl }),
+    body: JSON.stringify({ imageDataUrls: urls }),
   });
   if (!res.ok) {
     const body = await res.json().catch(() => ({}));
     throw new Error(body.error === 'no_meshy_key' ? 'no_meshy_key' : `generate failed: ${res.status}`);
   }
-  const { taskId } = await res.json();
-  return taskId;
+  return res.json();
 }
 
-export async function pollMeshyStatus(taskId: string): Promise<MeshyProgress> {
-  const res = await fetch(`${API_BASE}/api/meshy/status/${taskId}`);
+export async function pollMeshyStatus(taskId: string, multi = false): Promise<MeshyProgress> {
+  const res = await fetch(`${API_BASE}/api/meshy/status/${taskId}?multi=${multi ? '1' : '0'}`);
   if (!res.ok) throw new Error(`status failed: ${res.status}`);
   return res.json();
 }
