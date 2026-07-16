@@ -218,9 +218,9 @@ export const breeds: Breed[] = [
 
   // ————— Meshy 高清复刻猫（真实3D网格，照片1:1重建，10万面+PBR）—————
   {
-    id: 'meshy-tabby', species: 'cat', name: '虎斑豹猫', englishName: 'Tabby Leopard',
+    id: 'meshy-tabby', species: 'cat', name: '皮克斯鲍勃猫', englishName: 'Pixie-Bob',
     petName: '斑斑', emoji: '🐯', rarity: 'legendary', characterId: 'xiaoxue',
-    description: '照片1:1复刻的虎斑豹猫，额头M纹、琥珀大眼、粉鼻子，毛发根根分明',
+    description: '照片1:1复刻的皮克斯鲍勃猫，酷似小山猫的野性虎斑、标志性球球短尾、琥珀大眼，还会8种真骨骼动作',
     personality: ['野性', '灵动', '独一无二'],
     glbUrl: '/models/custom/cat1-rigged.glb',
   },
