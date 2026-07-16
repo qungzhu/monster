@@ -73,7 +73,9 @@ function PetModel({ characterId, breedId, customBreed, isHovered, emote }: { cha
         url: breed.glbUrl,
         scale: 1,
         yOffset: -0.65,
-        idleAnimation: '',
+        // Rigged breeds carry an 'Idle' clip (e.g. retargeted look-around);
+        // static breeds simply have no matching action and skip it.
+        idleAnimation: 'Idle',
         hoverAnimation: '',
       };
       const fallback = breed.species === 'cat'

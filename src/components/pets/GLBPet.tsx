@@ -120,11 +120,14 @@ export function GLBPet({ config, isHovered, tint, normalize, emote }: GLBPetProp
     const clip = emote && emoteClips[emote];
     const action = clip ? actions[clip] : null;
     if (!action) return;
+    const idle = config.idleAnimation ? actions[config.idleAnimation] : null;
+    idle?.fadeOut(0.25);
     action.reset().fadeIn(0.25).play();
     return () => {
-      action.fadeOut(0.25);
+      action.fadeOut(0.3);
+      idle?.reset().fadeIn(0.3).play();
     };
-  }, [emote, actions]);
+  }, [emote, actions, config]);
 
   // Procedural whole-body motion: idle bob, or a full emote for
   // static meshes (run laps, belly roll, grooming bow, happy wiggle).
