@@ -183,7 +183,7 @@ export function LivingWorld(props: LivingWorldProps) {
     if (!character) return;
     if (action === 'play') playEmote('run', 5000);
     if (action === 'pet') playEmote('cute', 4000);
-    if (action === 'feed') playEmote('knead', 5000);
+    if (action === 'feed') playEmote('eat', 5000);
     updateQuestProgress(action);
     if (action === 'pet') addIntimacy(character.id, 1);
     addXP(3);
@@ -229,6 +229,8 @@ export function LivingWorld(props: LivingWorldProps) {
       case 'emote-knead': playEmote('knead', 6000); say('踩踩踩~安心又幸福', 3000); if (character) addIntimacy(character.id, 1); break;
       case 'emote-sploot': playEmote('sploot', 6000); say('板鸭趴~舒服极了', 3000); break;
       case 'emote-walk': playEmote('walk', 8000); say('慢悠悠散个步~🐾', 3000); addXP(2); break;
+      case 'emote-sleep': playEmote('sleep', 9000); say('呼噜噜...💤', 3500); break;
+      case 'emote-meow': playEmote('meow', 4000); say('喵呜——!🐱', 2500); if (character) addIntimacy(character.id, 1); break;
       case 'quests': setActiveCard('quests'); break;
       case 'shop': setActiveCard('shop'); break;
       case 'adopt': setActiveCard('adopt'); break;

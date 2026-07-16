@@ -44,7 +44,9 @@ try {
   const clip = srcAnims.find(a => a.name === clipName || a.name.endsWith('|' + clipName));
 
   const srcBone = {}, catBone = {};
-  srcScene.traverse(o => { srcBone[o.name] = o; });
+  // keep the FIRST node per name: matches PropertyBinding's lookup, so we
+  // read the same skeleton copy the mixer animates (multi-LOD FBXs duplicate bones)
+  srcScene.traverse(o => { if (!(o.name in srcBone)) srcBone[o.name] = o; });
   cat.scene.traverse(o => { catBone[o.name] = o; });
   srcScene.updateMatrixWorld(true);
   cat.scene.updateMatrixWorld(true);

@@ -11,11 +11,17 @@ import { glbModels } from '../../data/petModels';
  *  body language (奔跑/翻肚子/舔爪子/撒娇/伸懒腰/捕猎扑击/蹭蹭/踩奶/板鸭趴). */
 export type EmoteKind =
   | 'run' | 'walk' | 'roll' | 'groom' | 'cute'
-  | 'stretch' | 'pounce' | 'rub' | 'knead' | 'sploot';
+  | 'stretch' | 'pounce' | 'rub' | 'knead' | 'sploot'
+  | 'eat' | 'sleep' | 'meow';
 
-/** Skeletal clips baked into rigged GLBs (Meshy auto-rig); emotes with a
- *  matching clip get real limb motion layered under the procedural path. */
-const emoteClips: Partial<Record<EmoteKind, string>> = { run: 'Run', walk: 'Walk' };
+/** Skeletal clips baked into rigged GLBs (Meshy auto-rig + retargeted
+ *  Catson clips). Moving emotes (run/walk) keep the procedural path on
+ *  top of the clip; stationary ones let the skeleton act alone. */
+const emoteClips: Partial<Record<EmoteKind, string>> = {
+  run: 'Run', walk: 'Walk',
+  groom: 'Scratch', eat: 'Eat', sleep: 'Sleep', meow: 'Meow', cute: 'Happy',
+};
+const movingEmotes = new Set<EmoteKind>(['run', 'walk']);
 
 interface GLBPetProps {
   config: GLBModelConfig;
@@ -137,7 +143,11 @@ export function GLBPet({ config, isHovered, tint, normalize, emote }: GLBPetProp
     if (!g) return;
     const t = state.clock.elapsedTime;
 
-    if (!emote) {
+    // A stationary emote backed by a real skeletal clip needs no fake
+    // whole-body motion — ease the group home and let the bones act.
+    const skeletalOnly = emote && !movingEmotes.has(emote) && !!actions[emoteClips[emote] ?? ''];
+
+    if (!emote || skeletalOnly) {
       emoteT.current = 0;
       g.position.x = THREE.MathUtils.damp(g.position.x, 0, 4, delta);
       g.position.z = THREE.MathUtils.damp(g.position.z, 0, 4, delta);
@@ -245,6 +255,23 @@ export function GLBPet({ config, isHovered, tint, normalize, emote }: GLBPetProp
       g.scale.z = 1 + 0.05 * s;
       g.position.y = 0;
       g.rotation.y = Math.sin(e * 0.5) * 0.05 * s;
+    } else if (emote === 'eat') {
+      // 吃饭 fallback: rhythmic munching bow toward the ground
+      const s = Math.min(1, e / 0.6);
+      const dip = (Math.sin(e * 2.6) + 1) / 2;
+      g.rotation.x = 0.3 * dip * s;
+      g.position.y = -0.06 * dip * s;
+    } else if (emote === 'sleep') {
+      // 睡觉 fallback: settle low with slow breathing
+      const s = Math.min(1, e / 1.2);
+      g.scale.y = 1 - 0.22 * s + Math.sin(e * 1.4) * 0.015 * s;
+      g.rotation.z = 0.12 * s;
+      g.position.y = 0;
+    } else if (emote === 'meow') {
+      // 喵叫 fallback: lift the head with little calls
+      const s = Math.min(1, e / 0.4);
+      g.rotation.x = (-0.18 + Math.sin(e * 4) * 0.05) * s;
+      g.position.y = 0.03 * s;
     }
   });
 

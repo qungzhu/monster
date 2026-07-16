@@ -1,7 +1,8 @@
 // usage: node inject.js <tracksJson> <clipName> <inGlb> <outGlb>
 const { NodeIO } = require(require('path').resolve('node_modules/@gltf-transform/core'));
 const io = new NodeIO();
-const [ , , tracksPath, clipName, inGlb, outGlb] = process.argv;
+const [ , , tracksPath, clipName, inGlb, outGlb, boneFilter] = process.argv;
+const allow = boneFilter ? new Set(boneFilter.split(',')) : null;
 const data = JSON.parse(require('fs').readFileSync(tracksPath));
 (async () => {
   const doc = await io.read(inGlb);
@@ -11,6 +12,7 @@ const data = JSON.parse(require('fs').readFileSync(tracksPath));
   const anim = doc.createAnimation(clipName);
   let added = 0;
   for (const t of data.tracks) {
+    if (allow && !allow.has(t.name)) continue;
     const node = nodeByName.get(t.name);
     if (!node) continue;
     const isPos = t.path === 'translation';
