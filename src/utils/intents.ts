@@ -22,6 +22,7 @@ export type IntentType =
   | 'help'
   | 'mood'
   | 'emote-run' | 'emote-roll' | 'emote-groom' | 'emote-cute'
+  | 'emote-stretch' | 'emote-pounce' | 'emote-rub' | 'emote-knead' | 'emote-sploot'
   | 'chat';
 
 export interface Intent {
@@ -37,6 +38,11 @@ const intentPatterns: Array<{ type: IntentType; patterns: RegExp }> = [
   { type: 'emote-roll', patterns: /翻肚子|打滚|躺下|露肚皮|翻身/ },
   { type: 'emote-groom', patterns: /舔爪子|舔毛|洗脸|理毛|舔一舔/ },
   { type: 'emote-cute', patterns: /撒娇|卖萌|求抱抱|可爱一个|来个萌的/ },
+  { type: 'emote-stretch', patterns: /伸懒腰|懒腰|拉伸|舒展/ },
+  { type: 'emote-pounce', patterns: /捕猎|狩猎|扑一个|扑过来|抓老鼠|逮老鼠|匍匐/ },
+  { type: 'emote-rub', patterns: /蹭蹭|贴贴|蹭一蹭/ },
+  { type: 'emote-knead', patterns: /踩奶|踩一踩|按摩/ },
+  { type: 'emote-sploot', patterns: /板鸭|趴下|趴着|趴一个|趴好/ },
   { type: 'feed', patterns: /喂|吃的|吃饭|投食|零食|饿了吗|开饭/ },
   { type: 'pet', patterns: /摸摸|摸头|撸|抱抱|亲亲|rua/i },
   { type: 'play', patterns: /玩|接球|逗|游戏时间|遛/ },

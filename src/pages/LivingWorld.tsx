@@ -9,6 +9,7 @@ import { parseIntent, getSuggestions } from '../utils/intents';
 import { getTimeOfDay } from '../utils/emotion';
 import { sendAIMessage } from '../utils/ai';
 import { PetScene } from '../components/pets/PetScene';
+import type { EmoteKind } from '../components/pets/GLBPet';
 import { PetSelectStage } from '../components/pets/PetSelectStage';
 import { QuestPanel } from '../components/game/QuestPanel';
 import { ShopPanel } from '../components/game/ShopPanel';
@@ -87,7 +88,7 @@ export function LivingWorld(props: LivingWorldProps) {
   const [claimedQuests, setClaimedQuests] = useState<Set<string>>(new Set());
   const [floatingRewards, setFloatingRewards] = useState<Array<{ id: number; text: string }>>([]);
   const [petTapCount, setPetTapCount] = useState(0);
-  const [emote, setEmote] = useState<'run' | 'roll' | 'groom' | 'cute' | null>(null);
+  const [emote, setEmote] = useState<EmoteKind | null>(null);
   const emoteTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const bubbleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const rewardId = useRef(0);
@@ -98,7 +99,7 @@ export function LivingWorld(props: LivingWorldProps) {
   const lowStat = stats.hunger < 30 ? 'hunger' as const : stats.mood < 30 ? 'mood' as const : stats.cleanliness < 30 ? 'cleanliness' as const : null;
   const hasClaimableQuest = dailyQuests.some(q => getQuestProgress(q.type) >= q.target && !claimedQuests.has(q.id));
 
-  const playEmote = useCallback((kind: 'run' | 'roll' | 'groom' | 'cute', durationMs = 6000) => {
+  const playEmote = useCallback((kind: EmoteKind, durationMs = 6000) => {
     if (emoteTimer.current) clearTimeout(emoteTimer.current);
     setEmote(kind);
     emoteTimer.current = setTimeout(() => setEmote(null), durationMs);
@@ -182,6 +183,7 @@ export function LivingWorld(props: LivingWorldProps) {
     if (!character) return;
     if (action === 'play') playEmote('run', 5000);
     if (action === 'pet') playEmote('cute', 4000);
+    if (action === 'feed') playEmote('knead', 5000);
     updateQuestProgress(action);
     if (action === 'pet') addIntimacy(character.id, 1);
     addXP(3);
@@ -221,6 +223,11 @@ export function LivingWorld(props: LivingWorldProps) {
       case 'emote-roll': playEmote('roll', 6000); say('肚皮献给你~', 3000); if (character) addIntimacy(character.id, 1); break;
       case 'emote-groom': playEmote('groom', 6000); say('舔舔爪爪,保持干净~', 3000); break;
       case 'emote-cute': playEmote('cute', 6000); say('喵呜~最喜欢你啦 💕', 3000); if (character) addIntimacy(character.id, 2); break;
+      case 'emote-stretch': playEmote('stretch', 5500); say('唔——伸个大懒腰，舒服~', 3000); break;
+      case 'emote-pounce': playEmote('pounce', 7000); say('小猎手出动!🐾', 3000); addXP(3); break;
+      case 'emote-rub': playEmote('rub', 6000); say('蹭蹭~你是我的 💕', 3000); if (character) addIntimacy(character.id, 2); break;
+      case 'emote-knead': playEmote('knead', 6000); say('踩踩踩~安心又幸福', 3000); if (character) addIntimacy(character.id, 1); break;
+      case 'emote-sploot': playEmote('sploot', 6000); say('板鸭趴~舒服极了', 3000); break;
       case 'quests': setActiveCard('quests'); break;
       case 'shop': setActiveCard('shop'); break;
       case 'adopt': setActiveCard('adopt'); break;
@@ -231,6 +238,7 @@ export function LivingWorld(props: LivingWorldProps) {
       case 'help': setActiveCard('help'); break;
       case 'mood': {
         // Emotional message: comfort + auto-journal, no forms to fill.
+        if (intent.emotion && ['sad', 'anxious', 'lonely'].includes(intent.emotion)) playEmote('rub', 6000);
         if (intent.emotion && character) {
           addMoodEntry({
             id: `mood-${Date.now()}`,

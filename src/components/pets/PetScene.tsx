@@ -8,6 +8,7 @@ import { CatModel } from './CatModel';
 import { HamsterModel } from './HamsterModel';
 import { PetParticles } from './PetParticles';
 import { GLBPet } from './GLBPet';
+import type { EmoteKind } from './GLBPet';
 import { glbModels } from '../../data/petModels';
 import { WinterScene } from '../world/WinterScene';
 import { getBreed } from '../../data/breeds';
@@ -23,8 +24,8 @@ interface PetSceneProps {
   /** 'world' fills its container and renders the full winter set — used by the Living World. */
   size?: 'tiny' | 'small' | 'medium' | 'large' | 'world';
   interactive?: boolean;
-  /** Procedural emote for GLB pets (run/roll/groom/cute). */
-  emote?: 'run' | 'roll' | 'groom' | 'cute' | null;
+  /** Procedural emote for GLB pets. */
+  emote?: EmoteKind | null;
 }
 
 const sceneConfig: Record<string, { camera: [number, number, number]; color: string }> = {
@@ -61,7 +62,7 @@ class ModelErrorBoundary extends Component<{ fallback: ReactNode; children: Reac
   }
 }
 
-function PetModel({ characterId, breedId, customBreed, isHovered, emote }: { characterId: string; breedId?: string | null; customBreed?: Breed | null; isHovered: boolean; emote?: 'run' | 'roll' | 'groom' | 'cute' | null }) {
+function PetModel({ characterId, breedId, customBreed, isHovered, emote }: { characterId: string; breedId?: string | null; customBreed?: Breed | null; isHovered: boolean; emote?: EmoteKind | null }) {
   const breed = customBreed ?? getBreed(breedId ?? null);
 
   // Breed-driven rendering: parametric bodies for cats/dogs/hamsters,

@@ -7,6 +7,12 @@ import * as THREE from 'three';
 import type { GLBModelConfig } from '../../data/petModels';
 import { glbModels } from '../../data/petModels';
 
+/** Procedural whole-body emotes for static meshes, modeled on real cat
+ *  body language (奔跑/翻肚子/舔爪子/撒娇/伸懒腰/捕猎扑击/蹭蹭/踩奶/板鸭趴). */
+export type EmoteKind =
+  | 'run' | 'roll' | 'groom' | 'cute'
+  | 'stretch' | 'pounce' | 'rub' | 'knead' | 'sploot';
+
 interface GLBPetProps {
   config: GLBModelConfig;
   isHovered: boolean;
@@ -16,7 +22,7 @@ interface GLBPetProps {
    *  ~1.3 units tall and rest the feet on the ground plane. */
   normalize?: boolean;
   /** Procedural whole-body emote for static meshes (no skeleton needed). */
-  emote?: 'run' | 'roll' | 'groom' | 'cute' | null;
+  emote?: EmoteKind | null;
 }
 
 /**
@@ -100,7 +106,9 @@ export function GLBPet({ config, isHovered, tint, normalize, emote }: GLBPetProp
       g.rotation.x = THREE.MathUtils.damp(g.rotation.x, 0, 5, delta);
       g.rotation.z = THREE.MathUtils.damp(g.rotation.z, 0, 5, delta);
       g.rotation.y = THREE.MathUtils.damp(g.rotation.y, 0, 4, delta);
-      g.scale.setScalar(THREE.MathUtils.damp(g.scale.x, 1, 5, delta) || 1);
+      g.scale.x = THREE.MathUtils.damp(g.scale.x, 1, 5, delta) || 1;
+      g.scale.y = THREE.MathUtils.damp(g.scale.y, 1, 5, delta) || 1;
+      g.scale.z = THREE.MathUtils.damp(g.scale.z, 1, 5, delta) || 1;
       return;
     }
 
@@ -138,6 +146,61 @@ export function GLBPet({ config, isHovered, tint, normalize, emote }: GLBPetProp
       g.position.y = Math.max(0, Math.sin(e * 4.5)) * 0.09;
       g.rotation.y = Math.sin(e * 1.3) * 0.2;
       g.scale.setScalar(1 + Math.sin(e * 4.5) * 0.02);
+    } else if (emote === 'stretch') {
+      // 伸懒腰: slow bow — chest down, rump up, spine elongated, then release
+      const s = Math.min(1, e / 1.1) * (e < 4 ? 1 : Math.max(0, 1 - (e - 4) / 0.8));
+      g.rotation.x = 0.34 * s;
+      g.position.y = 0.1 * s;
+      g.scale.z = 1 + 0.16 * s;
+      g.scale.y = 1 - 0.07 * s;
+      g.rotation.z = 0.03 * Math.sin(e * 1.6) * s;
+    } else if (emote === 'pounce') {
+      // 匍匐捕猎: flatten low, butt-wiggle wind-up, spring forward, reset
+      const c = e % 3.4;
+      if (c < 1.9) {
+        // stalking crouch, wiggle builds up before the leap
+        const crouch = Math.min(1, c / 0.5);
+        g.scale.y = 1 - 0.24 * crouch;
+        g.rotation.z = Math.sin(c * 11) * 0.045 * Math.min(1, c / 1.2);
+        g.position.z = 0.05 * crouch;
+        g.position.y = 0;
+      } else if (c < 2.5) {
+        // the leap: arc up and forward
+        const j = (c - 1.9) / 0.6;
+        g.scale.y = 1 - 0.24 * (1 - j);
+        g.position.y = Math.sin(j * Math.PI) * 0.42;
+        g.position.z = 0.05 + j * 0.55;
+        g.rotation.x = -0.25 * Math.sin(j * Math.PI);
+      } else {
+        // trot back to the start
+        const b = (c - 2.5) / 0.9;
+        g.position.z = 0.6 * (1 - b);
+        g.position.y = Math.abs(Math.sin(b * Math.PI * 3)) * 0.05;
+        g.scale.y = 1;
+      }
+    } else if (emote === 'rub') {
+      // 蹭蹭你: sidle up close and rub a cheek side to side
+      const s = Math.min(1, e / 0.8);
+      g.position.z = 0.45 * s;
+      g.rotation.z = Math.sin(e * 2.4) * 0.22 * s;
+      g.rotation.y = Math.sin(e * 2.4) * 0.3 * s;
+      g.position.x = Math.sin(e * 2.4) * 0.08 * s;
+      g.rotation.x = 0.08 * s;
+    } else if (emote === 'knead') {
+      // 踩奶: contented kneading — weight shifts left-right on the front paws
+      const s = Math.min(1, e / 0.6);
+      g.rotation.z = Math.sin(e * 3.6) * 0.07 * s;
+      g.rotation.x = 0.1 * s;
+      g.position.y = Math.abs(Math.sin(e * 3.6)) * 0.025 * s;
+      g.rotation.y = Math.sin(e * 0.9) * 0.08 * s;
+    } else if (emote === 'sploot') {
+      // 板鸭趴: flatten onto the belly, limbs out, slow contented breathing
+      const s = Math.min(1, e / 0.9);
+      g.scale.y = 1 - 0.3 * s + Math.sin(e * 1.8) * 0.012 * s;
+      g.scale.x = 1 + 0.07 * s;
+      g.scale.z = 1 + 0.05 * s;
+      g.position.y = 0;
+      g.rotation.y = Math.sin(e * 0.5) * 0.05 * s;
     }
   });
 
