@@ -1,0 +1,42 @@
+<!DOCTYPE html><html><body style="margin:0">
+<script type="importmap">{"imports":{"three":"/node_modules/three/build/three.module.js","three/addons/":"/node_modules/three/examples/jsm/"}}</script>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
+const params = new URLSearchParams(location.search);
+const file = params.get('f'), t = parseFloat(params.get('t') || '0.5'), clipSel = params.get('c') || '0';
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x334455);
+const cam = new THREE.PerspectiveCamera(40, 1, 0.01, 10000);
+const r = new THREE.WebGLRenderer({ antialias: true });
+r.setSize(700, 700); document.body.appendChild(r.domElement);
+scene.add(new THREE.AmbientLight(0xffffff, 1.2));
+const d = new THREE.DirectionalLight(0xffffff, 2); d.position.set(3, 5, 4); scene.add(d);
+const loader = file.endsWith('.fbx') ? new FBXLoader() : new GLTFLoader();
+loader.load('/rig/' + file, g => {
+  const obj = g.scene || g;
+  const anims = g.animations || obj.animations || [];
+  scene.add(obj);
+  const mixer = new THREE.AnimationMixer(obj);
+  const clip = /^\d+$/.test(clipSel) ? anims[+clipSel] : anims.find(a => a.name.includes(clipSel));
+  if (clip) mixer.clipAction(clip).play();
+  mixer.update(t);
+  // skinning-aware framing
+  obj.updateMatrixWorld(true);
+  const box = new THREE.Box3(); const v = new THREE.Vector3(); let skinned = false;
+  obj.traverse(m => {
+    if (m.isSkinnedMesh) {
+      skinned = true;
+      const pos = m.geometry.attributes.position;
+      const step = Math.max(1, Math.floor(pos.count / 2000));
+      for (let i = 0; i < pos.count; i += step) { m.getVertexPosition(i, v).applyMatrix4(m.matrixWorld); box.expandByPoint(v); }
+    }
+  });
+  if (!skinned) box.setFromObject(obj);
+  const c = box.getCenter(new THREE.Vector3()), s = box.getSize(new THREE.Vector3()).length();
+  cam.position.set(c.x + s * 1.0, c.y + s * 0.4, c.z + s * 0.55); cam.lookAt(c);
+  r.render(scene, cam);
+  window.__done = anims.map(a => a.name + ':' + a.duration.toFixed(2) + 's');
+});
+</script></body></html>

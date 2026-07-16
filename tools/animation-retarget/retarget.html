@@ -1,0 +1,135 @@
+<!DOCTYPE html><html><body>
+<script type="importmap">{"imports":{"three":"/node_modules/three/build/three.module.js","three/addons/":"/node_modules/three/examples/jsm/"}}</script>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { FBXLoader } from 'three/addons/loaders/FBXLoader.js';
+
+const MAPS = {
+  fox: {
+    front: ['b_LeftHand_011', 'b_RightHand_08'], back: ['b_LeftFoot01_017', 'b_RightFoot01_021'],
+    names: {
+      Hips: 'b_Hip_01', Spine: 'b_Spine01_02', Spine02: 'b_Spine02_03',
+      neck: 'b_Neck_04', Head: 'b_Head_05',
+      LeftArm: 'b_LeftUpperArm_09', LeftForeArm: 'b_LeftForeArm_010', LeftHand: 'b_LeftHand_011',
+      RightArm: 'b_RightUpperArm_06', RightForeArm: 'b_RightForeArm_07', RightHand: 'b_RightHand_08',
+      LeftUpLeg: 'b_LeftLeg01_015', LeftLeg: 'b_LeftLeg02_016', LeftFoot: 'b_LeftFoot01_017', LeftToeBase: 'b_LeftFoot02_018',
+      RightUpLeg: 'b_RightLeg01_019', RightLeg: 'b_RightLeg02_020', RightFoot: 'b_RightFoot01_021', RightToeBase: 'b_RightFoot02_022',
+    },
+  },
+  catson: {
+    front: ['FeetFrontL', 'FeetFrontR'], back: ['FeetBackL', 'FeetBackR'],
+    names: {
+      Hips: 'Torso', Head: 'Head',
+      LeftArm: 'LegFrontUpperL', LeftForeArm: 'LegFrontLowerL', LeftHand: 'FeetFrontL',
+      RightArm: 'LegFrontUpperR', RightForeArm: 'LegFrontLowerR', RightHand: 'FeetFrontR',
+      LeftUpLeg: 'LegBackUpperL', LeftLeg: 'LegBackLowerL', LeftFoot: 'FeetBackL',
+      RightUpLeg: 'LegBackUpperR', RightLeg: 'LegBackLowerR', RightFoot: 'FeetBackR',
+    },
+  },
+};
+
+const load = url => new Promise((res, rej) =>
+  (url.endsWith('.fbx') ? new FBXLoader() : new GLTFLoader()).load(url, res, undefined, rej));
+
+try {
+  const params = new URLSearchParams(location.search);
+  const srcFile = params.get('src'), clipName = params.get('clip'), mapName = params.get('map');
+  const { names, front, back } = MAPS[mapName];
+
+  const srcRoot = await load('/rig/' + srcFile);
+  const srcScene = srcRoot.scene || srcRoot;
+  const srcAnims = srcRoot.animations || srcScene.animations;
+  const cat = await load('/rig/cat1-rigged.glb');
+  const clip = srcAnims.find(a => a.name === clipName || a.name.endsWith('|' + clipName));
+
+  const srcBone = {}, catBone = {};
+  srcScene.traverse(o => { srcBone[o.name] = o; });
+  cat.scene.traverse(o => { catBone[o.name] = o; });
+  srcScene.updateMatrixWorld(true);
+  cat.scene.updateMatrixWorld(true);
+
+  // forward axis = midpoint(front feet) - midpoint(back feet): always horizontal
+  const mid = (bones, a, b) => {
+    const p = new THREE.Vector3(), q = new THREE.Vector3();
+    bones[a].getWorldPosition(p); bones[b].getWorldPosition(q);
+    return p.add(q).multiplyScalar(0.5);
+  };
+  const fwdOf = (bones, fr, bk) => {
+    const v = mid(bones, fr[0], fr[1]).sub(mid(bones, bk[0], bk[1]));
+    v.y = 0; return v.normalize();
+  };
+  const srcFwd = fwdOf(srcBone, front, back);
+  const catFwd = new THREE.Vector3(0, 0, 1); // app models face +Z; bone positions unreliable on chunky auto-rigs
+  const R = new THREE.Quaternion().setFromUnitVectors(srcFwd, catFwd);
+  const Rinv = R.clone().invert();
+
+  // size ratio for translating hip drops etc. into cat units
+  const srcHipY = srcBone[names.Hips].getWorldPosition(new THREE.Vector3()).y;
+  const catHipY = catBone['Hips'].getWorldPosition(new THREE.Vector3()).y;
+  const posScale = Math.abs(srcHipY) > 1e-6 ? catHipY / srcHipY : 1;
+  const srcHipBindPos = srcBone[names.Hips].getWorldPosition(new THREE.Vector3());
+  const catHipBindPos = catBone['Hips'].getWorldPosition(new THREE.Vector3());
+
+  const bindSrc = {}, bindCat = {};
+  for (const [tgt, src] of Object.entries(names)) {
+    if (!srcBone[src] || !catBone[tgt]) continue;
+    bindSrc[src] = srcBone[src].getWorldQuaternion(new THREE.Quaternion());
+    bindCat[tgt] = catBone[tgt].getWorldQuaternion(new THREE.Quaternion());
+  }
+
+  const order = [];
+  catBone['Hips'].traverse(o => { if (names[o.name] && bindCat[o.name]) order.push(o.name); });
+
+  const mixer = new THREE.AnimationMixer(srcScene);
+  mixer.clipAction(clip).play();
+
+  const fps = 30, frames = Math.floor(clip.duration * fps) + 1;
+  const times = [], samples = Object.fromEntries(order.map(n => [n, []]));
+  const hipPos = [];
+  const q1 = new THREE.Quaternion(), q2 = new THREE.Quaternion(), pq = new THREE.Quaternion();
+  const v1 = new THREE.Vector3();
+  for (let f = 0; f < frames; f++) {
+    const t = Math.min(f / fps, clip.duration - 1e-4);
+    mixer.setTime(t);
+    srcScene.updateMatrixWorld(true);
+    times.push(t);
+    for (const tgt of order) {
+      const src = names[tgt];
+      srcBone[src].getWorldQuaternion(q1);
+      q2.copy(q1).multiply(bindSrc[src].clone().invert());
+      const delta = R.clone().multiply(q2).multiply(Rinv);
+      const desired = delta.multiply(bindCat[tgt]);
+      cat.scene.updateMatrixWorld(true);
+      catBone[tgt].parent.getWorldQuaternion(pq);
+      const local = pq.invert().multiply(desired);
+      catBone[tgt].quaternion.copy(local);
+      samples[tgt].push(local.x, local.y, local.z, local.w);
+      if (tgt === 'Hips') {
+        // translate the hip's world displacement into cat scale/space
+        srcBone[names.Hips].getWorldPosition(v1).sub(srcHipBindPos).applyQuaternion(R).multiplyScalar(posScale);
+        const desiredPos = v1.add(catHipBindPos);
+        cat.scene.updateMatrixWorld(true);
+        const lp = catBone[tgt].parent.worldToLocal(desiredPos.clone());
+        catBone[tgt].position.copy(lp);
+        hipPos.push(lp.x, lp.y, lp.z);
+      }
+    }
+  }
+  // debug: per-bone world delta angle at the final frame
+  const dbg = {};
+  mixer.setTime(clip.duration - 1e-4);
+  srcScene.updateMatrixWorld(true);
+  for (const tgt of order) {
+    const src = names[tgt];
+    srcBone[src].getWorldQuaternion(q1);
+    q2.copy(q1).multiply(bindSrc[src].clone().invert());
+    dbg[src] = (2 * Math.acos(Math.min(1, Math.abs(q2.w))) * 180 / Math.PI).toFixed(1);
+  }
+  const tracks = order.map(n => ({ name: n, times, values: samples[n], path: 'rotation' }));
+  tracks.push({ name: 'Hips', times, values: hipPos, path: 'translation' });
+  window.__result = JSON.stringify({ duration: clip.duration, clipFound: clip.name, deltaDeg: dbg, srcFwd: srcFwd.toArray(), catFwd: catFwd.toArray(), posScale, tracks });
+} catch (e) {
+  window.__result = 'ERROR: ' + (e.stack || e.message || e);
+}
+</script></body></html>
