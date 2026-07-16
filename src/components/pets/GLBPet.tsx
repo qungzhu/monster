@@ -10,8 +10,12 @@ import { glbModels } from '../../data/petModels';
 /** Procedural whole-body emotes for static meshes, modeled on real cat
  *  body language (奔跑/翻肚子/舔爪子/撒娇/伸懒腰/捕猎扑击/蹭蹭/踩奶/板鸭趴). */
 export type EmoteKind =
-  | 'run' | 'roll' | 'groom' | 'cute'
+  | 'run' | 'walk' | 'roll' | 'groom' | 'cute'
   | 'stretch' | 'pounce' | 'rub' | 'knead' | 'sploot';
+
+/** Skeletal clips baked into rigged GLBs (Meshy auto-rig); emotes with a
+ *  matching clip get real limb motion layered under the procedural path. */
+const emoteClips: Partial<Record<EmoteKind, string>> = { run: 'Run', walk: 'Walk' };
 
 interface GLBPetProps {
   config: GLBModelConfig;
@@ -44,7 +48,27 @@ export function GLBPet({ config, isHovered, tint, normalize, emote }: GLBPetProp
   // shift so the lowest point rests at local y=0 (group adds yOffset).
   const fit = useMemo(() => {
     if (!normalize) return null;
-    const box = new THREE.Box3().setFromObject(clonedScene);
+    // Skinned meshes render at joint-transformed positions which can be in
+    // a completely different scale than the stored geometry (Meshy rigs use
+    // cm-scale skeletons), so measure with skinning-aware vertex sampling.
+    clonedScene.updateMatrixWorld(true);
+    const box = new THREE.Box3();
+    const v = new THREE.Vector3();
+    let sawSkinned = false;
+    clonedScene.traverse(obj => {
+      const skinned = obj as THREE.SkinnedMesh;
+      if (skinned.isSkinnedMesh) {
+        sawSkinned = true;
+        skinned.skeleton.update();
+        const pos = skinned.geometry.attributes.position;
+        const step = Math.max(1, Math.floor(pos.count / 2000));
+        for (let i = 0; i < pos.count; i += step) {
+          skinned.getVertexPosition(i, v).applyMatrix4(skinned.matrixWorld);
+          box.expandByPoint(v);
+        }
+      }
+    });
+    if (!sawSkinned) box.setFromObject(clonedScene);
     const size = new THREE.Vector3();
     box.getSize(size);
     const height = Math.max(size.y, 0.0001);
@@ -90,6 +114,18 @@ export function GLBPet({ config, isHovered, tint, normalize, emote }: GLBPetProp
     };
   }, [actions, mixer, isHovered, config]);
 
+  // Skeletal emote layer: rigged models play their real Walk/Run clip
+  // while the procedural layer below moves the whole body along a path.
+  useEffect(() => {
+    const clip = emote && emoteClips[emote];
+    const action = clip ? actions[clip] : null;
+    if (!action) return;
+    action.reset().fadeIn(0.25).play();
+    return () => {
+      action.fadeOut(0.25);
+    };
+  }, [emote, actions]);
+
   // Procedural whole-body motion: idle bob, or a full emote for
   // static meshes (run laps, belly roll, grooming bow, happy wiggle).
   const emoteT = useRef(0);
@@ -115,16 +151,21 @@ export function GLBPet({ config, isHovered, tint, normalize, emote }: GLBPetProp
     emoteT.current += delta;
     const e = emoteT.current;
 
-    if (emote === 'run') {
-      // Gallop laps on an ellipse pushed away from the camera so the
-      // cat never fills the screen; face along the velocity vector.
-      const R = 0.72, ZR = 0.32, w = 2.4;
+    if (emote === 'run' || emote === 'walk') {
+      // Laps on an ellipse pushed away from the camera so the cat never
+      // fills the screen; face along the velocity vector. When the model
+      // has a real skeletal gait clip the fake bounce/lean stays subtle.
+      const hasClip = !!actions[emoteClips[emote]!];
+      const run = emote === 'run';
+      const R = 0.72, ZR = 0.32, w = run ? 2.4 : 0.9;
+      const bounce = hasClip ? 0.02 : run ? 0.13 : 0.04;
+      const stride = run ? 9 : 4.5;
       g.position.x = Math.sin(e * w) * R;
       g.position.z = -0.65 + Math.cos(e * w) * ZR;
-      g.position.y = Math.abs(Math.sin(e * 9)) * 0.13;
+      g.position.y = Math.abs(Math.sin(e * stride)) * bounce;
       g.rotation.y = Math.atan2(R * Math.cos(e * w), -ZR * Math.sin(e * w));
-      g.rotation.z = 0.12 * Math.sin(e * 9);
-      g.rotation.x = -0.08;
+      g.rotation.z = (hasClip ? 0.03 : 0.12) * Math.sin(e * stride);
+      g.rotation.x = run ? -0.08 : 0;
     } else if (emote === 'roll') {
       // Flop over and show the belly, wiggling side to side
       const settle = Math.min(1, e / 0.6);

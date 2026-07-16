@@ -222,7 +222,7 @@ export const breeds: Breed[] = [
     petName: '斑斑', emoji: '🐯', rarity: 'legendary', characterId: 'xiaoxue',
     description: '照片1:1复刻的虎斑豹猫，额头M纹、琥珀大眼、粉鼻子，毛发根根分明',
     personality: ['野性', '灵动', '独一无二'],
-    glbUrl: '/models/custom/cat1.glb',
+    glbUrl: '/models/custom/cat1-rigged.glb',
   },
   {
     id: 'meshy-chonk', species: 'cat', name: '胖虎斑', englishName: 'Chunky Tabby',
