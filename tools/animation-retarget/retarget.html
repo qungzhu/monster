@@ -40,7 +40,7 @@ try {
   const srcRoot = await load('/rig/' + srcFile);
   const srcScene = srcRoot.scene || srcRoot;
   const srcAnims = srcRoot.animations || srcScene.animations;
-  const cat = await load('/rig/cat1-rigged.glb');
+  const cat = await load('/rig/' + (params.get('tgt') || 'cat1-rigged.glb'));
   const clip = srcAnims.find(a => a.name === clipName || a.name.endsWith('|' + clipName));
 
   const srcBone = {}, catBone = {};
