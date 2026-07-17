@@ -12,16 +12,28 @@ import { glbModels } from '../../data/petModels';
 export type EmoteKind =
   | 'run' | 'walk' | 'roll' | 'groom' | 'cute'
   | 'stretch' | 'pounce' | 'rub' | 'knead' | 'sploot'
-  | 'eat' | 'sleep' | 'meow';
+  | 'eat' | 'sleep' | 'meow' | 'zoomies';
 
 /** Skeletal clips baked into rigged GLBs (Meshy auto-rig + retargeted
  *  Catson clips). Moving emotes (run/walk) keep the procedural path on
  *  top of the clip; stationary ones let the skeleton act alone. */
 const emoteClips: Partial<Record<EmoteKind, string>> = {
-  run: 'Run', walk: 'Walk',
+  run: 'Run', walk: 'Walk', zoomies: 'Run',
   groom: 'Scratch', eat: 'Eat', sleep: 'Sleep', meow: 'Meow', cute: 'Happy',
 };
-const movingEmotes = new Set<EmoteKind>(['run', 'walk']);
+const movingEmotes = new Set<EmoteKind>(['run', 'walk', 'zoomies']);
+
+/** Zoomies (FRAP) choreography, from real cat behavior research: chaotic
+ *  sprint → freeze → pivot → sprint cycles with a stiff-legged, arched-back
+ *  sideways crab-hop mixed in. Waypoints loop every 4s. */
+const zoomiesPath: Array<{ t: number; x: number; z: number; mode: 'sprint' | 'freeze' | 'crab' }> = [
+  { t: 0.0, x: -0.7, z: -0.5, mode: 'sprint' },
+  { t: 0.8, x: 0.65, z: -0.75, mode: 'freeze' },
+  { t: 1.1, x: 0.65, z: -0.75, mode: 'sprint' },
+  { t: 1.9, x: -0.5, z: -0.9, mode: 'crab' },
+  { t: 2.9, x: 0.1, z: -0.45, mode: 'sprint' },
+  { t: 4.0, x: -0.7, z: -0.5, mode: 'sprint' },
+];
 
 interface GLBPetProps {
   config: GLBModelConfig;
@@ -209,28 +221,78 @@ export function GLBPet({ config, isHovered, tint, normalize, emote }: GLBPetProp
       g.scale.y = 1 - 0.07 * s;
       g.rotation.z = 0.03 * Math.sin(e * 1.6) * s;
     } else if (emote === 'pounce') {
-      // 匍匐捕猎: flatten low, butt-wiggle wind-up, spring forward, reset
-      const c = e % 3.4;
-      if (c < 1.9) {
-        // stalking crouch, wiggle builds up before the leap
-        const crouch = Math.min(1, c / 0.5);
-        g.scale.y = 1 - 0.24 * crouch;
-        g.rotation.z = Math.sin(c * 11) * 0.045 * Math.min(1, c / 1.2);
-        g.position.z = 0.05 * crouch;
+      // Predatory sequence per real cat biomechanics: slow stalk creep,
+      // butt-wiggle that RAMPS UP right before launch (muscle priming),
+      // explosive both-hind-legs leap, landing freeze to reassess, reset.
+      const c = e % 4.2;
+      if (c < 1.2) {
+        // stalk: creep forward low and slow, eyes locked
+        const s = Math.min(1, c / 0.4);
+        g.scale.y = 1 - 0.24 * s;
+        g.position.z = (c / 1.2) * 0.12;
         g.position.y = 0;
+        g.rotation.x = 0.04 * s;
+      } else if (c < 2.0) {
+        // wind-up: hindquarter wiggle accelerating toward launch
+        const w = (c - 1.2) / 0.8;
+        g.scale.y = 0.76 - 0.04 * w;
+        g.position.z = 0.12;
+        g.rotation.z = Math.sin(c * (8 + w * 10)) * (0.03 + 0.05 * w);
+        g.rotation.y = Math.sin(c * (8 + w * 10)) * 0.04;
       } else if (c < 2.5) {
-        // the leap: arc up and forward
-        const j = (c - 1.9) / 0.6;
-        g.scale.y = 1 - 0.24 * (1 - j);
-        g.position.y = Math.sin(j * Math.PI) * 0.42;
-        g.position.z = 0.05 + j * 0.55;
-        g.rotation.x = -0.25 * Math.sin(j * Math.PI);
+        // explosive leap: fast rise, forward arc
+        const j = (c - 2.0) / 0.5;
+        g.scale.y = 0.72 + 0.38 * Math.min(1, j * 2.5);
+        g.position.y = Math.sin(j * Math.PI) * 0.48;
+        g.position.z = 0.12 + j * 0.6;
+        g.rotation.x = -0.3 * Math.sin(j * Math.PI);
+        g.rotation.z = 0;
+      } else if (c < 3.2) {
+        // landing freeze: crouched, motionless, reassessing the "prey"
+        g.position.z = 0.72;
+        g.position.y = 0;
+        g.scale.y = 0.85;
+        g.rotation.x = 0.06;
       } else {
         // trot back to the start
-        const b = (c - 2.5) / 0.9;
-        g.position.z = 0.6 * (1 - b);
+        const b = (c - 3.2) / 1.0;
+        g.position.z = 0.72 * (1 - b);
         g.position.y = Math.abs(Math.sin(b * Math.PI * 3)) * 0.05;
+        g.scale.y = 0.85 + 0.15 * b;
+        g.rotation.x = 0;
+      }
+    } else if (emote === 'zoomies') {
+      // FRAP: follow the chaotic waypoint choreography
+      const c = e % 4.0;
+      let i = 0;
+      while (i < zoomiesPath.length - 2 && zoomiesPath[i + 1].t <= c) i++;
+      const a = zoomiesPath[i], b = zoomiesPath[i + 1];
+      const f = Math.min(1, (c - a.t) / Math.max(0.001, b.t - a.t));
+      const x = a.x + (b.x - a.x) * f;
+      const z = a.z + (b.z - a.z) * f;
+      const dx = b.x - a.x, dz = b.z - a.z;
+      g.position.x = x;
+      g.position.z = z;
+      const heading = Math.atan2(dx, dz);
+      if (a.mode === 'sprint') {
+        g.position.y = Math.abs(Math.sin(e * 11)) * 0.12;
+        g.rotation.y = heading;
+        g.rotation.x = -0.1;
+        g.rotation.z = 0.1 * Math.sin(e * 11);
         g.scale.y = 1;
+      } else if (a.mode === 'freeze') {
+        // sudden stop: upright, alert, tiny pant
+        g.position.y = 0;
+        g.rotation.x = -0.05;
+        g.rotation.z = 0;
+        g.scale.y = 1 + Math.sin(e * 8) * 0.01;
+      } else {
+        // crab-hop: stiff legs, arched back, body sideways to travel
+        g.position.y = Math.abs(Math.sin(e * 7)) * 0.17;
+        g.rotation.y = heading + Math.PI / 2;
+        g.rotation.x = 0.12;
+        g.scale.y = 1.06;
+        g.rotation.z = 0.05 * Math.sin(e * 7);
       }
     } else if (emote === 'rub') {
       // 蹭蹭你: sidle up close and rub a cheek side to side

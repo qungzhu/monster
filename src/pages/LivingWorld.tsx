@@ -231,6 +231,7 @@ export function LivingWorld(props: LivingWorldProps) {
       case 'emote-walk': playEmote('walk', 8000); say('慢悠悠散个步~🐾', 3000); addXP(2); break;
       case 'emote-sleep': playEmote('sleep', 9000); say('呼噜噜...💤', 3500); break;
       case 'emote-meow': playEmote('meow', 4000); say('喵呜——!🐱', 2500); if (character) addIntimacy(character.id, 1); break;
+      case 'emote-zoomies': playEmote('zoomies', 8000); say('暴走模式启动!⚡⚡', 3000); addXP(5); break;
       case 'quests': setActiveCard('quests'); break;
       case 'shop': setActiveCard('shop'); break;
       case 'adopt': setActiveCard('adopt'); break;
