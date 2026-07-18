@@ -25,5 +25,11 @@
   source FBX not redistributed — only baked retargeted animation data
   is embedded here).
 
+## mesh-tabby2 / mesh-norweg / mesh-mainecoon / mesh-persian / mesh-ragdoll .glb
+- Meshy multi-image-to-3D from user-provided 5-view reference sheets
+  (front/side/back/quarter crops). Textures resized to 1024 + WebP.
+- Static meshes (Meshy pose estimation rejected these chunkier plush
+  designs, same as cat2-5), animated via the procedural emote system.
+
 ## cat1.glb – cat5.glb
 - Generated with Meshy AI (image-to-3D) from user-provided photos.
