@@ -27,9 +27,15 @@
 
 ## mesh-tabby2 / mesh-norweg / mesh-mainecoon / mesh-persian / mesh-ragdoll .glb
 - Meshy multi-image-to-3D from user-provided 5-view reference sheets
-  (front/side/back/quarter crops). Textures resized to 1024 + WebP.
-- Static meshes (Meshy pose estimation rejected these chunkier plush
-  designs, same as cat2-5), animated via the procedural emote system.
+  (front/side/back/quarter crops).
+- Meshy pose estimation rejected these chunkier plush designs, so instead
+  of auto-rigging, the working Pixie-Bob skeleton + its 8 clips were
+  TRANSFERRED onto each mesh (tools/animation-retarget/transfer-skin.cjs):
+  target geometry normalized into the rig's bind space, skin weights
+  recomputed by Gaussian falloff over bone rest positions, skeleton/skin/
+  animations kept verbatim. Then weld + simplify(0.5) + 1024 WebP.
+- All 8 skeletal clips (Walk/Run/Idle/Scratch/Eat/Sleep/Meow/Happy) —
+  same animation provenance as pixiebob-rigged.glb (Fox + Catson, above).
 
 ## cat1.glb – cat5.glb
 - Generated with Meshy AI (image-to-3D) from user-provided photos.
