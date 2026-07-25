@@ -39,3 +39,13 @@
 
 ## cat1.glb – cat5.glb
 - Generated with Meshy AI (image-to-3D) from user-provided photos.
+
+## Tail sway (all 6 rigged cats)
+- A `Tail` bone was added under Hips on every rigged cat (tools/animation-
+  retarget/add-tail-bone.cjs): tail vertices auto-detected by position
+  (rear + elevated, within a radius column to exclude ears), reweighted
+  with a base->tip falloff, and given a gentle looping sway baked into all
+  8 clips. The bone follows body motion (child of Hips) and adds life.
+- The European Tabby tail also carries a per-vertex COLOR_0 warm tint
+  (its reconstructed tail texture ran cold grey; scattered UVs ruled out
+  a texture-space fix, so vertex colors warm it toward the body tone).
