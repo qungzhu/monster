@@ -102,13 +102,37 @@ export function GLBPet({ config, isHovered, tint, normalize, emote }: GLBPetProp
       if ((obj as THREE.Mesh).isMesh) {
         obj.castShadow = true;
         const mesh = obj as THREE.Mesh;
-        // Clone materials before mutating: SkeletonUtils.clone shares
-        // them across instances, and tinting one pet must not recolor
-        // every other pet using the same GLB.
-        let mat = mesh.material as THREE.MeshStandardMaterial;
-        if (mat && 'roughness' in mat) {
-          mat = mat.clone();
-          mat.roughness = Math.min(mat.roughness ?? 1, 0.9);
+        const std = mesh.material as THREE.MeshStandardMaterial;
+        if (std && 'roughness' in std) {
+          // Upgrade the smooth (plastic-looking) PBR surface to a fabric one:
+          // MeshPhysicalMaterial + sheen is what gives cloth / plush / velvet
+          // its soft fuzzy rim instead of a hard specular highlight.
+          // NOTE: build it by hand — MeshPhysicalMaterial.copy(standardMat)
+          // throws (reads physical-only props off the plain source), which
+          // silently drops the pet to its procedural fallback.
+          const mat = new THREE.MeshPhysicalMaterial();
+          mat.color.copy(std.color);
+          mat.map = std.map;
+          mat.normalMap = std.normalMap;
+          if (std.normalScale) mat.normalScale.copy(std.normalScale).multiplyScalar(0.4);
+          mat.aoMap = std.aoMap;
+          mat.aoMapIntensity = std.aoMapIntensity;
+          mat.emissive.copy(std.emissive);
+          mat.emissiveMap = std.emissiveMap;
+          mat.alphaMap = std.alphaMap;
+          mat.transparent = std.transparent;
+          mat.opacity = std.opacity;
+          mat.side = std.side;
+          mat.vertexColors = std.vertexColors; // euro tail COLOR_0 tint
+          mat.roughness = 1;
+          mat.metalness = 0;
+          // Fabric has no hard spec highlight; the physical default white
+          // specular blows out the lit side under the bright scene lights.
+          mat.specularIntensity = 0;
+          mat.sheen = 0.55;
+          mat.sheenRoughness = 0.6;
+          mat.sheenColor = new THREE.Color('#b8a898');
+          mat.envMapIntensity = 0.2;
           if (tintColor) mat.color.copy(tintColor);
           mesh.material = mat;
         }
