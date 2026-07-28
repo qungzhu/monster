@@ -23,6 +23,47 @@ const emoteClips: Partial<Record<EmoteKind, string>> = {
 };
 const movingEmotes = new Set<EmoteKind>(['run', 'walk', 'zoomies']);
 
+/** A tiled "fuzz" normal map: fine value-noise micro-bumps that read as
+ *  short fur/fabric fibres. Tiled densely over each surface it turns the
+ *  smooth plastic shell into a soft plush nap. Built once, shared by all. */
+const fuzzNormalMap = (() => {
+  const S = 256;
+  // hashed value noise -> smoothed heightfield
+  const hash = (x: number, y: number) => {
+    const n = Math.sin(x * 127.1 + y * 311.7) * 43758.5453;
+    return n - Math.floor(n);
+  };
+  const h = new Float32Array(S * S);
+  for (let y = 0; y < S; y++) {
+    for (let x = 0; x < S; x++) {
+      // two octaves of fine noise for a fibrous look
+      h[y * S + x] = hash(x, y) * 0.6 + hash(x * 0.5, y * 2.3) * 0.4;
+    }
+  }
+  const data = new Uint8Array(S * S * 4);
+  const at = (x: number, y: number) => h[((y + S) % S) * S + ((x + S) % S)];
+  for (let y = 0; y < S; y++) {
+    for (let x = 0; x < S; x++) {
+      const dx = at(x + 1, y) - at(x - 1, y);
+      const dy = at(x, y + 1) - at(x, y - 1);
+      const strength = 2.2;
+      let nx = -dx * strength, ny = -dy * strength, nz = 1;
+      const len = Math.hypot(nx, ny, nz);
+      nx /= len; ny /= len; nz /= len;
+      const i = (y * S + x) * 4;
+      data[i] = (nx * 0.5 + 0.5) * 255;
+      data[i + 1] = (ny * 0.5 + 0.5) * 255;
+      data[i + 2] = (nz * 0.5 + 0.5) * 255;
+      data[i + 3] = 255;
+    }
+  }
+  const tex = new THREE.DataTexture(data, S, S, THREE.RGBAFormat);
+  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
+  tex.repeat.set(38, 38);   // dense tiling = fine fibres
+  tex.needsUpdate = true;
+  return tex;
+})();
+
 /** Zoomies (FRAP) choreography, from real cat behavior research: chaotic
  *  sprint → freeze → pivot → sprint cycles with a stiff-legged, arched-back
  *  sideways crab-hop mixed in. Waypoints loop every 4s. */
@@ -113,8 +154,10 @@ export function GLBPet({ config, isHovered, tint, normalize, emote }: GLBPetProp
           const mat = new THREE.MeshPhysicalMaterial();
           mat.color.copy(std.color);
           mat.map = std.map;
-          mat.normalMap = std.normalMap;
-          if (std.normalScale) mat.normalScale.copy(std.normalScale).multiplyScalar(0.4);
+          // Replace the (soft, low-detail) Meshy normal with the dense fuzz
+          // nap so the whole surface has fine fur relief.
+          mat.normalMap = fuzzNormalMap;
+          mat.normalScale.set(0.55, 0.55);
           mat.aoMap = std.aoMap;
           mat.aoMapIntensity = std.aoMapIntensity;
           mat.emissive.copy(std.emissive);
@@ -129,10 +172,10 @@ export function GLBPet({ config, isHovered, tint, normalize, emote }: GLBPetProp
           // Fabric has no hard spec highlight; the physical default white
           // specular blows out the lit side under the bright scene lights.
           mat.specularIntensity = 0;
-          mat.sheen = 0.85;
-          mat.sheenRoughness = 0.75;
-          mat.sheenColor = new THREE.Color('#cabeae');
-          mat.envMapIntensity = 0.18;
+          mat.sheen = 1;
+          mat.sheenRoughness = 0.7;
+          mat.sheenColor = new THREE.Color('#cec2b2');
+          mat.envMapIntensity = 0.16;
           if (tintColor) mat.color.copy(tintColor);
           mesh.material = mat;
         }
