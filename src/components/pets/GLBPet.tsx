@@ -129,10 +129,10 @@ export function GLBPet({ config, isHovered, tint, normalize, emote }: GLBPetProp
           // Fabric has no hard spec highlight; the physical default white
           // specular blows out the lit side under the bright scene lights.
           mat.specularIntensity = 0;
-          mat.sheen = 0.55;
-          mat.sheenRoughness = 0.6;
-          mat.sheenColor = new THREE.Color('#b8a898');
-          mat.envMapIntensity = 0.2;
+          mat.sheen = 0.85;
+          mat.sheenRoughness = 0.75;
+          mat.sheenColor = new THREE.Color('#cabeae');
+          mat.envMapIntensity = 0.18;
           if (tintColor) mat.color.copy(tintColor);
           mesh.material = mat;
         }
