@@ -33,12 +33,26 @@ const fuzzNormalMap = (() => {
     const n = Math.sin(x * 127.1 + y * 311.7) * 43758.5453;
     return n - Math.floor(n);
   };
-  const h = new Float32Array(S * S);
+  let h = new Float32Array(S * S);
   for (let y = 0; y < S; y++) {
     for (let x = 0; x < S; x++) {
-      // two octaves of fine noise for a fibrous look
-      h[y * S + x] = hash(x, y) * 0.6 + hash(x * 0.5, y * 2.3) * 0.4;
+      // stack octaves: soft fur clumps + fibres
+      h[y * S + x] = hash(x * 0.5, y * 0.5) * 0.6 + hash(x, y) * 0.4;
     }
+  }
+  // Blur the heightfield so it reads as soft fur undulation, not per-pixel
+  // sand — this is what lets the relief be strong without looking grainy.
+  const idx = (x: number, y: number) => ((y + S) % S) * S + ((x + S) % S);
+  for (let pass = 0; pass < 2; pass++) {
+    const b = new Float32Array(S * S);
+    for (let y = 0; y < S; y++) {
+      for (let x = 0; x < S; x++) {
+        let s = 0;
+        for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) s += h[idx(x + dx, y + dy)];
+        b[idx(x, y)] = s / 9;
+      }
+    }
+    h = b;
   }
   const data = new Uint8Array(S * S * 4);
   const at = (x: number, y: number) => h[((y + S) % S) * S + ((x + S) % S)];
@@ -46,7 +60,7 @@ const fuzzNormalMap = (() => {
     for (let x = 0; x < S; x++) {
       const dx = at(x + 1, y) - at(x - 1, y);
       const dy = at(x, y + 1) - at(x, y - 1);
-      const strength = 2.2;
+      const strength = 5.0; // deeper relief (safe now the field is blurred)
       let nx = -dx * strength, ny = -dy * strength, nz = 1;
       const len = Math.hypot(nx, ny, nz);
       nx /= len; ny /= len; nz /= len;
@@ -59,10 +73,11 @@ const fuzzNormalMap = (() => {
   }
   const tex = new THREE.DataTexture(data, S, S, THREE.RGBAFormat);
   tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-  tex.repeat.set(38, 38);   // dense tiling = fine fibres
+  tex.repeat.set(26, 26);   // fur-clump scale
   tex.needsUpdate = true;
   return tex;
 })();
+
 
 /** Zoomies (FRAP) choreography, from real cat behavior research: chaotic
  *  sprint → freeze → pivot → sprint cycles with a stiff-legged, arched-back
@@ -157,7 +172,7 @@ export function GLBPet({ config, isHovered, tint, normalize, emote }: GLBPetProp
           // Replace the (soft, low-detail) Meshy normal with the dense fuzz
           // nap so the whole surface has fine fur relief.
           mat.normalMap = fuzzNormalMap;
-          mat.normalScale.set(0.55, 0.55);
+          mat.normalScale.set(0.85, 0.85);
           mat.aoMap = std.aoMap;
           mat.aoMapIntensity = std.aoMapIntensity;
           mat.emissive.copy(std.emissive);
