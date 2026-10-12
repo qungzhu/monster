@@ -11,6 +11,12 @@ export interface GLBModelConfig {
   idleAnimation: string;
   /** Animation clip name to play on hover/interaction */
   hoverAnimation: string;
+  /** Optional gait clip name for imported rigs with non-standard naming. */
+  walkAnimation?: string;
+  /** Remove a disconnected, flat pedestal baked into a generated mesh. */
+  removeFlatBase?: boolean;
+  /** Ignore broken retargeted bone clips while keeping the skinned mesh intact. */
+  disableSkeletalAnimation?: boolean;
   /** Playback speed multiplier */
   timeScale?: number;
 }

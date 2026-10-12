@@ -12,6 +12,10 @@ dist
 dist-ssr
 *.local
 .env
+.r2-seed
+public/models/generated/red-fox-meshy-rigged-walk.glb
+public/models/generated/red-fox-meshy-rigged-walk-lossless.glb
+public/models/generated/red-fox-meshy-rigged-walk-optimized.glb
 
 # Editor directories and files
 .vscode/*

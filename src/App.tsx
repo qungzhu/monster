@@ -13,8 +13,6 @@ export default function App() {
     <div className={`h-full relative ${store.selectedCharacter ? `theme-${store.selectedCharacter.theme}` : ''}`}>
       <LivingWorld
         character={store.selectedCharacter}
-        characters={store.characters}
-        selectCharacter={store.selectCharacter}
         userName={store.userName}
         setUserName={store.setUserName}
         chatHistory={store.selectedCharacterId ? (store.chatHistories[store.selectedCharacterId] || []) : []}
@@ -48,6 +46,17 @@ export default function App() {
         petName={store.petName}
         customPet={store.customPet}
         saveCustomPet={store.saveCustomPet}
+        selectedGeneratedPetKey={store.selectedGeneratedPetKey}
+        hubName={store.hubName}
+        setHubName={store.setHubName}
+        agentRuns={store.agentRuns}
+        recordAgentRun={store.recordAgentRun}
+        companionRole={store.companionRole}
+        setCompanionRole={store.setCompanionRole}
+        lifeItems={store.lifeItems}
+        addLifeItem={store.addLifeItem}
+        toggleLifeItem={store.toggleLifeItem}
+        removeLifeItem={store.removeLifeItem}
       />
     </div>
   );

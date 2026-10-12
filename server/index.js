@@ -1,7 +1,18 @@
 import express from 'express';
 import cors from 'cors';
-import Anthropic from '@anthropic-ai/sdk';
+import OpenAI from 'openai';
 import dotenv from 'dotenv';
+import {
+  buildGoogleAuthorizationUrl,
+  createGoogleCalendarEvent,
+  decryptGoogleToken,
+  encryptGoogleToken,
+  exchangeGoogleAuthorizationCode,
+  isGoogleCalendarConfigured,
+  listGoogleCalendarEvents,
+  refreshGoogleAccessToken,
+  revokeGoogleToken,
+} from '../worker/googleCalendar.js';
 
 dotenv.config();
 
@@ -10,6 +21,107 @@ app.use(cors());
 app.use(express.json());
 
 const PORT = process.env.PORT || 3001;
+const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-5.5';
+const localGoogleStates = new Map();
+const localGoogleTokens = new Map();
+
+const googleEnv = () => ({
+  GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID,
+  GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
+  GOOGLE_TOKEN_ENCRYPTION_KEY: process.env.GOOGLE_TOKEN_ENCRYPTION_KEY,
+});
+
+const safeReturnTo = value => typeof value === 'string' && value.startsWith('/') && !value.startsWith('//') ? value : '/';
+const requestOrigin = req => `${req.get('x-forwarded-proto') || req.protocol}://${req.get('host')}`;
+
+async function loadLocalGoogleToken() {
+  const encrypted = localGoogleTokens.get('local-user');
+  if (!encrypted) return null;
+  return decryptGoogleToken(encrypted, googleEnv().GOOGLE_TOKEN_ENCRYPTION_KEY);
+}
+
+async function saveLocalGoogleToken(token) {
+  const encrypted = await encryptGoogleToken(token, googleEnv().GOOGLE_TOKEN_ENCRYPTION_KEY);
+  localGoogleTokens.set('local-user', encrypted);
+}
+
+async function getValidLocalGoogleToken() {
+  let token = await loadLocalGoogleToken();
+  if (!token) return null;
+  if (token.expiresAt <= Date.now() + 60_000) {
+    token = await refreshGoogleAccessToken(googleEnv(), token);
+    await saveLocalGoogleToken(token);
+  }
+  return token;
+}
+
+app.get('/api/connectors/google/status', async (_req, res) => {
+  const configured = isGoogleCalendarConfigured(googleEnv());
+  res.json({ configured, connected: configured && localGoogleTokens.has('local-user'), localDevelopment: true });
+});
+
+app.get('/api/connectors/google/start', (req, res) => {
+  const env = googleEnv();
+  if (!isGoogleCalendarConfigured(env)) {
+    return res.status(503).json({ error: 'google_calendar_not_configured' });
+  }
+  const state = crypto.randomUUID();
+  const returnTo = safeReturnTo(req.query.returnTo);
+  localGoogleStates.set(state, { returnTo, expiresAt: Date.now() + 10 * 60 * 1000 });
+  const redirectUri = process.env.GOOGLE_REDIRECT_URI || `${requestOrigin(req)}/api/connectors/google/callback`;
+  res.redirect(buildGoogleAuthorizationUrl(env, { redirectUri, state }));
+});
+
+app.get('/api/connectors/google/callback', async (req, res) => {
+  const savedState = localGoogleStates.get(req.query.state);
+  if (!savedState || savedState.expiresAt < Date.now() || !req.query.code) {
+    return res.redirect('/?calendar=invalid_state');
+  }
+  localGoogleStates.delete(req.query.state);
+  try {
+    const env = googleEnv();
+    const redirectUri = process.env.GOOGLE_REDIRECT_URI || `${requestOrigin(req)}/api/connectors/google/callback`;
+    const newToken = await exchangeGoogleAuthorizationCode(env, { code: req.query.code, redirectUri });
+    const previousToken = await loadLocalGoogleToken().catch(() => null);
+    if (!newToken.refreshToken && previousToken?.refreshToken) newToken.refreshToken = previousToken.refreshToken;
+    await saveLocalGoogleToken(newToken);
+    const separator = savedState.returnTo.includes('?') ? '&' : '?';
+    return res.redirect(`${savedState.returnTo}${separator}calendar=connected`);
+  } catch (error) {
+    console.error('Google Calendar callback error:', error.message);
+    return res.redirect('/?calendar=error');
+  }
+});
+
+app.get('/api/connectors/google/events', async (_req, res) => {
+  try {
+    const token = await getValidLocalGoogleToken();
+    if (!token) return res.status(401).json({ error: 'google_calendar_not_connected' });
+    res.json({ events: await listGoogleCalendarEvents(token.accessToken, 5) });
+  } catch (error) {
+    res.status(502).json({ error: 'google_calendar_api_error', message: error.message });
+  }
+});
+
+app.post('/api/connectors/google/events', async (req, res) => {
+  const { summary, start, end, description } = req.body || {};
+  if (!summary || !start || !end) return res.status(400).json({ error: 'invalid_calendar_event' });
+  try {
+    const token = await getValidLocalGoogleToken();
+    if (!token) return res.status(401).json({ error: 'google_calendar_not_connected' });
+    const event = await createGoogleCalendarEvent(token.accessToken, { summary, start, end, description });
+    res.status(201).json({ event });
+  } catch (error) {
+    res.status(502).json({ error: 'google_calendar_api_error', message: error.message });
+  }
+});
+
+app.post('/api/connectors/google/disconnect', async (_req, res) => {
+  const token = await loadLocalGoogleToken().catch(() => null);
+  await revokeGoogleToken(token?.refreshToken || token?.accessToken).catch(() => undefined);
+  localGoogleTokens.delete('local-user');
+  res.json({ connected: false });
+});
 
 const characterPrompts = {
   tuantuan: `你是"团团"，一只2岁的金毛寻回犬。你的性格是：热情、忠诚、粘人、活泼。
@@ -58,12 +170,12 @@ app.post('/api/chat', async (req, res) => {
   try {
     const { message, characterId, history, intimacyLevel, userName } = req.body;
 
-    const apiKey = req.headers['x-api-key'] || process.env.ANTHROPIC_API_KEY;
+    const apiKey = req.headers['x-api-key'] || process.env.OPENAI_API_KEY;
     if (!apiKey) {
       return res.status(400).json({ error: 'no_api_key', message: 'API key not configured' });
     }
 
-    const client = new Anthropic({ apiKey });
+    const client = new OpenAI({ apiKey });
 
     const systemPrompt = characterPrompts[characterId] || characterPrompts.tuantuan;
     const intimacyContext = getIntimacyContext(intimacyLevel || 0);
@@ -93,14 +205,14 @@ app.post('/api/chat', async (req, res) => {
       cleanMessages.unshift({ role: 'user', content: message });
     }
 
-    const response = await client.messages.create({
-      model: 'claude-fable-5',
-      max_tokens: 300,
-      system: fullSystemPrompt,
-      messages: cleanMessages,
+    const response = await client.responses.create({
+      model: OPENAI_MODEL,
+      max_output_tokens: 300,
+      instructions: fullSystemPrompt,
+      input: cleanMessages,
     });
 
-    const text = response.content[0]?.type === 'text' ? response.content[0].text : '';
+    const text = response.output_text;
     res.json({ response: text });
   } catch (error) {
     console.error('Chat API error:', error.message);
@@ -108,12 +220,12 @@ app.post('/api/chat', async (req, res) => {
   }
 });
 
-// Analyze a pet photo with Claude vision and return parametric
+// Analyze a pet photo with OpenAI vision and return parametric
 // model params so the app can rebuild the pet as a 3D companion.
 app.post('/api/analyze-pet', async (req, res) => {
   try {
     const { imageBase64, mediaType } = req.body;
-    const apiKey = req.headers['x-api-key'] || process.env.ANTHROPIC_API_KEY;
+    const apiKey = req.headers['x-api-key'] || process.env.OPENAI_API_KEY;
     if (!apiKey) {
       return res.status(400).json({ error: 'no_api_key', message: 'API key not configured' });
     }
@@ -121,19 +233,19 @@ app.post('/api/analyze-pet', async (req, res) => {
       return res.status(400).json({ error: 'no_image', message: 'imageBase64 required' });
     }
 
-    const client = new Anthropic({ apiKey });
-    const response = await client.messages.create({
-      model: 'claude-fable-5',
-      max_tokens: 400,
-      messages: [{
+    const client = new OpenAI({ apiKey });
+    const response = await client.responses.create({
+      model: OPENAI_MODEL,
+      max_output_tokens: 400,
+      input: [{
         role: 'user',
         content: [
           {
-            type: 'image',
-            source: { type: 'base64', media_type: mediaType || 'image/jpeg', data: imageBase64 },
+            type: 'input_image',
+            image_url: `data:${mediaType || 'image/jpeg'};base64,${imageBase64}`,
           },
           {
-            type: 'text',
+            type: 'input_text',
             text: `仔细观察这张宠物照片，尽可能还原它的真实外形，返回严格的JSON（不要其他文字）：
 {
   "species": "cat"或"dog",
@@ -154,7 +266,7 @@ app.post('/api/analyze-pet', async (req, res) => {
       }],
     });
 
-    const text = response.content[0]?.type === 'text' ? response.content[0].text : '';
+    const text = response.output_text;
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (!jsonMatch) throw new Error('no JSON in response');
     res.json(JSON.parse(jsonMatch[0]));
@@ -185,8 +297,6 @@ app.post('/api/meshy/generate', async (req, res) => {
       : (imageDataUrl ? [imageDataUrl] : null);
     if (!urls) return res.status(400).json({ error: 'no_image' });
 
-    // Multi-angle photos (front/side/back) give a big fidelity jump:
-    // real geometry for parts a single photo can't see.
     const multi = urls.length > 1;
     const endpoint = multi ? 'multi-image-to-3d' : 'image-to-3d';
     const payload = {
@@ -262,6 +372,10 @@ app.post('/api/meshy/fetch-model', async (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, '127.0.0.1');
+server.on('listening', () => {
   console.log(`FurryPal API server running on http://localhost:${PORT}`);
+});
+server.on('error', error => {
+  console.error(`FurryPal API server failed to start: ${error.message}`);
 });
