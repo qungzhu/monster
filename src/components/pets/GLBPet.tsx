@@ -84,9 +84,25 @@ function toPlushMaterial(std: THREE.MeshStandardMaterial): THREE.MeshPhysicalMat
   // specular blows out the lit side under the bright scene lights.
   mat.specularIntensity = 0;
   mat.sheen = 0.55;
-  mat.sheenRoughness = 0.6;
+  mat.sheenRoughness = 0.8; // broad, soft fabric lobe
   mat.sheenColor = new THREE.Color('#b8a898');
-  mat.envMapIntensity = 0.2;
+  // Let the studio softbox environment wrap the fabric (plush toys are
+  // lit from everywhere, that's what makes them look soft). The scene-wide
+  // environment is kept dim so the snow doesn't blow out; the pet boosts
+  // it locally.
+  mat.envMapIntensity = 2.2;
+  // Backlit fuzz glow: on a plush toy the fibres along the silhouette catch
+  // the light and glow in their own colour. Add a fresnel-weighted emissive
+  // in the albedo colour — no extra geometry, so no outline artifacts.
+  mat.onBeforeCompile = shader => {
+    shader.fragmentShader = shader.fragmentShader.replace(
+      '#include <emissivemap_fragment>',
+      `#include <emissivemap_fragment>
+  float plushRim = 1.0 - clamp(dot(normalize(normal), normalize(vViewPosition)), 0.0, 1.0);
+  totalEmissiveRadiance += diffuseColor.rgb * pow(plushRim, 2.2) * 0.55;`,
+    );
+  };
+  mat.customProgramCacheKey = () => 'plush-rim-v1';
   return mat;
 }
 

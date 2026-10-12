@@ -1,7 +1,7 @@
 import { useState, Suspense, useMemo, Component } from 'react';
 import type { ReactNode } from 'react';
 import { Canvas } from '@react-three/fiber';
-import { OrbitControls, ContactShadows } from '@react-three/drei';
+import { OrbitControls, ContactShadows, Environment, Lightformer } from '@react-three/drei';
 import { EffectComposer, Bloom, Vignette } from '@react-three/postprocessing';
 import { DogModel } from './DogModel';
 import { CatModel } from './CatModel';
@@ -130,22 +130,43 @@ function PetModel({ characterId, breedId, customBreed, isHovered, emote }: { cha
   );
 }
 
-function ToonLighting({ color }: { color: string }) {
+/**
+ * Plush-toy studio lighting. Stuffed toys read as soft because they are lit
+ * by big diffuse sources from every side plus a backlight that makes the
+ * fuzz glow along the silhouette. So: a locally generated softbox
+ * environment (no network fetch) that the fabric sheen can pick up, a soft
+ * low-contrast key, and a warm rim light from behind.
+ */
+function PlushLighting({ color }: { color: string }) {
   return (
     <>
-      <ambientLight intensity={0.75} color="#f8f0ff" />
+      <Environment resolution={128} frames={1} environmentIntensity={0.3}>
+        {/* big warm softbox above-front */}
+        <Lightformer form="rect" intensity={2.2} color="#fff3e4" position={[0, 4, 4]} rotation-x={-Math.PI / 4} scale={[8, 4, 1]} />
+        {/* cool side fills */}
+        <Lightformer form="rect" intensity={1.1} color="#e8eeff" position={[-5, 1, 1]} rotation-y={Math.PI / 2} scale={[4, 4, 1]} />
+        <Lightformer form="rect" intensity={1.1} color="#fff0f4" position={[5, 1, 1]} rotation-y={-Math.PI / 2} scale={[4, 4, 1]} />
+        {/* warm back panel -> fuzzy rim */}
+        <Lightformer form="rect" intensity={2.6} color="#fff6ea" position={[0, 2, -5]} scale={[8, 5, 1]} />
+        {/* snow bounce from below */}
+        <Lightformer form="rect" intensity={0.8} color="#f4f8ff" position={[0, -3, 0]} rotation-x={Math.PI / 2} scale={[10, 10, 1]} />
+      </Environment>
+      <ambientLight intensity={0.25} color="#fff6ee" />
+      <hemisphereLight args={['#fff4e8', '#c8d4ee', 0.3]} />
+      {/* soft, low-contrast key */}
       <directionalLight
-        position={[4, 6, 4]}
-        intensity={1.5}
-        color="#fff8f0"
+        position={[3, 6, 5]}
+        intensity={0.9}
+        color="#fff6ec"
         castShadow
         shadow-mapSize-width={512}
         shadow-mapSize-height={512}
+        shadow-radius={6}
       />
-      <directionalLight position={[-3, 4, -2]} intensity={0.4} color="#e0d0ff" />
-      <pointLight position={[0, 1, 3]} intensity={0.6} color={color} distance={8} />
-      <pointLight position={[0, -1, 0]} intensity={0.2} color={color} distance={4} />
-      <hemisphereLight args={['#ffeedd', '#332244', 0.3]} />
+      {/* warm rim from behind: makes the fur edge glow like a plush toy */}
+      <directionalLight position={[-1.5, 3, -5]} intensity={1.4} color="#ffe9d2" />
+      <directionalLight position={[2, 2.5, -4]} intensity={0.8} color="#ffeef6" />
+      <pointLight position={[0, 1, 3]} intensity={0.25} color={color} distance={8} />
     </>
   );
 }
@@ -220,7 +241,7 @@ export function PetScene({ characterId, breedId, customBreed, size = 'medium', i
         shadows
       >
         <Suspense fallback={null}>
-          <ToonLighting color={config.color} />
+          <PlushLighting color={config.color} />
 
           <PetModel characterId={characterId} breedId={breedId} customBreed={customBreed} isHovered={isHovered} emote={emote} />
 
