@@ -72,6 +72,12 @@ function toPlushMaterial(std: THREE.MeshStandardMaterial): THREE.MeshPhysicalMat
   mat.aoMapIntensity = std.aoMapIntensity;
   mat.emissive.copy(std.emissive);
   mat.emissiveMap = std.emissiveMap;
+  // Some Meshy exports (red fox, the Pixie-Bob) ship a full-strength
+  // self-illumination: emissive [1,1,1] driven by the albedo texture, i.e.
+  // the model glows in its own colour. Stacked on the studio lighting that
+  // blows those pets out while emissive-free ones (ragdoll) look right.
+  // Keep only a trace of it so every pet is lit by the same rules.
+  mat.emissiveIntensity = std.emissiveMap ? 0.22 : std.emissiveIntensity;
   mat.alphaMap = std.alphaMap;
   mat.alphaTest = std.alphaTest;
   mat.transparent = std.transparent;
@@ -90,7 +96,7 @@ function toPlushMaterial(std: THREE.MeshStandardMaterial): THREE.MeshPhysicalMat
   // lit from everywhere, that's what makes them look soft). The scene-wide
   // environment is kept dim so the snow doesn't blow out; the pet boosts
   // it locally.
-  mat.envMapIntensity = 2.2;
+  mat.envMapIntensity = 2.8;
   // Backlit fuzz glow: on a plush toy the fibres along the silhouette catch
   // the light and glow in their own colour. Add a fresnel-weighted emissive
   // in the albedo colour — no extra geometry, so no outline artifacts.
@@ -99,10 +105,10 @@ function toPlushMaterial(std: THREE.MeshStandardMaterial): THREE.MeshPhysicalMat
       '#include <emissivemap_fragment>',
       `#include <emissivemap_fragment>
   float plushRim = 1.0 - clamp(dot(normalize(normal), normalize(vViewPosition)), 0.0, 1.0);
-  totalEmissiveRadiance += diffuseColor.rgb * pow(plushRim, 2.2) * 0.55;`,
+  totalEmissiveRadiance += diffuseColor.rgb * pow(plushRim, 2.4) * 0.3;`,
     );
   };
-  mat.customProgramCacheKey = () => 'plush-rim-v1';
+  mat.customProgramCacheKey = () => 'plush-rim-v2';
   return mat;
 }
 

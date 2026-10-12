@@ -151,12 +151,12 @@ function PlushLighting({ color }: { color: string }) {
         {/* snow bounce from below */}
         <Lightformer form="rect" intensity={0.8} color="#f4f8ff" position={[0, -3, 0]} rotation-x={Math.PI / 2} scale={[10, 10, 1]} />
       </Environment>
-      <ambientLight intensity={0.25} color="#fff6ee" />
-      <hemisphereLight args={['#fff4e8', '#c8d4ee', 0.3]} />
+      <ambientLight intensity={0.65} color="#fff6ee" />
+      <hemisphereLight args={['#fff4e8', '#c8d4ee', 0.75]} />
       {/* soft, low-contrast key */}
       <directionalLight
         position={[3, 6, 5]}
-        intensity={0.9}
+        intensity={0.95}
         color="#fff6ec"
         castShadow
         shadow-mapSize-width={512}
@@ -164,8 +164,8 @@ function PlushLighting({ color }: { color: string }) {
         shadow-radius={6}
       />
       {/* warm rim from behind: makes the fur edge glow like a plush toy */}
-      <directionalLight position={[-1.5, 3, -5]} intensity={1.4} color="#ffe9d2" />
-      <directionalLight position={[2, 2.5, -4]} intensity={0.8} color="#ffeef6" />
+      <directionalLight position={[-1.5, 3, -5]} intensity={0.9} color="#ffe9d2" />
+      <directionalLight position={[2, 2.5, -4]} intensity={0.5} color="#ffeef6" />
       <pointLight position={[0, 1, 3]} intensity={0.25} color={color} distance={8} />
     </>
   );
@@ -237,7 +237,7 @@ export function PetScene({ characterId, breedId, customBreed, size = 'medium', i
       <Canvas
         camera={{ position: isWorld ? [0, 0.75, 5.6] : isPicker ? [0, 0.3, 3.5] : config.camera, fov: isTiny ? 50 : isWorld ? 45 : 40 }}
         style={{ background: 'transparent' }}
-        gl={{ alpha: true, antialias: true, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.1 }}
+        gl={{ alpha: true, antialias: true, toneMapping: THREE.NeutralToneMapping, toneMappingExposure: 0.95 }}
         shadows
       >
         <Suspense fallback={null}>
@@ -269,7 +269,7 @@ export function PetScene({ characterId, breedId, customBreed, size = 'medium', i
           {!isTiny && !isPicker && (
             <EffectComposer>
               <Bloom
-                luminanceThreshold={0.6}
+                luminanceThreshold={0.85}
                 luminanceSmoothing={0.4}
                 intensity={isLarge ? 0.8 : 0.5}
                 mipmapBlur
