@@ -53,6 +53,43 @@ interface GLBPetProps {
  * animation and back. The scene graph is cloned per instance so the
  * same GLB can appear in several canvases at once.
  */
+/**
+ * Upgrade a smooth (plastic-looking) PBR surface to a plush fabric one:
+ * MeshPhysicalMaterial + sheen gives cloth / velvet its soft fuzzy rim
+ * instead of a hard specular highlight. Built by hand on purpose —
+ * MeshPhysicalMaterial.copy(standardMat) throws (it reads physical-only
+ * props off the plain source), which silently drops the pet to its
+ * procedural fallback.
+ */
+function toPlushMaterial(std: THREE.MeshStandardMaterial): THREE.MeshPhysicalMaterial {
+  const mat = new THREE.MeshPhysicalMaterial();
+  mat.name = std.name;
+  mat.color.copy(std.color);
+  mat.map = std.map;
+  mat.normalMap = std.normalMap;
+  mat.normalScale.copy(std.normalScale).multiplyScalar(0.4);
+  mat.aoMap = std.aoMap;
+  mat.aoMapIntensity = std.aoMapIntensity;
+  mat.emissive.copy(std.emissive);
+  mat.emissiveMap = std.emissiveMap;
+  mat.alphaMap = std.alphaMap;
+  mat.alphaTest = std.alphaTest;
+  mat.transparent = std.transparent;
+  mat.opacity = std.opacity;
+  mat.side = std.side;
+  mat.vertexColors = std.vertexColors; // euro tail COLOR_0 tint
+  mat.roughness = 1;
+  mat.metalness = 0;
+  // Fabric has no hard spec highlight; the physical default white
+  // specular blows out the lit side under the bright scene lights.
+  mat.specularIntensity = 0;
+  mat.sheen = 0.55;
+  mat.sheenRoughness = 0.6;
+  mat.sheenColor = new THREE.Color('#b8a898');
+  mat.envMapIntensity = 0.2;
+  return mat;
+}
+
 export function GLBPet({ config, isHovered, tint, normalize, emote }: GLBPetProps) {
   const group = useRef<Group>(null);
   const emoteGroup = useRef<Group>(null);
@@ -204,7 +241,9 @@ export function GLBPet({ config, isHovered, tint, normalize, emote }: GLBPetProp
         const hasMaterialArray = Array.isArray(currentMaterial);
         const materials = hasMaterialArray ? currentMaterial : [currentMaterial];
         const clonedMaterials = materials.map(source => {
-          const material = source.clone();
+          const material = (source as THREE.MeshStandardMaterial).isMeshStandardMaterial
+            ? toPlushMaterial(source as THREE.MeshStandardMaterial)
+            : source.clone();
           if (tintColor && 'color' in material) {
             (material as THREE.MeshStandardMaterial).color.multiply(tintColor);
           }
