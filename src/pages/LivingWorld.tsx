@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
+import type { CSSProperties } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Coins, PawPrint } from 'lucide-react';
+import { Send, Coins, PawPrint, Sparkles } from 'lucide-react';
 import type { Character, ChatMessage, MoodType, MoodEntry } from '../data/characters';
 import type { PetStats, Quest } from '../data/gameConfig';
 import { dailyQuests } from '../data/gameConfig';
@@ -10,7 +11,7 @@ import { getTimeOfDay } from '../utils/emotion';
 import { sendAIMessage } from '../utils/ai';
 import { PetScene } from '../components/pets/PetScene';
 import type { EmoteKind } from '../components/pets/GLBPet';
-import { PetSelectStage } from '../components/pets/PetSelectStage';
+import { PetOnboarding } from '../components/game/PetOnboarding';
 import { QuestPanel } from '../components/game/QuestPanel';
 import { ShopPanel } from '../components/game/ShopPanel';
 import { MoodCalendar } from '../components/MoodCalendar';
@@ -20,14 +21,17 @@ import { IntimacyUnlocks } from '../components/IntimacyUnlocks';
 import { WinterBackdrop } from '../components/world/WinterBackdrop';
 import { AdoptionGallery } from '../components/game/AdoptionGallery';
 import { CustomPetStudio } from '../components/game/CustomPetStudio';
+import { LifeDashboard } from '../components/game/LifeDashboard';
+import { getBreed } from '../data/breeds';
 import type { Breed } from '../data/breeds';
+import { companionRoles, parseLifeCommand } from '../data/companion';
+import type { AgentRun, CompanionRole, LifeItem } from '../data/companion';
+import { getGeneratedPet } from '../data/generatedPetGallery';
 
-type CardType = 'quests' | 'shop' | 'adopt' | 'custom' | 'memories' | 'bond' | 'settings' | 'help' | null;
+type CardType = 'life' | 'quests' | 'shop' | 'adopt' | 'custom' | 'memories' | 'bond' | 'settings' | 'help' | null;
 
 interface LivingWorldProps {
   character: Character | null;
-  characters: Character[];
-  selectCharacter: (id: string) => void;
   userName: string;
   setUserName: (name: string) => void;
   chatHistory: ChatMessage[];
@@ -61,6 +65,17 @@ interface LivingWorldProps {
   petName: string;
   customPet: Breed | null;
   saveCustomPet: (pet: Breed) => void;
+  selectedGeneratedPetKey: string | null;
+  hubName: string;
+  setHubName: (name: string) => void;
+  agentRuns: AgentRun[];
+  recordAgentRun: (command: string, summary: string) => void;
+  companionRole: CompanionRole;
+  setCompanionRole: (role: CompanionRole) => void;
+  lifeItems: LifeItem[];
+  addLifeItem: (item: Omit<LifeItem, 'id' | 'createdAt' | 'completed'>) => LifeItem;
+  toggleLifeItem: (id: string) => void;
+  removeLifeItem: (id: string) => void;
 }
 
 const themeColors: Record<string, string> = {
@@ -71,13 +86,15 @@ const themeColors: Record<string, string> = {
 
 export function LivingWorld(props: LivingWorldProps) {
   const {
-    character, characters, selectCharacter, userName, setUserName,
+    character, userName, setUserName,
     chatHistory, addMessage, getCharacterResponse, intimacyLevel, addIntimacy,
     apiKey, setApiKey, clearAllData, moodEntries, addMoodEntry,
     coins, addCoins, addXP, levelInfo, getPetStats,
     getQuestProgress, updateQuestProgress, inventory, buyItem, useItem,
     getReaction, isCheckedIn, checkIn, checkInStreak, getCheckInReward, chatCount,
     adoptedBreedId, adoptBreed, petName, customPet, saveCustomPet,
+    selectedGeneratedPetKey, hubName, setHubName, agentRuns, recordAgentRun,
+    companionRole, setCompanionRole, lifeItems, addLifeItem, toggleLifeItem, removeLifeItem,
   } = props;
 
   const [input, setInput] = useState('');
@@ -88,22 +105,26 @@ export function LivingWorld(props: LivingWorldProps) {
   const [claimedQuests, setClaimedQuests] = useState<Set<string>>(new Set());
   const [floatingRewards, setFloatingRewards] = useState<Array<{ id: number; text: string }>>([]);
   const [petTapCount, setPetTapCount] = useState(0);
+  const [isPetting, setIsPetting] = useState(false);
   const [emote, setEmote] = useState<EmoteKind | null>(null);
-  const emoteTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const bubbleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const emoteTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pettingTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pettingHandled = useRef(false);
   const rewardId = useRef(0);
   const greetedRef = useRef(false);
 
   const color = character ? themeColors[character.id] : '#d97706';
+  const generatedPet = getGeneratedPet(selectedGeneratedPetKey);
+  const baseBreed = getBreed(adoptedBreedId);
+  const generatedModelBreed = generatedPet?.modelUrl && baseBreed
+    ? { ...baseBreed, glbUrl: generatedPet.modelUrl }
+    : null;
   const stats = character ? getPetStats(character.id) : { hunger: 80, mood: 80, cleanliness: 80 };
   const lowStat = stats.hunger < 30 ? 'hunger' as const : stats.mood < 30 ? 'mood' as const : stats.cleanliness < 30 ? 'cleanliness' as const : null;
   const hasClaimableQuest = dailyQuests.some(q => getQuestProgress(q.type) >= q.target && !claimedQuests.has(q.id));
-
-  const playEmote = useCallback((kind: EmoteKind, durationMs = 6000) => {
-    if (emoteTimer.current) clearTimeout(emoteTimer.current);
-    setEmote(kind);
-    emoteTimer.current = setTimeout(() => setEmote(null), durationMs);
-  }, []);
+  const pendingLifeItems = lifeItems.filter(item => !item.completed).length;
+  const displayHubName = hubName || `${petName || character?.name || 'FurryPal'} AI 中枢`;
 
   const say = useCallback((text: string, durationMs = 4500) => {
     if (bubbleTimer.current) clearTimeout(bubbleTimer.current);
@@ -115,6 +136,12 @@ export function LivingWorld(props: LivingWorldProps) {
     const id = ++rewardId.current;
     setFloatingRewards(prev => [...prev, { id, text }]);
     setTimeout(() => setFloatingRewards(prev => prev.filter(r => r.id !== id)), 1600);
+  }, []);
+
+  const playEmote = useCallback((kind: EmoteKind | null, durationMs = 6000) => {
+    if (emoteTimer.current) clearTimeout(emoteTimer.current);
+    setEmote(kind);
+    if (kind) emoteTimer.current = setTimeout(() => setEmote(null), durationMs);
   }, []);
 
   // The pet greets you when you arrive — it starts the conversation.
@@ -139,6 +166,11 @@ export function LivingWorld(props: LivingWorldProps) {
     const t = setTimeout(() => say(nudges[lowStat], 5000), 15000);
     return () => clearTimeout(t);
   }, [character, lowStat, say]);
+
+  useEffect(() => () => {
+    if (pettingTimer.current) clearTimeout(pettingTimer.current);
+    if (emoteTimer.current) clearTimeout(emoteTimer.current);
+  }, []);
 
   const doChat = async (text: string, emotion?: MoodType) => {
     if (!character) return;
@@ -181,14 +213,13 @@ export function LivingWorld(props: LivingWorldProps) {
 
   const handleAction = (action: 'feed' | 'pet' | 'play' | 'clean') => {
     if (!character) return;
-    if (action === 'play') playEmote('run', 5000);
-    if (action === 'pet') playEmote('cute', 4000);
-    if (action === 'feed') playEmote('eat', 5000);
     updateQuestProgress(action);
     if (action === 'pet') addIntimacy(character.id, 1);
     addXP(3);
     floatReward(action === 'pet' ? '💕 +1' : '⚡ +3');
     say(getReaction(character.id, action), 3500);
+    if (action === 'pet') playEmote('rub');
+    if (action === 'play') playEmote('zoomies', 8000);
   };
 
   const handleCheckIn = () => {
@@ -211,27 +242,38 @@ export function LivingWorld(props: LivingWorldProps) {
     if (!text || isThinking) return;
     setInput('');
 
+    const lifeCommand = parseLifeCommand(text);
+    if (lifeCommand) {
+      const item = addLifeItem(lifeCommand);
+      playEmote('cute', 3500);
+      addXP(2);
+      floatReward('📝 已记录');
+      say(`记住啦！${item.title}，我会和你一起看着它。`, 4200);
+      return;
+    }
+
     const intent = parseIntent(text);
     switch (intent.type) {
       case 'feed': case 'pet': case 'play': case 'clean':
         handleAction(intent.type);
         break;
+      case 'emote-run': playEmote('run', 7000); say('冲鸭——！🏃', 3000); addXP(3); break;
+      case 'emote-roll': playEmote('roll'); say('肚皮献给你～', 3000); break;
+      case 'emote-groom': playEmote('groom'); say('舔舔爪爪，保持干净～', 3000); break;
+      case 'emote-cute': playEmote('cute'); say('最喜欢你啦 💕', 3000); break;
+      case 'emote-stretch': playEmote('stretch', 5500); say('伸个大懒腰，舒服～', 3000); break;
+      case 'emote-pounce': playEmote('pounce', 7000); say('小猎手出动！🐾', 3000); addXP(3); break;
+      case 'emote-rub': playEmote('rub'); say('蹭蹭～你是我的 💕', 3000); break;
+      case 'emote-knead': playEmote('knead'); say('踩踩踩～安心又幸福', 3000); break;
+      case 'emote-sploot': playEmote('sploot'); say('板鸭趴～舒服极了', 3000); break;
+      case 'emote-walk': playEmote('walk', 8000); say('慢悠悠散个步～🐾', 3000); addXP(2); break;
+      case 'emote-sleep': playEmote('sleep', 9000); say('呼噜噜…💤', 3500); break;
+      case 'emote-meow': playEmote('meow', 4000); say('叫一声给你听！', 2500); break;
+      case 'emote-zoomies': playEmote('zoomies', 8000); say('暴走模式启动！⚡', 3000); addXP(5); break;
       case 'checkin':
         handleCheckIn();
         break;
-      case 'emote-run': playEmote('run', 7000); say('冲鸭——!🏃', 3000); addXP(3); break;
-      case 'emote-roll': playEmote('roll', 6000); say('肚皮献给你~', 3000); if (character) addIntimacy(character.id, 1); break;
-      case 'emote-groom': playEmote('groom', 6000); say('舔舔爪爪,保持干净~', 3000); break;
-      case 'emote-cute': playEmote('cute', 6000); say('喵呜~最喜欢你啦 💕', 3000); if (character) addIntimacy(character.id, 2); break;
-      case 'emote-stretch': playEmote('stretch', 5500); say('唔——伸个大懒腰，舒服~', 3000); break;
-      case 'emote-pounce': playEmote('pounce', 7000); say('小猎手出动!🐾', 3000); addXP(3); break;
-      case 'emote-rub': playEmote('rub', 6000); say('蹭蹭~你是我的 💕', 3000); if (character) addIntimacy(character.id, 2); break;
-      case 'emote-knead': playEmote('knead', 6000); say('踩踩踩~安心又幸福', 3000); if (character) addIntimacy(character.id, 1); break;
-      case 'emote-sploot': playEmote('sploot', 6000); say('板鸭趴~舒服极了', 3000); break;
-      case 'emote-walk': playEmote('walk', 8000); say('慢悠悠散个步~🐾', 3000); addXP(2); break;
-      case 'emote-sleep': playEmote('sleep', 9000); say('呼噜噜...💤', 3500); break;
-      case 'emote-meow': playEmote('meow', 4000); say('喵呜——!🐱', 2500); if (character) addIntimacy(character.id, 1); break;
-      case 'emote-zoomies': playEmote('zoomies', 8000); say('暴走模式启动!⚡⚡', 3000); addXP(5); break;
+      case 'life': setActiveCard('life'); break;
       case 'quests': setActiveCard('quests'); break;
       case 'shop': setActiveCard('shop'); break;
       case 'adopt': setActiveCard('adopt'); break;
@@ -242,7 +284,6 @@ export function LivingWorld(props: LivingWorldProps) {
       case 'help': setActiveCard('help'); break;
       case 'mood': {
         // Emotional message: comfort + auto-journal, no forms to fill.
-        if (intent.emotion && ['sad', 'anxious', 'lonely'].includes(intent.emotion)) playEmote('rub', 6000);
         if (intent.emotion && character) {
           addMoodEntry({
             id: `mood-${Date.now()}`,
@@ -283,12 +324,42 @@ export function LivingWorld(props: LivingWorldProps) {
       updateQuestProgress(actionType);
       say(reaction, 3500);
       setActiveCard(null);
+      if (actionType === 'play') playEmote('zoomies', 8000);
     }
   };
 
   const handlePetTap = () => {
     setPetTapCount(c => c + 1);
     handleAction('pet');
+  };
+
+  const startPetting = (pointerId: number, target: HTMLDivElement) => {
+    target.setPointerCapture(pointerId);
+    if (pettingTimer.current) clearTimeout(pettingTimer.current);
+    pettingHandled.current = false;
+    setIsPetting(true);
+    pettingTimer.current = setTimeout(() => {
+      pettingHandled.current = true;
+      setIsPetting(false);
+      handlePetTap();
+    }, 650);
+  };
+
+  const finishPetting = () => {
+    if (pettingTimer.current) clearTimeout(pettingTimer.current);
+    pettingTimer.current = null;
+    setIsPetting(false);
+    if (!pettingHandled.current) {
+      pettingHandled.current = true;
+      handlePetTap();
+    }
+  };
+
+  const cancelPetting = () => {
+    if (pettingTimer.current) clearTimeout(pettingTimer.current);
+    pettingTimer.current = null;
+    pettingHandled.current = true;
+    setIsPetting(false);
   };
 
   // ————— Onboarding: name —————
@@ -320,26 +391,9 @@ export function LivingWorld(props: LivingWorldProps) {
     );
   }
 
-  // ————— Onboarding: choose companion —————
+  // ————— Onboarding: choose species, then a breed —————
   if (!character) {
-    return (
-      <div className="h-full relative overflow-hidden">
-        <div className="absolute inset-0" style={{
-          background: `radial-gradient(ellipse at 20% 45%, rgba(217,119,6,0.14) 0%, transparent 45%),
-            radial-gradient(ellipse at 50% 40%, rgba(124,58,237,0.14) 0%, transparent 45%),
-            radial-gradient(ellipse at 80% 45%, rgba(236,72,153,0.14) 0%, transparent 45%)`,
-        }} />
-        <div className="absolute top-0 left-0 right-0 z-20 pt-14 text-center pointer-events-none">
-          <motion.h1 initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} className="text-xl font-bold text-text-primary mb-1">
-            选择你的伙伴
-          </motion.h1>
-          <motion.p initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 0.3 }} className="text-text-muted text-xs">
-            轻点其中一只，你们的故事就开始了 ✨
-          </motion.p>
-        </div>
-        <PetSelectStage characters={characters} onSelect={selectCharacter} />
-      </div>
-    );
+    return <PetOnboarding onChoose={adoptBreed} />;
   }
 
   // ————— The Living World —————
@@ -364,6 +418,27 @@ export function LivingWorld(props: LivingWorldProps) {
           <span className="text-xs font-bold text-amber-400">{coins}</span>
         </button>
       </div>
+      <motion.button
+        initial={{ opacity: 0, y: -8 }}
+        animate={{ opacity: 1, y: 0 }}
+        onClick={() => setActiveCard('life')}
+        className="absolute left-3 top-12 z-30 w-[min(55vw,232px)] rounded-2xl p-3 text-left"
+        style={{ background: 'rgba(10, 8, 20, 0.76)', border: `1px solid ${color}45`, backdropFilter: 'blur(18px)', boxShadow: `0 10px 30px ${color}18` }}
+        aria-label={`打开${displayHubName}`}
+      >
+        <span className="flex items-center justify-between gap-2">
+          <span className="flex items-center gap-1.5 text-[9px] font-semibold text-emerald-300">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_7px_rgba(52,211,153,.8)]" />
+            {displayHubName} · {companionRoles[companionRole].label}在线
+          </span>
+          <span className="text-[9px] text-violet-200">打开中枢 ›</span>
+        </span>
+        <span className="mt-1.5 block text-[11px] font-medium leading-snug text-text-primary">
+          {pendingLifeItems > 0
+            ? `今天还有 ${pendingLifeItems} 项，我会陪你完成。`
+            : '今天还没安排，要我帮你规划吗？'}
+        </span>
+      </motion.button>
 
       {/* Low-stat whisper — appears only when the pet needs something */}
       <AnimatePresence>
@@ -380,12 +455,91 @@ export function LivingWorld(props: LivingWorldProps) {
 
       {/* The world — full-screen winter scene with the pet at center */}
       <div className="absolute inset-0">
-        <PetScene characterId={character.id} breedId={adoptedBreedId} customBreed={adoptedBreedId === 'custom' ? customPet : null} size="world" interactive={true} emote={emote} />
+        <PetScene characterId={character.id} breedId={adoptedBreedId} customBreed={adoptedBreedId === 'custom' ? customPet : generatedModelBreed} size="world" interactive={true} emote={emote} />
       </div>
+
+      {/* Companion controls stay at the right edge so the main Meshy model
+          remains the focus of the world instead of being replaced by UI. */}
+      <aside
+        aria-label="宠物动作栏"
+        className="absolute right-3 top-16 z-30 w-32 overflow-hidden rounded-2xl sm:right-5 sm:w-44"
+        style={{ background: 'rgba(10, 8, 20, 0.72)', border: `1px solid ${color}55`, backdropFilter: 'blur(16px)', boxShadow: `0 12px 32px ${color}22` }}
+      >
+        <div className="flex items-center gap-1.5 px-3 pt-3 text-[10px] font-medium" style={{ color }}>
+          <Sparkles size={12} />
+          3D 陪伴模式
+        </div>
+        <button
+          type="button"
+          onClick={handlePetTap}
+          className="mx-2.5 my-2.5 flex w-[calc(100%_-_1.25rem)] items-center gap-2 rounded-xl px-2.5 py-2.5 text-left transition-colors hover:bg-white/5"
+          style={{ background: `${color}12`, border: `1px solid ${color}24` }}
+        >
+          <motion.span
+            animate={isPetting ? { scale: [1, 1.2, 1] } : { scale: 1 }}
+            transition={{ duration: 0.7, repeat: isPetting ? Infinity : 0 }}
+            className="text-xl"
+          >
+            💗
+          </motion.span>
+          <span className="min-w-0">
+            <span className="block truncate text-[11px] font-medium text-text-primary">
+              {isPetting ? `${petName || character.name}正贴着你的手` : `摸摸${petName || character.name}`}
+            </span>
+            <span className="block text-[9px] text-text-muted">轻点回应 · 按住撒娇</span>
+          </span>
+        </button>
+        <div className="grid grid-cols-2 gap-1.5 px-2.5 pb-3">
+          {([
+            [null, '待机', '🌿'],
+            ['pounce', '扑跳', '⚡'],
+            ['zoomies', '玩耍', '🎾'],
+            ['rub', '撒娇', '💕'],
+          ] as const).map(([name, label, icon]) => (
+            <button
+              key={label}
+              onClick={() => playEmote(name)}
+              className="rounded-xl px-1 py-2 text-[10px] text-text-secondary transition-colors hover:text-white"
+              style={{ background: `${color}18`, border: `1px solid ${color}30` }}
+            >
+              <span className="block text-base leading-none mb-1">{icon}</span>
+              {label}
+            </button>
+          ))}
+        </div>
+      </aside>
+
 
       {/* Pet tap zone + bubble anchor (over the pet's spot in the scene) */}
       <div className="absolute left-1/2 top-[56%] -translate-x-1/2 -translate-y-1/2 z-10">
-        <div className="relative w-48 h-48" onClick={handlePetTap}>
+        <div
+          className="relative h-48 w-48 cursor-pointer touch-none select-none rounded-full outline-none focus-visible:ring-2"
+          role="button"
+          tabIndex={0}
+          aria-label={`轻点或长按抚摸${petName || character.name}`}
+          onPointerDown={event => startPetting(event.pointerId, event.currentTarget)}
+          onPointerUp={finishPetting}
+          onPointerCancel={cancelPetting}
+          onKeyDown={event => {
+            if ((event.key === 'Enter' || event.key === ' ') && !event.repeat) {
+              event.preventDefault();
+              handlePetTap();
+            }
+          }}
+          style={{ WebkitTapHighlightColor: 'transparent', '--tw-ring-color': color } as CSSProperties}
+        >
+          <AnimatePresence>
+            {isPetting && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.72 }}
+                animate={{ opacity: [0.35, 0.75, 0.25], scale: 1.08 }}
+                exit={{ opacity: 0, scale: 1.18 }}
+                transition={{ duration: 0.65, ease: 'easeOut' }}
+                className="pointer-events-none absolute inset-2 rounded-full border-2"
+                style={{ borderColor: color, boxShadow: `0 0 32px ${color}55` }}
+              />
+            )}
+          </AnimatePresence>
 
           {/* Speech bubble */}
           <AnimatePresence>
@@ -396,15 +550,15 @@ export function LivingWorld(props: LivingWorldProps) {
                 exit={{ opacity: 0, y: -8, scale: 0.9 }}
                 className="absolute -top-4 left-1/2 -translate-x-1/2 z-20 w-max max-w-[260px]"
               >
-                <div className="px-4 py-2.5 rounded-2xl text-sm backdrop-blur-md relative text-white leading-relaxed"
-                  style={{ background: 'rgba(12, 8, 24, 0.78)', border: `1px solid ${color}66`, boxShadow: `0 4px 20px ${color}33` }}>
+                <div className="px-4 py-2.5 rounded-2xl text-sm backdrop-blur-md relative text-text-primary leading-relaxed"
+                  style={{ background: `${color}26`, border: `1px solid ${color}44` }}>
                   {isThinking ? (
                     <motion.span animate={{ opacity: [0.4, 1, 0.4] }} transition={{ duration: 1.2, repeat: Infinity }}>
                       {petName || character.name}正在想...
                     </motion.span>
                   ) : bubble}
                   <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 rotate-45"
-                    style={{ background: 'rgba(12, 8, 24, 0.78)', borderRight: `1px solid ${color}66`, borderBottom: `1px solid ${color}66` }} />
+                    style={{ background: `${color}26`, borderRight: `1px solid ${color}44`, borderBottom: `1px solid ${color}44` }} />
                 </div>
               </motion.div>
             )}
@@ -441,6 +595,14 @@ export function LivingWorld(props: LivingWorldProps) {
               </motion.span>
             )}
           </AnimatePresence>
+
+          <motion.span
+            animate={isPetting ? { y: -2, scale: 1.05 } : { y: 0, scale: 1 }}
+            className="pointer-events-none absolute -bottom-7 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full px-3 py-1 text-[10px] text-text-secondary"
+            style={{ background: 'rgba(10, 8, 20, 0.68)', border: `1px solid ${color}35`, backdropFilter: 'blur(12px)' }}
+          >
+            {isPetting ? '再摸一会儿… 💕' : '轻点或按住摸摸'}
+          </motion.span>
         </div>
       </div>
 
@@ -448,12 +610,12 @@ export function LivingWorld(props: LivingWorldProps) {
       <div className="absolute bottom-0 left-0 right-0 z-30 px-4 pb-6 pt-2">
         {/* Contextual suggestion chips */}
         <div className="flex gap-2 mb-2.5 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
-          {getSuggestions({
+          {['摸摸头', '陪我玩', '扑跳', ...getSuggestions({
             hour: new Date().getHours(),
             isCheckedIn,
             lowStat,
             hasClaimableQuest,
-          }).map(chip => (
+          })].filter((chip, index, chips) => chips.indexOf(chip) === index).map(chip => (
             <motion.button
               key={chip}
               whileTap={{ scale: 0.94 }}
@@ -473,7 +635,7 @@ export function LivingWorld(props: LivingWorldProps) {
         >
           <input
             type="text" value={input} onChange={e => setInput(e.target.value)}
-            placeholder={`和${petName || character.name}说话，或说"喂它""领养"...`}
+            placeholder={`告诉${petName || character.name}：提醒、快递、体重或学习…`}
             disabled={isThinking}
             className="flex-1 bg-transparent px-2 py-1.5 text-sm text-text-primary placeholder:text-text-muted outline-none"
           />
@@ -488,6 +650,38 @@ export function LivingWorld(props: LivingWorldProps) {
       </div>
 
       {/* ————— Summoned cards ————— */}
+      <LifeDashboard
+        show={activeCard === 'life'}
+        onClose={() => setActiveCard(null)}
+        userName={userName}
+        petName={petName || character.name}
+        hubName={hubName}
+        onHubNameChange={setHubName}
+        agentRuns={agentRuns}
+        onAgentRun={recordAgentRun}
+        chatCount={chatCount}
+        moodCount={moodEntries.length}
+        role={companionRole}
+        onRoleChange={role => {
+          setCompanionRole(role);
+          say(`好呀，现在我是你的${companionRoles[role].label}。${companionRoles[role].description}`, 4200);
+        }}
+        items={lifeItems}
+        onAdd={item => {
+          addLifeItem(item);
+          playEmote('cute', 3000);
+        }}
+        onToggle={id => {
+          const completing = !lifeItems.find(item => item.id === id)?.completed;
+          toggleLifeItem(id);
+          if (completing) {
+            addXP(2);
+            playEmote('cute', 3000);
+            floatReward('完成 +2 XP');
+          }
+        }}
+        onRemove={removeLifeItem}
+      />
       <QuestPanel
         show={activeCard === 'quests'}
         onClose={() => setActiveCard(null)}
@@ -584,11 +778,11 @@ export function LivingWorld(props: LivingWorldProps) {
             <motion.div initial={{ scale: 0.88, y: 24 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.88, y: 24 }}
               className="relative w-full max-w-sm rounded-2xl game-panel p-5" onClick={e => e.stopPropagation()}>
               <h2 className="text-base font-bold text-text-primary mb-4">设置 ⚙️</h2>
-              <label className="text-xs text-text-muted block mb-1.5">Claude API Key（本地存储，不上传）</label>
+              <label className="text-xs text-text-muted block mb-1.5">OpenAI API Key（本地存储）</label>
               <input
                 type="password" defaultValue={apiKey}
                 onBlur={e => setApiKey(e.target.value.trim())}
-                placeholder="sk-ant-..."
+                placeholder="sk-..."
                 className="w-full bg-surface-light rounded-xl px-3 py-2.5 text-sm text-text-primary placeholder:text-text-muted outline-none border border-transparent focus:border-white/20 mb-4"
               />
               <button

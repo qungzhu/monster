@@ -59,8 +59,106 @@ export function GLBPet({ config, isHovered, tint, normalize, emote }: GLBPetProp
   const { scene, animations } = useGLTF(config.url);
 
   // SkeletonUtils.clone keeps skinned meshes bound to their own bone copies
-  const clonedScene = useMemo(() => SkeletonUtils.clone(scene), [scene]);
-  const { actions, mixer } = useAnimations(animations, group);
+  const clonedScene = useMemo(() => {
+    const clone = SkeletonUtils.clone(scene);
+    if (!config.removeFlatBase) return clone;
+
+    clone.traverse(object => {
+      const mesh = object as THREE.Mesh;
+      const geometry = mesh.geometry;
+      const position = geometry?.attributes.position;
+      const index = geometry?.index;
+      if (!mesh.isMesh || !position || !index) return;
+
+      const parent = new Int32Array(position.count);
+      for (let vertex = 0; vertex < parent.length; vertex++) parent[vertex] = vertex;
+      const find = (vertex: number): number => {
+        let root = vertex;
+        while (parent[root] !== root) root = parent[root];
+        while (parent[vertex] !== vertex) {
+          const next = parent[vertex];
+          parent[vertex] = root;
+          vertex = next;
+        }
+        return root;
+      };
+      const unite = (left: number, right: number) => {
+        const a = find(left);
+        const b = find(right);
+        if (a !== b) parent[b] = a;
+      };
+
+      for (let offset = 0; offset < index.count; offset += 3) {
+        const a = index.getX(offset);
+        const b = index.getX(offset + 1);
+        const c = index.getX(offset + 2);
+        unite(a, b);
+        unite(b, c);
+      }
+
+      const bounds = new Map<number, { min: THREE.Vector3; max: THREE.Vector3 }>();
+      const vertex = new THREE.Vector3();
+      for (let i = 0; i < position.count; i++) {
+        vertex.fromBufferAttribute(position as THREE.BufferAttribute, i);
+        const root = find(i);
+        const box = bounds.get(root) ?? {
+          min: new THREE.Vector3(Infinity, Infinity, Infinity),
+          max: new THREE.Vector3(-Infinity, -Infinity, -Infinity),
+        };
+        box.min.min(vertex);
+        box.max.max(vertex);
+        bounds.set(root, box);
+      }
+
+      const flatBases = new Set([...bounds.entries()]
+        .filter(([, box]) => {
+          const size = box.max.clone().sub(box.min);
+          const belowCat = box.max.y < -0.4;
+          const pedestalShard = size.y < 0.08 && (size.x > 0.25 || size.z > 0.25);
+          return belowCat && pedestalShard;
+        })
+        .map(([root]) => root));
+      if (!flatBases.size) return;
+
+      const kept: number[] = [];
+      for (let offset = 0; offset < index.count; offset += 3) {
+        const a = index.getX(offset);
+        const b = index.getX(offset + 1);
+        const c = index.getX(offset + 2);
+        if (flatBases.has(find(a))) continue;
+        // Some Meshy pedestals share stray connections with the pet and are
+        // therefore not isolated components. Their faces all sit below the
+        // actual paws, so clip that final thin layer as a model-specific pass.
+        const entirelyBelowPaws =
+          position.getY(a) < -0.4 &&
+          position.getY(b) < -0.4 &&
+          position.getY(c) < -0.4;
+        if (entirelyBelowPaws) continue;
+        kept.push(a, b, c);
+      }
+      geometry.setIndex(kept);
+      geometry.computeBoundingBox();
+      geometry.computeBoundingSphere();
+    });
+    return clone;
+  }, [scene, config.removeFlatBase]);
+  // Meshy gait exports can contain root position/scale tracks that lift or
+  // resize the entire animal. Keep bone rotations, but make the gait in-place.
+  const playableAnimations = useMemo(() => {
+    if (config.disableSkeletalAnimation) return [];
+    return animations.map(clip => {
+    const safeClip = clip.clone();
+    safeClip.tracks = safeClip.tracks.filter(track => {
+      const rootTrack = /(^|[/.])(Hips|Root|Armature)[/.]/i.test(track.name);
+      return !(rootTrack && (track.name.endsWith('.position') || track.name.endsWith('.scale')));
+    });
+    return safeClip;
+    });
+  }, [animations, config.disableSkeletalAnimation]);
+  const { actions } = useAnimations(playableAnimations, group);
+  const requestedEmoteClip = emote && movingEmotes.has(emote) && config.walkAnimation
+    ? config.walkAnimation
+    : emote ? emoteClips[emote] : undefined;
 
   // Auto-fit unknown-size models: uniform scale to target height and
   // shift so the lowest point rests at local y=0 (group adds yOffset).
@@ -102,40 +200,17 @@ export function GLBPet({ config, isHovered, tint, normalize, emote }: GLBPetProp
       if ((obj as THREE.Mesh).isMesh) {
         obj.castShadow = true;
         const mesh = obj as THREE.Mesh;
-        const std = mesh.material as THREE.MeshStandardMaterial;
-        if (std && 'roughness' in std) {
-          // Upgrade the smooth (plastic-looking) PBR surface to a fabric one:
-          // MeshPhysicalMaterial + sheen is what gives cloth / plush / velvet
-          // its soft fuzzy rim instead of a hard specular highlight.
-          // NOTE: build it by hand — MeshPhysicalMaterial.copy(standardMat)
-          // throws (reads physical-only props off the plain source), which
-          // silently drops the pet to its procedural fallback.
-          const mat = new THREE.MeshPhysicalMaterial();
-          mat.color.copy(std.color);
-          mat.map = std.map;
-          mat.normalMap = std.normalMap;
-          if (std.normalScale) mat.normalScale.copy(std.normalScale).multiplyScalar(0.4);
-          mat.aoMap = std.aoMap;
-          mat.aoMapIntensity = std.aoMapIntensity;
-          mat.emissive.copy(std.emissive);
-          mat.emissiveMap = std.emissiveMap;
-          mat.alphaMap = std.alphaMap;
-          mat.transparent = std.transparent;
-          mat.opacity = std.opacity;
-          mat.side = std.side;
-          mat.vertexColors = std.vertexColors; // euro tail COLOR_0 tint
-          mat.roughness = 1;
-          mat.metalness = 0;
-          // Fabric has no hard spec highlight; the physical default white
-          // specular blows out the lit side under the bright scene lights.
-          mat.specularIntensity = 0;
-          mat.sheen = 0.55;
-          mat.sheenRoughness = 0.6;
-          mat.sheenColor = new THREE.Color('#b8a898');
-          mat.envMapIntensity = 0.2;
-          if (tintColor) mat.color.copy(tintColor);
-          mesh.material = mat;
-        }
+        const currentMaterial = mesh.material as THREE.Material | THREE.Material[];
+        const hasMaterialArray = Array.isArray(currentMaterial);
+        const materials = hasMaterialArray ? currentMaterial : [currentMaterial];
+        const clonedMaterials = materials.map(source => {
+          const material = source.clone();
+          if (tintColor && 'color' in material) {
+            (material as THREE.MeshStandardMaterial).color.multiply(tintColor);
+          }
+          return material;
+        });
+        mesh.material = hasMaterialArray ? clonedMaterials : clonedMaterials[0];
       }
     });
   }, [clonedScene, tint]);
@@ -147,19 +222,18 @@ export function GLBPet({ config, isHovered, tint, normalize, emote }: GLBPetProp
     const other = isHovered && hover ? idle : hover;
 
     if (!target) return;
-    mixer.timeScale = config.timeScale ?? 1;
-    target.reset().fadeIn(0.3).play();
+    target.reset().setEffectiveTimeScale(config.timeScale ?? 1).fadeIn(0.3).play();
     other?.fadeOut(0.3);
 
     return () => {
       target.fadeOut(0.3);
     };
-  }, [actions, mixer, isHovered, config]);
+  }, [actions, isHovered, config]);
 
   // Skeletal emote layer: rigged models play their real Walk/Run clip
   // while the procedural layer below moves the whole body along a path.
   useEffect(() => {
-    const clip = emote && emoteClips[emote];
+    const clip = requestedEmoteClip;
     const action = clip ? actions[clip] : null;
     if (!action) return;
     const idle = config.idleAnimation ? actions[config.idleAnimation] : null;
@@ -169,7 +243,7 @@ export function GLBPet({ config, isHovered, tint, normalize, emote }: GLBPetProp
       action.fadeOut(0.3);
       idle?.reset().fadeIn(0.3).play();
     };
-  }, [emote, actions, config]);
+  }, [requestedEmoteClip, actions, config.idleAnimation]);
 
   // Procedural whole-body motion: idle bob, or a full emote for
   // static meshes (run laps, belly roll, grooming bow, happy wiggle).
@@ -181,7 +255,7 @@ export function GLBPet({ config, isHovered, tint, normalize, emote }: GLBPetProp
 
     // A stationary emote backed by a real skeletal clip needs no fake
     // whole-body motion — ease the group home and let the bones act.
-    const skeletalOnly = emote && !movingEmotes.has(emote) && !!actions[emoteClips[emote] ?? ''];
+    const skeletalOnly = emote && !movingEmotes.has(emote) && !!actions[requestedEmoteClip ?? ''];
 
     if (!emote || skeletalOnly) {
       emoteT.current = 0;
@@ -204,7 +278,7 @@ export function GLBPet({ config, isHovered, tint, normalize, emote }: GLBPetProp
       // Laps on an ellipse pushed away from the camera so the cat never
       // fills the screen; face along the velocity vector. When the model
       // has a real skeletal gait clip the fake bounce/lean stays subtle.
-      const hasClip = !!actions[emoteClips[emote]!];
+      const hasClip = !!actions[requestedEmoteClip ?? ''];
       const run = emote === 'run';
       const R = 0.72, ZR = 0.32, w = run ? 2.4 : 0.9;
       const bounce = hasClip ? 0.02 : run ? 0.13 : 0.04;
@@ -348,11 +422,11 @@ export function GLBPet({ config, isHovered, tint, normalize, emote }: GLBPetProp
       g.rotation.x = 0.3 * dip * s;
       g.position.y = -0.06 * dip * s;
     } else if (emote === 'sleep') {
-      // 睡觉 fallback: settle low with slow breathing
+      // 睡觉 fallback: settle low without squashing the original mesh.
       const s = Math.min(1, e / 1.2);
-      g.scale.y = 1 - 0.22 * s + Math.sin(e * 1.4) * 0.015 * s;
+      g.scale.setScalar(1);
       g.rotation.z = 0.12 * s;
-      g.position.y = 0;
+      g.position.y = -0.08 * s + Math.sin(e * 1.4) * 0.008 * s;
     } else if (emote === 'meow') {
       // 喵叫 fallback: lift the head with little calls
       const s = Math.min(1, e / 0.4);

@@ -5,6 +5,7 @@ import type { PetStats } from '../data/gameConfig';
 import { DEFAULT_PET_STATS, STAT_DECAY_PER_HOUR, getLevelFromXP, shopItems, petReactions } from '../data/gameConfig';
 import { getBreed, characterDefaultBreed, CUSTOM_BREED_ID } from '../data/breeds';
 import type { Breed } from '../data/breeds';
+import type { AgentRun, CompanionRole, LifeItem } from '../data/companion';
 
 const STORAGE_KEYS = {
   selectedCharacter: 'fp-selected-character',
@@ -24,6 +25,11 @@ const STORAGE_KEYS = {
   inventory: 'fp-inventory',
   adoptedBreed: 'fp-adopted-breed',
   customPet: 'fp-custom-pet',
+  generatedPet: 'fp-generated-pet',
+  hubName: 'fp-hub-name',
+  agentRuns: 'fp-agent-runs',
+  companionRole: 'fp-companion-role',
+  lifeItems: 'fp-life-items',
 };
 
 function loadFromStorage<T>(key: string, defaultValue: T): T {
@@ -100,6 +106,21 @@ export function useAppStore() {
   const [customPet, setCustomPet] = useState<Breed | null>(
     loadFromStorage(STORAGE_KEYS.customPet, null)
   );
+  const [selectedGeneratedPetKey, setSelectedGeneratedPetKey] = useState<string | null>(
+    loadFromStorage(STORAGE_KEYS.generatedPet, null)
+  );
+  const [hubName, setHubNameState] = useState<string>(
+    loadFromStorage(STORAGE_KEYS.hubName, '')
+  );
+  const [agentRuns, setAgentRuns] = useState<AgentRun[]>(
+    loadFromStorage(STORAGE_KEYS.agentRuns, [])
+  );
+  const [companionRole, setCompanionRoleState] = useState<CompanionRole>(
+    loadFromStorage(STORAGE_KEYS.companionRole, 'friend')
+  );
+  const [lifeItems, setLifeItems] = useState<LifeItem[]>(
+    loadFromStorage(STORAGE_KEYS.lifeItems, [])
+  );
 
   const selectedCharacter = characters.find(c => c.id === selectedCharacterId) || null;
   const adoptedBreed = adoptedBreedId === CUSTOM_BREED_ID ? customPet : getBreed(adoptedBreedId);
@@ -107,6 +128,8 @@ export function useAppStore() {
   const petName = adoptedBreed?.petName ?? selectedCharacter?.name ?? '';
 
   const selectCharacter = useCallback((id: string) => {
+    setSelectedGeneratedPetKey(null);
+    localStorage.removeItem(STORAGE_KEYS.generatedPet);
     setSelectedCharacterId(id);
     saveToStorage(STORAGE_KEYS.selectedCharacter, id);
     // Quick-start picks map to their default breed so visuals stay consistent
@@ -119,6 +142,8 @@ export function useAppStore() {
 
   /** Save the photo-generated pet and make it the active companion. */
   const saveCustomPet = useCallback((pet: Breed) => {
+    setSelectedGeneratedPetKey(null);
+    localStorage.removeItem(STORAGE_KEYS.generatedPet);
     setCustomPet(pet);
     saveToStorage(STORAGE_KEYS.customPet, pet);
     setAdoptedBreedId(CUSTOM_BREED_ID);
@@ -135,6 +160,19 @@ export function useAppStore() {
     saveToStorage(STORAGE_KEYS.adoptedBreed, breedId);
     setSelectedCharacterId(breed.characterId);
     saveToStorage(STORAGE_KEYS.selectedCharacter, breed.characterId);
+    setSelectedGeneratedPetKey(null);
+    localStorage.removeItem(STORAGE_KEYS.generatedPet);
+  }, []);
+
+  const selectGeneratedPet = useCallback((imageKey: string, breedId: string) => {
+    const breed = getBreed(breedId);
+    if (!breed) return;
+    setSelectedGeneratedPetKey(imageKey);
+    saveToStorage(STORAGE_KEYS.generatedPet, imageKey);
+    setAdoptedBreedId(breedId);
+    saveToStorage(STORAGE_KEYS.adoptedBreed, breedId);
+    setSelectedCharacterId(breed.characterId);
+    saveToStorage(STORAGE_KEYS.selectedCharacter, breed.characterId);
   }, []);
 
   const setUserName = useCallback((name: string) => {
@@ -145,6 +183,62 @@ export function useAppStore() {
   const setApiKey = useCallback((key: string) => {
     setApiKeyState(key);
     saveToStorage(STORAGE_KEYS.apiKey, key);
+  }, []);
+
+  const setCompanionRole = useCallback((role: CompanionRole) => {
+    setCompanionRoleState(role);
+    saveToStorage(STORAGE_KEYS.companionRole, role);
+  }, []);
+
+  const setHubName = useCallback((name: string) => {
+    const value = name.trim().slice(0, 20);
+    setHubNameState(value);
+    saveToStorage(STORAGE_KEYS.hubName, value);
+  }, []);
+
+  const recordAgentRun = useCallback((command: string, summary: string) => {
+    const run: AgentRun = {
+      id: `agent-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      command,
+      summary,
+      createdAt: new Date().toISOString(),
+    };
+    setAgentRuns(prev => {
+      const updated = [run, ...prev].slice(0, 20);
+      saveToStorage(STORAGE_KEYS.agentRuns, updated);
+      return updated;
+    });
+  }, []);
+
+  const addLifeItem = useCallback((item: Omit<LifeItem, 'id' | 'createdAt' | 'completed'>) => {
+    const created: LifeItem = {
+      ...item,
+      id: `life-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      createdAt: new Date().toISOString(),
+      completed: false,
+    };
+    setLifeItems(prev => {
+      const updated = [created, ...prev];
+      saveToStorage(STORAGE_KEYS.lifeItems, updated);
+      return updated;
+    });
+    return created;
+  }, []);
+
+  const toggleLifeItem = useCallback((id: string) => {
+    setLifeItems(prev => {
+      const updated = prev.map(item => item.id === id ? { ...item, completed: !item.completed } : item);
+      saveToStorage(STORAGE_KEYS.lifeItems, updated);
+      return updated;
+    });
+  }, []);
+
+  const removeLifeItem = useCallback((id: string) => {
+    setLifeItems(prev => {
+      const updated = prev.filter(item => item.id !== id);
+      saveToStorage(STORAGE_KEYS.lifeItems, updated);
+      return updated;
+    });
   }, []);
 
   const addMessage = useCallback((characterId: string, message: ChatMessage) => {
@@ -343,6 +437,11 @@ export function useAppStore() {
     setInventory({});
     setAdoptedBreedId(null);
     setCustomPet(null);
+    setSelectedGeneratedPetKey(null);
+    setHubNameState('');
+    setAgentRuns([]);
+    setCompanionRoleState('friend');
+    setLifeItems([]);
   }, []);
 
   return {
@@ -355,6 +454,18 @@ export function useAppStore() {
     petName,
     customPet,
     saveCustomPet,
+    selectedGeneratedPetKey,
+    selectGeneratedPet,
+    hubName,
+    setHubName,
+    agentRuns,
+    recordAgentRun,
+    companionRole,
+    setCompanionRole,
+    lifeItems,
+    addLifeItem,
+    toggleLifeItem,
+    removeLifeItem,
     chatHistories,
     addMessage,
     getCharacterResponse,

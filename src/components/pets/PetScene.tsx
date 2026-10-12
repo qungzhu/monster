@@ -22,7 +22,7 @@ interface PetSceneProps {
   /** Inline breed object (photo-generated custom pets, live previews). Wins over breedId. */
   customBreed?: Breed | null;
   /** 'world' fills its container and renders the full winter set — used by the Living World. */
-  size?: 'tiny' | 'small' | 'medium' | 'large' | 'world';
+  size?: 'tiny' | 'small' | 'medium' | 'large' | 'picker' | 'world';
   interactive?: boolean;
   /** Procedural emote for GLB pets. */
   emote?: EmoteKind | null;
@@ -39,6 +39,7 @@ const sizeMap = {
   small: 'h-32 w-32',
   medium: 'h-48 w-48',
   large: 'h-64 w-64',
+  picker: 'h-full w-full',
   world: 'h-full w-full',
 };
 
@@ -72,18 +73,23 @@ function PetModel({ characterId, breedId, customBreed, isHovered, emote }: { cha
       const meshConfig = {
         url: breed.glbUrl,
         scale: 1,
-        yOffset: -0.65,
+        yOffset: -0.65 + (breed.glbGroundOffset ?? 0),
         // Rigged breeds carry an 'Idle' clip (e.g. retargeted look-around);
         // static breeds simply have no matching action and skip it.
-        idleAnimation: 'Idle',
+        idleAnimation: breed.glbIdleAnimation ?? 'Idle',
         hoverAnimation: '',
+        walkAnimation: breed.glbWalkAnimation,
+        removeFlatBase: breed.glbRemoveFlatBase,
+        disableSkeletalAnimation: breed.glbDisableSkeletalAnimation,
       };
       const fallback = breed.species === 'cat'
         ? <CatModel isHovered={isHovered} params={breed.params as CatParams} />
-        : <DogModel isHovered={isHovered} params={breed.params as DogParams} />;
+        : breed.species === 'hamster'
+          ? <HamsterModel isHovered={isHovered} />
+          : <DogModel isHovered={isHovered} params={breed.params as DogParams} />;
       return (
         <ModelErrorBoundary fallback={fallback}>
-          <Suspense fallback={fallback}>
+          <Suspense fallback={null}>
             <GLBPet config={meshConfig} isHovered={isHovered} normalize emote={emote} />
           </Suspense>
         </ModelErrorBoundary>
@@ -182,6 +188,7 @@ export function PetScene({ characterId, breedId, customBreed, size = 'medium', i
   const config = sceneConfig[characterId] || sceneConfig.tuantuan;
   const sizeClass = sizeMap[size];
   const isTiny = size === 'tiny';
+  const isPicker = size === 'picker';
   const isWorld = size === 'world';
   const isLarge = size === 'large' || isWorld;
 
@@ -194,7 +201,7 @@ export function PetScene({ characterId, breedId, customBreed, size = 'medium', i
       onTouchEnd={() => setTimeout(() => setIsHovered(false), 1000)}
     >
       {/* Glow effect */}
-      {!isWorld && (
+      {!isWorld && !isPicker && (
         <div
           className="absolute inset-0 rounded-2xl"
           style={{
@@ -207,7 +214,7 @@ export function PetScene({ characterId, breedId, customBreed, size = 'medium', i
 
       <ModelErrorBoundary fallback={<div className="absolute inset-0 flex items-center justify-center text-4xl">🐾</div>}>
       <Canvas
-        camera={{ position: isWorld ? [0, 0.75, 5.6] : config.camera, fov: isTiny ? 50 : isWorld ? 45 : 40 }}
+        camera={{ position: isWorld ? [0, 0.75, 5.6] : isPicker ? [0, 0.3, 3.5] : config.camera, fov: isTiny ? 50 : isWorld ? 45 : 40 }}
         style={{ background: 'transparent' }}
         gl={{ alpha: true, antialias: true, toneMapping: THREE.ACESFilmicToneMapping, toneMappingExposure: 1.1 }}
         shadows
@@ -224,7 +231,7 @@ export function PetScene({ characterId, breedId, customBreed, size = 'medium', i
               <WinterScene />
               <ContactShadows position={[0, -0.65, 0]} opacity={0.35} scale={3.5} blur={2.2} far={1.2} color="#2a4a7a" />
             </>
-          ) : !isTiny && <GroundPlane color={config.color} />}
+          ) : !isTiny && !isPicker && <GroundPlane color={config.color} />}
 
           {isLarge && <PetParticles color={isWorld ? '#cfe6ff' : config.color} count={12} />}
 
@@ -238,7 +245,7 @@ export function PetScene({ characterId, breedId, customBreed, size = 'medium', i
             />
           )}
 
-          {!isTiny && (
+          {!isTiny && !isPicker && (
             <EffectComposer>
               <Bloom
                 luminanceThreshold={0.6}
@@ -254,7 +261,7 @@ export function PetScene({ characterId, breedId, customBreed, size = 'medium', i
       </ModelErrorBoundary>
 
       {/* Interaction hint */}
-      {isHovered && interactive && !isTiny && !isWorld && (
+      {isHovered && interactive && !isTiny && !isWorld && !isPicker && (
         <div className="absolute bottom-1 left-0 right-0 text-center">
           <span className="text-[9px] text-text-muted bg-surface/60 backdrop-blur-sm px-2 py-0.5 rounded-full">
             拖动旋转 ✨

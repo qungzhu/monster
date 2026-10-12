@@ -20,6 +20,7 @@ export type IntentType =
   | 'bond'
   | 'settings'
   | 'help'
+  | 'life'
   | 'mood'
   | 'emote-run' | 'emote-roll' | 'emote-groom' | 'emote-cute'
   | 'emote-stretch' | 'emote-pounce' | 'emote-rub' | 'emote-knead' | 'emote-sploot'
@@ -53,6 +54,7 @@ const intentPatterns: Array<{ type: IntentType; patterns: RegExp }> = [
   { type: 'play', patterns: /玩|接球|逗|游戏时间|遛/ },
   { type: 'clean', patterns: /洗澡|清洁|梳毛|刷毛|洗洗|干净/ },
   { type: 'checkin', patterns: /签到|打卡/ },
+  { type: 'life', patterns: /今日事项|生活管家|今天的安排|我的事项|生活面板/ },
   { type: 'quests', patterns: /任务|挑战|今天要做|待办/ },
   { type: 'shop', patterns: /商店|购买|买东西|物品|背包|道具/ },
   { type: 'custom', patterns: /照片|照相|拍照|上传|定制|复刻|我家的?[猫狗宠]|自己的[猫狗宠]|专属/ },

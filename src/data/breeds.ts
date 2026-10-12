@@ -46,6 +46,16 @@ export interface Breed {
   params?: CatParams | DogParams | FoxParams;
   /** Real 3D mesh (Meshy photo reconstruction). Wins over params. */
   glbUrl?: string;
+  /** Animation clip that loops while this GLB is displayed. */
+  glbIdleAnimation?: string;
+  /** Walk clip for imported rigs with non-standard animation names. */
+  glbWalkAnimation?: string;
+  /** Extra vertical correction after automatic fitting. Negative sinks low tails/fur into the ground. */
+  glbGroundOffset?: number;
+  /** Generated asset contains a disconnected flat display pedestal. */
+  glbRemoveFlatBase?: boolean;
+  /** Retargeted head weights tear the face; use safe procedural motion instead. */
+  glbDisableSkeletalAnimation?: boolean;
 }
 
 export const rarityLabels: Record<Rarity, { label: string; color: string }> = {
@@ -184,6 +194,10 @@ export const breeds: Breed[] = [
     petName: '小火', emoji: '🦊', rarity: 'common', characterId: 'tuantuan',
     description: '分布最广的狐狸，火红的毛色像一团跳动的火焰',
     personality: ['机灵', '火红', '敏捷'],
+    glbUrl: '/models/generated/red-fox-meshy-rigged-walk-optimized.glb?v=1',
+    glbIdleAnimation: '',
+    glbWalkAnimation: 'Armature|Unreal Take|baselayer',
+    glbGroundOffset: -0.28,
     params: { tint: '#ffffff' } as FoxParams,
   },
   {
@@ -229,65 +243,75 @@ export const breeds: Breed[] = [
     petName: '胖橘', emoji: '🐈', rarity: 'legendary', characterId: 'xiaoxue',
     description: '圆滚滚的身材配卷卷短尾巴，走起路来一摇一摆',
     personality: ['圆润', '憨厚', '治愈'],
-    glbUrl: '/models/custom/cat2.glb',
+    glbUrl: '/models/custom/cat2-rigged-safe.glb',
+    glbDisableSkeletalAnimation: true,
   },
   {
     id: 'meshy-calico', species: 'cat', name: '三花猫', englishName: 'Calico',
     petName: '三花', emoji: '🐱', rarity: 'legendary', characterId: 'xiaoxue',
     description: '黑橘白三色斑块分布，招财又可爱',
     personality: ['招财', '亲人', '甜美'],
-    glbUrl: '/models/custom/cat3.glb',
+    glbUrl: '/models/custom/cat3-rigged-safe.glb',
+    glbDisableSkeletalAnimation: true,
   },
   {
     id: 'meshy-cream', species: 'cat', name: '奶油长毛', englishName: 'Cream Longhair',
     petName: '奶茶', emoji: '🍮', rarity: 'legendary', characterId: 'xiaoxue',
     description: '蓬松的胸毛、奶茶色调，软绵绵一大团',
     personality: ['温柔', '慵懒', '软萌'],
-    glbUrl: '/models/custom/cat4.glb',
+    glbUrl: '/models/custom/cat4-rigged-safe.glb',
+    glbRemoveFlatBase: true,
+    glbDisableSkeletalAnimation: true,
   },
   {
     id: 'meshy-grey', species: 'cat', name: '灰白虎斑', englishName: 'Grey Tabby',
     petName: '灰灰', emoji: '🐾', rarity: 'legendary', characterId: 'xiaoxue',
     description: '灰色渐变条纹配白手套，粉鼻子圆脸颊',
     personality: ['沉稳', '优雅', '粘人'],
-    glbUrl: '/models/custom/cat5.glb',
+    glbUrl: '/models/custom/cat5-rigged-safe.glb',
+    glbDisableSkeletalAnimation: true,
   },
 
   // ————— 多角度三视图重建（front/side/back/quarter 四视角，颜色高保真）—————
   {
     id: 'meshy-eurotabby', species: 'cat', name: '欧洲短毛虎斑', englishName: 'European Tabby',
     petName: '麦茶', emoji: '🐈', rarity: 'legendary', characterId: 'xiaoxue',
-    description: '多角度重建的灰褐鲭鱼虎斑，翠绿大眼、蓬松球尾，圆嘟嘟的野性小虎，会8种真骨骼动作',
+    description: '多角度重建的灰褐鲭鱼虎斑，翠绿大眼、蓬松球尾，圆嘟嘟的野性小虎，会8种灵活动作',
     personality: ['机灵', '好动', '爱撒欢'],
     glbUrl: '/models/custom/mesh-tabby2.glb',
+    glbDisableSkeletalAnimation: true,
   },
   {
     id: 'meshy-norwegian', species: 'cat', name: '挪威森林猫', englishName: 'Norwegian Forest',
     petName: '松松', emoji: '🌲', rarity: 'legendary', characterId: 'xiaoxue',
-    description: '半长毛棕虎斑配雪白围脖，深色耳尖，森系毛茸茸大尾巴，会8种真骨骼动作',
+    description: '半长毛棕虎斑配雪白围脖，深色耳尖，森系毛茸茸大尾巴，会8种灵活动作',
     personality: ['温厚', '沉静', '毛茸茸'],
     glbUrl: '/models/custom/mesh-norweg.glb',
+    glbDisableSkeletalAnimation: true,
   },
   {
     id: 'meshy-mainecoon', species: 'cat', name: '缅因猫', englishName: 'Maine Coon',
     petName: '狮狮', emoji: '🦁', rarity: 'legendary', characterId: 'xiaoxue',
-    description: '长毛棕虎斑配猞猁般的黑色耳簇，蓬松条纹大尾，温柔的巨型猫，会8种真骨骼动作',
+    description: '长毛棕虎斑配猞猁般的黑色耳簇，蓬松条纹大尾，温柔的巨型猫，会8种灵活动作',
     personality: ['威武', '温柔', '大块头'],
     glbUrl: '/models/custom/mesh-mainecoon.glb',
+    glbDisableSkeletalAnimation: true,
   },
   {
     id: 'meshy-persian', species: 'cat', name: '金吉拉波斯', englishName: 'Persian',
     petName: '布丁', emoji: '🍦', rarity: 'legendary', characterId: 'xiaoxue',
-    description: '奶油色扁脸大团子，全身软绵绵，铜金色圆眼睛，会8种真骨骼动作',
+    description: '奶油色扁脸大团子，全身软绵绵，铜金色圆眼睛，会8种灵活动作',
     personality: ['慵懒', '高贵', '软糯'],
     glbUrl: '/models/custom/mesh-persian.glb',
+    glbDisableSkeletalAnimation: true,
   },
   {
     id: 'meshy-ragdoll', species: 'cat', name: '布偶猫', englishName: 'Ragdoll',
     petName: '雪球', emoji: '💙', rarity: 'legendary', characterId: 'xiaoxue',
-    description: '海豹色重点配蔚蓝宝石眼，奶白身子深色手套，温顺的仙女猫，会8种真骨骼动作',
+    description: '海豹色重点配蔚蓝宝石眼，奶白身子深色手套，温顺的仙女猫，会8种灵活动作',
     personality: ['黏人', '温顺', '仙气'],
     glbUrl: '/models/custom/mesh-ragdoll.glb',
+    glbDisableSkeletalAnimation: true,
   },
 ];
 
