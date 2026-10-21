@@ -61,7 +61,7 @@ interface GLBPetProps {
  * props off the plain source), which silently drops the pet to its
  * procedural fallback.
  */
-function toPlushMaterial(std: THREE.MeshStandardMaterial): THREE.MeshPhysicalMaterial {
+export function toPlushMaterial(std: THREE.MeshStandardMaterial): THREE.MeshPhysicalMaterial {
   const mat = new THREE.MeshPhysicalMaterial();
   mat.name = std.name;
   mat.color.copy(std.color);

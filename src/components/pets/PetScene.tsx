@@ -137,7 +137,7 @@ function PetModel({ characterId, breedId, customBreed, isHovered, emote }: { cha
  * environment (no network fetch) that the fabric sheen can pick up, a soft
  * low-contrast key, and a warm rim light from behind.
  */
-function PlushLighting({ color }: { color: string }) {
+export function PlushLighting({ color }: { color: string }) {
   return (
     <>
       <Environment resolution={128} frames={1} environmentIntensity={0.3}>

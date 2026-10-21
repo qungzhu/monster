@@ -1,4 +1,5 @@
 import { LivingWorld } from './pages/LivingWorld';
+import { Plaza } from './pages/Plaza';
 import { useAppStore } from './store/useStore';
 
 /**
@@ -8,6 +9,16 @@ import { useAppStore } from './store/useStore';
  */
 export default function App() {
   const store = useAppStore();
+
+  // Shared multiplayer snow plaza lives at /plaza; everything else is the
+  // single-player living scene.
+  if (location.pathname.startsWith('/plaza')) {
+    return (
+      <div className="h-full relative">
+        <Plaza userName={store.userName} adoptedBreedId={store.adoptedBreedId} />
+      </div>
+    );
+  }
 
   return (
     <div className={`h-full relative ${store.selectedCharacter ? `theme-${store.selectedCharacter.theme}` : ''}`}>

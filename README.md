@@ -114,6 +114,25 @@ tools/animation-retarget/  # 动画/绑骨工具链(见下)
 
 ---
 
+## 雪原广场(多人原型)
+
+所有用户的猫在同一片雪地里实时互动。访问 `/plaza`,或者对宠物说"去广场"。
+
+```bash
+npm run plaza      # 实时房间服务器 ws://localhost:3002/plaza-ws
+npm run dev        # 前端(Vite 已代理 /plaza-ws)
+# 或一起:npm run dev:all
+```
+
+- 每个房间最多 20 只猫，满了自动开新房("雪原 2 区"…)
+- 只同步位置、朝向和动作(每秒 10 次),骨骼动画在各自设备上播放
+- 服务器做防瞬移、限制场地范围、过滤非法动作和刷消息
+- 使用轻量模型 `public/models/lite/`(每只 0.5–1.3MB),保留骨骼和 8 个动作
+- 房间逻辑在 `server/plazaRoom.js`,不依赖 Node,可直接搬到 Cloudflare Durable Objects
+- 生产环境需要单独部署实时服务器，并通过 `VITE_PLAZA_URL` 指定地址
+
+---
+
 ## 3D 宠物 & 动画工具链
 
 `tools/animation-retarget/` 下是一套自研的猫咪绑骨/动画管线(Node + gltf-transform + 无头 three.js),踩坑经验都记录在各脚本注释里:

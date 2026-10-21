@@ -274,6 +274,7 @@ export function LivingWorld(props: LivingWorldProps) {
         handleCheckIn();
         break;
       case 'life': setActiveCard('life'); break;
+      case 'plaza': say('走，去雪原广场找小伙伴！❄️', 1500); setTimeout(() => { location.href = '/plaza'; }, 700); break;
       case 'quests': setActiveCard('quests'); break;
       case 'shop': setActiveCard('shop'); break;
       case 'adopt': setActiveCard('adopt'); break;
@@ -610,7 +611,7 @@ export function LivingWorld(props: LivingWorldProps) {
       <div className="absolute bottom-0 left-0 right-0 z-30 px-4 pb-6 pt-2">
         {/* Contextual suggestion chips */}
         <div className="flex gap-2 mb-2.5 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
-          {['摸摸头', '陪我玩', '扑跳', ...getSuggestions({
+          {['摸摸头', '陪我玩', '扑跳', '雪原广场', ...getSuggestions({
             hour: new Date().getHours(),
             isCheckedIn,
             lowStat,

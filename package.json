@@ -11,15 +11,15 @@
     "rig:red-fox": "node scripts/rig-animate-red-fox.mjs",
     "manifest:gallery": "node scripts/build-gallery-manifest.mjs",
     "upload:gallery": "node scripts/upload-gallery-to-r2.mjs",
-    "dev:all": "node server/index.js & vite",
+    "dev:all": "node server/index.js & node server/plaza.js & vite",
     "prebuild": "node scripts/assemble-rigged-fox.mjs",
     "build": "tsc -b && vite build && node scripts/prepare-sites-build.mjs",
     "build:sites": "npm run build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "plaza": "node server/plaza.js"
   },
   "dependencies": {
-    "openai": "^5.10.0",
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.6.1",
     "@react-three/postprocessing": "^3.0.4",
@@ -29,11 +29,13 @@
     "express": "^5.1.0",
     "framer-motion": "^12.38.0",
     "lucide-react": "^1.7.0",
+    "openai": "^5.10.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "react-router-dom": "^7.13.2",
     "tailwindcss": "^4.2.2",
-    "three": "^0.184.0"
+    "three": "^0.184.0",
+    "ws": "^8.22.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",

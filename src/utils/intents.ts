@@ -22,6 +22,7 @@ export type IntentType =
   | 'help'
   | 'life'
   | 'mood'
+  | 'plaza'
   | 'emote-run' | 'emote-roll' | 'emote-groom' | 'emote-cute'
   | 'emote-stretch' | 'emote-pounce' | 'emote-rub' | 'emote-knead' | 'emote-sploot'
   | 'emote-walk' | 'emote-sleep' | 'emote-meow' | 'emote-zoomies'
@@ -36,6 +37,7 @@ export interface Intent {
 }
 
 const intentPatterns: Array<{ type: IntentType; patterns: RegExp }> = [
+  { type: 'plaza', patterns: /广场|雪原广场|找朋友|找小伙伴|别人的猫|多人/ },
   { type: 'emote-run', patterns: /奔跑|跑一个|跑起来|快跑|冲刺/ },
   { type: 'emote-roll', patterns: /翻肚子|打滚|躺下|露肚皮|翻身/ },
   { type: 'emote-groom', patterns: /舔爪子|舔毛|洗脸|理毛|舔一舔/ },

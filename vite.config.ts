@@ -7,6 +7,11 @@ const apiProxy = {
     target: 'http://127.0.0.1:3001',
     changeOrigin: false,
   },
+  // Shared snow plaza real-time server (npm run plaza)
+  '/plaza-ws': {
+    target: 'ws://127.0.0.1:3002',
+    ws: true,
+  },
 }
 
 export default defineConfig({
