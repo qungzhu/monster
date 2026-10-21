@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { plazaSocketUrl } from './protocol';
-import type { Peer, PlazaAction, ServerMessage } from './protocol';
+import type { Interaction, InteractKind, Peer, PlazaAction, ServerMessage } from './protocol';
 
 export type PlazaStatus = 'connecting' | 'online' | 'offline';
 
@@ -23,6 +23,14 @@ export function usePlaza(identity: { name: string; petName: string; breed: strin
   const [room, setRoom] = useState<number | null>(null);
   const [peers, setPeers] = useState<Peer[]>([]);
   const targets = useRef(new Map<string, RemoteTarget>());
+  // Active pair interactions: ref for per-frame reads, state for the FX layer.
+  const interactionsRef = useRef<Interaction[]>([]);
+  const [interactions, setInteractions] = useState<Interaction[]>([]);
+  const [invite, setInvite] = useState<{ from: string; kind: InteractKind; name: string; petName: string; at: number } | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [pendingInvite, setPendingInvite] = useState<{ to: string; kind: InteractKind } | null>(null);
+  const petNames = useRef(new Map<string, string>());
+  const inviteTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const socket = useRef<WebSocket | null>(null);
 
   useEffect(() => {
@@ -30,6 +38,7 @@ export function usePlaza(identity: { name: string; petName: string; breed: strin
     let closedByUs = false;
     let retry: ReturnType<typeof setTimeout> | undefined;
 
+    let myId: string | null = null;
     const connect = () => {
       setStatus('connecting');
       const ws = new WebSocket(plazaSocketUrl());
@@ -42,6 +51,8 @@ export function usePlaza(identity: { name: string; petName: string; breed: strin
         try { msg = JSON.parse(e.data); } catch { return; }
         switch (msg.t) {
           case 'welcome':
+            myId = msg.id;
+            for (const p of msg.peers) petNames.current.set(p.id, p.petName);
             setSelfId(msg.id);
             setStatus('online');
             targets.current.clear();
@@ -52,6 +63,7 @@ export function usePlaza(identity: { name: string; petName: string; breed: strin
             setRoom(msg.number);
             break;
           case 'joined':
+            petNames.current.set(msg.peer.id, msg.peer.petName);
             targets.current.set(msg.peer.id, { x: msg.peer.x, z: msg.peer.z, ry: msg.peer.ry, action: msg.peer.action });
             setPeers(list => [...list.filter(p => p.id !== msg.peer.id), msg.peer]);
             break;
@@ -59,6 +71,32 @@ export function usePlaza(identity: { name: string; petName: string; breed: strin
             targets.current.delete(msg.id);
             setPeers(list => list.filter(p => p.id !== msg.id));
             break;
+          case 'invited':
+            setInvite({ from: msg.from, kind: msg.kind, name: msg.name, petName: msg.petName, at: Date.now() });
+            break;
+          case 'error':
+            setPendingInvite(null);
+            setNotice(msg.message);
+            break;
+          case 'declined':
+            setPendingInvite(null);
+            setNotice(`${msg.petName} 现在不太想玩,下次吧~`);
+            break;
+          case 'interact': {
+            const it: Interaction = { ...msg, start: performance.now() };
+            if (it.a === myId || it.b === myId) {
+              const other = petNames.current.get(it.a === myId ? it.b : it.a) ?? '小伙伴';
+              setPendingInvite(null);
+              setNotice(`${it.kind === 'rub' ? '💕' : '🎾'} 和 ${other} ${it.kind === 'rub' ? '一起蹭蹭' : '一起玩'}!`);
+            }
+            interactionsRef.current = [...interactionsRef.current.filter(x => x.a !== it.a && x.b !== it.b), it];
+            setInteractions(interactionsRef.current);
+            setTimeout(() => {
+              interactionsRef.current = interactionsRef.current.filter(x => x !== it);
+              setInteractions(interactionsRef.current);
+            }, it.duration + 200);
+            break;
+          }
           case 'states':
             for (const [id, x, z, ry, action] of msg.list) {
               const t = targets.current.get(id);
@@ -89,5 +127,23 @@ export function usePlaza(identity: { name: string; petName: string; breed: strin
     if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ t: 'state', x, z, ry, action }));
   }, []);
 
-  return { status, selfId, room, peers, targets, sendState };
+  const send = useCallback((obj: object) => {
+    const ws = socket.current;
+    if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify(obj));
+  }, []);
+  const sendInvite = useCallback((to: string, kind: InteractKind) => {
+    send({ t: 'invite', to, kind });
+    setPendingInvite({ to, kind });
+    clearTimeout(inviteTimer.current);
+    inviteTimer.current = setTimeout(() => setPendingInvite(null), 15000);
+  }, [send]);
+  const sendReply = useCallback((from: string, accept: boolean) => {
+    send({ t: 'reply', from, accept });
+    setInvite(null);
+  }, [send]);
+
+  return {
+    status, selfId, room, peers, targets, sendState,
+    interactions, interactionsRef, invite, setInvite, notice, setNotice, pendingInvite, sendInvite, sendReply,
+  };
 }
