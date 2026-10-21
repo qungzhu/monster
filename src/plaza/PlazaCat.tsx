@@ -25,6 +25,8 @@ interface Props {
   name: string;
   petName: string;
   isSelf?: boolean;
+  /** Friendship badge shown before the pet name (🤝 💛 💖 💞). */
+  badge?: string;
 }
 
 /**
@@ -32,7 +34,7 @@ interface Props {
  * and heading are smoothed toward the latest pose so remote cats glide
  * instead of jumping at the 10 Hz network rate.
  */
-export function PlazaCat({ url, getPose, name, petName, isSelf }: Props) {
+export function PlazaCat({ url, getPose, name, petName, isSelf, badge }: Props) {
   const outer = useRef<THREE.Group>(null);
   const animRoot = useRef<THREE.Group>(null);
   const { scene, animations } = useGLTF(url);
@@ -110,7 +112,7 @@ export function PlazaCat({ url, getPose, name, petName, isSelf }: Props) {
           className="pointer-events-none whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-medium text-white"
           style={{ background: isSelf ? 'rgba(236,72,153,0.85)' : 'rgba(15,23,42,0.7)' }}
         >
-          {petName}
+          {badge ? `${badge} ` : ''}{petName}
           <span className="opacity-70"> · {isSelf ? '我' : name}</span>
         </div>
       </Html>

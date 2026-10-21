@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { plazaSocketUrl } from './protocol';
-import type { Interaction, InteractKind, Peer, PlazaAction, ServerMessage } from './protocol';
+import { plazaDeviceKey, plazaSocketUrl } from './protocol';
+import type { BondReward, Friend, Interaction, InteractKind, Peer, PlazaAction, ServerMessage } from './protocol';
 
 export type PlazaStatus = 'connecting' | 'online' | 'offline';
 
@@ -17,7 +17,11 @@ export interface RemoteTarget {
  * change 10x/s and are read every frame), while the peer *list* is React
  * state so cats mount/unmount and the HUD count updates.
  */
-export function usePlaza(identity: { name: string; petName: string; breed: string } | null) {
+export function usePlaza(
+  identity: { name: string; petName: string; breed: string } | null,
+  /** Called once per earned bond reward (gained > 0) — feeds main-app growth. */
+  onReward?: (r: BondReward) => void,
+) {
   const [status, setStatus] = useState<PlazaStatus>('connecting');
   const [selfId, setSelfId] = useState<string | null>(null);
   const [room, setRoom] = useState<number | null>(null);
@@ -32,6 +36,12 @@ export function usePlaza(identity: { name: string; petName: string; breed: strin
   const petNames = useRef(new Map<string, string>());
   const inviteTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const socket = useRef<WebSocket | null>(null);
+  // Friendship: per-session level for name badges, full list for the panel.
+  const [bonds, setBonds] = useState<Map<string, { total: number; level: number }>>(new Map());
+  const [friends, setFriends] = useState<Friend[]>([]);
+  const [reward, setReward] = useState<BondReward | null>(null);
+  const onRewardRef = useRef(onReward);
+  useEffect(() => { onRewardRef.current = onReward; }, [onReward]);
 
   useEffect(() => {
     if (!identity) return;
@@ -44,7 +54,7 @@ export function usePlaza(identity: { name: string; petName: string; breed: strin
       const ws = new WebSocket(plazaSocketUrl());
       socket.current = ws;
 
-      ws.onopen = () => ws.send(JSON.stringify({ t: 'join', ...identity }));
+      ws.onopen = () => ws.send(JSON.stringify({ t: 'join', ...identity, key: plazaDeviceKey() }));
 
       ws.onmessage = e => {
         let msg: ServerMessage;
@@ -97,6 +107,19 @@ export function usePlaza(identity: { name: string; petName: string; breed: strin
             }, it.duration + 200);
             break;
           }
+          case 'bonds':
+            setFriends(msg.list);
+            break;
+          case 'bond': {
+            const { with: other, total, level } = msg;
+            setBonds(prev => new Map(prev).set(other, { total, level }));
+            if (msg.gained > 0 || msg.capped) {
+              const r: BondReward = { petName: msg.petName, gained: msg.gained, total, level, levelUp: msg.levelUp, capped: msg.capped };
+              setReward(r);
+              if (msg.gained > 0) onRewardRef.current?.(r);
+            }
+            break;
+          }
           case 'states':
             for (const [id, x, z, ry, action] of msg.list) {
               const t = targets.current.get(id);
@@ -145,5 +168,6 @@ export function usePlaza(identity: { name: string; petName: string; breed: strin
   return {
     status, selfId, room, peers, targets, sendState,
     interactions, interactionsRef, invite, setInvite, notice, setNotice, pendingInvite, sendInvite, sendReply,
+    bonds, friends, reward, setReward,
   };
 }

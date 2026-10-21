@@ -5,7 +5,7 @@
 //
 // Protocol (JSON):
 //   client -> server
-//     { t: 'join',  name, petName, breed }
+//     { t: 'join',  name, petName, breed, key }  // key: private per-device id
 //     { t: 'state', x, z, ry, action }          // ~10 Hz, own cat only
 //     { t: 'invite', to, kind }                  // kind: 'rub' | 'play'
 //     { t: 'reply',  from, accept }
@@ -17,7 +17,11 @@
 //     { t: 'invited',  from, kind, name, petName }
 //     { t: 'declined', by, petName }
 //     { t: 'interact', a, b, kind, mx, mz, angle, duration }  // to whole room
+//     { t: 'bonds', list: [{ name, petName, total, level, online }] }   // my friends
+//     { t: 'bond',  with, petName, gained, total, level, levelUp, capped }
 //     { t: 'error',   message }
+
+import { BondStore, levelOf } from './plazaBonds.js';
 
 export const ARENA_RADIUS = 4;
 export const ROOM_CAPACITY = 20;
@@ -38,12 +42,17 @@ export const INTERACTIONS = { rub: 4500, play: 6000 };   // duration ms
 const INTERACT_DISTANCE = 1.6;   // a bit more than the client's 1.3 prompt radius
 export const INVITE_TTL = 15000;   // long enough for a real person to read and tap
 
+const KEY_RE = /^[A-Za-z0-9-]{16,64}$/;
+const randomKey = () => `anon-${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`;
+
 const cleanText = (value, max) =>
   String(value ?? '').replace(/[\u0000-\u001f<>]/g, '').trim().slice(0, max);
 
 export class PlazaRoom {
-  constructor(send) {
+  /** @param {BondStore} [bonds] shared across rooms so friendship follows players */
+  constructor(send, bonds = new BondStore()) {
     this.send = send;
+    this.bonds = bonds;
     this.peers = new Map();
     this.dirty = new Set();
   }
@@ -76,6 +85,8 @@ export class PlazaRoom {
       z: Math.sin(angle) * r,
       ry: 0,
       action: 'Idle',
+      // Private: identifies the player across sessions; NEVER sent to clients.
+      key: KEY_RE.test(String(msg.key ?? '')) ? String(msg.key) : randomKey(),
       busyUntil: 0,
       invites: new Map(),   // fromId -> { kind, at }
       lastInviteAt: 0,
@@ -83,8 +94,18 @@ export class PlazaRoom {
       window: { start: Date.now(), count: 0 },
     };
     this.peers.set(id, peer);
+    this.bonds.remember(peer.key, peer.name, peer.petName);
     this.send(id, { t: 'welcome', id, peers: [...this.peers.values()].map(p => this.publicPeer(p)) });
     this.broadcast({ t: 'joined', peer: this.publicPeer(peer) }, id);
+    this.sendBondList(peer);
+    // Existing friendships with people already here: tell both sides.
+    for (const other of this.peers.values()) {
+      if (other.id === id) continue;
+      const total = this.bonds.total(peer.key, other.key);
+      if (total <= 0) continue;
+      this.send(id, { t: 'bond', with: other.id, petName: other.petName, gained: 0, total, level: levelOf(total), levelUp: false, capped: false });
+      this.send(other.id, { t: 'bond', with: id, petName: peer.petName, gained: 0, total, level: levelOf(total), levelUp: false, capped: false });
+    }
   }
 
   leave(id) {
@@ -132,6 +153,33 @@ export class PlazaRoom {
     peer.lastAt = now;
     this.dirty.add(id);
     return true;
+  }
+
+  // Friend list for one player. Private keys are swapped for the friend's
+  // current session id (or null when offline) before anything leaves.
+  sendBondList(peer) {
+    const onlineByKey = new Map([...this.peers.values()].map(p => [p.key, p.id]));
+    const list = this.bonds.listFor(peer.key).map(f => ({
+      name: f.name,
+      petName: f.petName,
+      total: f.total,
+      level: levelOf(f.total),
+      online: onlineByKey.get(f.key) ?? null,
+    }));
+    this.send(peer.id, { t: 'bonds', list });
+  }
+
+  // An interaction ran its full course: award friendship to both sides.
+  complete(aId, bId, kind) {
+    const a = this.peers.get(aId), b = this.peers.get(bId);
+    if (!a || !b) return;                       // someone left mid-dance: no points
+    if (a.key === b.key) return;                // same device in two tabs: no self-farming
+    const r = this.bonds.award(a.key, b.key, kind);
+    const base = { gained: r.gained, total: r.total, level: levelOf(r.total), levelUp: r.levelUp, capped: r.capped };
+    this.send(a.id, { t: 'bond', with: b.id, petName: b.petName, ...base });
+    this.send(b.id, { t: 'bond', with: a.id, petName: a.petName, ...base });
+    this.sendBondList(a);
+    this.sendBondList(b);
   }
 
   isBusy(p, now = Date.now()) {
@@ -182,6 +230,7 @@ export class PlazaRoom {
     }
     const duration = INTERACTIONS[inv.kind];
     from.busyUntil = to.busyUntil = now + duration;
+    setTimeout(() => this.complete(from.id, to.id, inv.kind), duration);
     this.broadcast({
       t: 'interact',
       a: from.id,

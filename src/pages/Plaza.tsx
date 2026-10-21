@@ -8,8 +8,8 @@ import { PlazaCat, ARENA_Z_OFFSET, GROUND_Y } from '../plaza/PlazaCat';
 import type { CatPose } from '../plaza/PlazaCat';
 import { usePlaza } from '../plaza/usePlaza';
 import type { RemoteTarget } from '../plaza/usePlaza';
-import { ARENA_RADIUS, INTERACT_LABEL, INTERACT_PROMPT_RADIUS, PLAZA_BREEDS, PLAZA_EMOTES, SEND_HZ, interactionPose, liteModelUrl } from '../plaza/protocol';
-import type { Interaction, InteractKind, Peer, PlazaAction } from '../plaza/protocol';
+import { ARENA_RADIUS, BOND_LEVELS, INTERACT_LABEL, nextLevelMin, rewardGrowth, INTERACT_PROMPT_RADIUS, PLAZA_BREEDS, PLAZA_EMOTES, SEND_HZ, interactionPose, liteModelUrl } from '../plaza/protocol';
+import type { BondReward, Interaction, InteractKind, Peer, PlazaAction } from '../plaza/protocol';
 
 const WALK_SPEED = 1.3;
 const RUN_SPEED = 2.6;
@@ -140,14 +140,19 @@ function JoinScreen({ defaultName, defaultBreed, onJoin }: {
 interface PlazaProps {
   userName: string;
   adoptedBreedId: string | null;
+  /** Turn earned friendship into main-app growth (XP / coins / intimacy). */
+  onReward?: (r: BondReward) => void;
 }
 
-export function Plaza({ userName, adoptedBreedId }: PlazaProps) {
+export function Plaza({ userName, adoptedBreedId, onReward }: PlazaProps) {
   const [identity, setIdentity] = useState<{ name: string; petName: string; breed: string } | null>(null);
   const {
     status, selfId, room, peers, targets, sendState,
     interactions, interactionsRef, invite, notice, setNotice, pendingInvite, sendInvite, sendReply,
-  } = usePlaza(identity);
+    bonds, friends, reward, setReward,
+  } = usePlaza(identity, onReward);
+  const [showFriends, setShowFriends] = useState(false);
+  const badgeOf = (id: string) => BOND_LEVELS[bonds.get(id)?.level ?? 0].badge;
   const [near, setNear] = useState<string | null>(null);
   const selfIdRef = useRef<string | null>(null);
   useEffect(() => { selfIdRef.current = selfId; }, [selfId]);
@@ -244,6 +249,11 @@ export function Plaza({ userName, adoptedBreedId }: PlazaProps) {
     return () => clearTimeout(t);
   }, [notice, setNotice]);
   useEffect(() => {
+    if (!reward) return;
+    const t = setTimeout(() => setReward(null), reward.levelUp ? 4500 : 3200);
+    return () => clearTimeout(t);
+  }, [reward, setReward]);
+  useEffect(() => {
     if (!invite) return;
     const t = setTimeout(() => sendReply(invite.from, false), 14000);  // auto-decline just before the server TTL
     return () => clearTimeout(t);
@@ -276,7 +286,7 @@ export function Plaza({ userName, adoptedBreedId }: PlazaProps) {
             <PlazaCat key={self.id} url={liteModelUrl(self.breed)} getPose={selfPose} name={self.name} petName={self.petName} isSelf />
           )}
           {others.map(p => (
-            <PlazaCat key={p.id} url={liteModelUrl(p.breed)} getPose={remotePose(p.id)} name={p.name} petName={p.petName} />
+            <PlazaCat key={p.id} url={liteModelUrl(p.breed)} getPose={remotePose(p.id)} name={p.name} petName={p.petName} badge={badgeOf(p.id)} />
           ))}
           <SelfController step={stepSelf} send={sendState} />
           <ProximityWatcher getSelf={selfPose} selfId={selfIdRef} targets={targets} onNear={setNear} />
@@ -286,7 +296,14 @@ export function Plaza({ userName, adoptedBreedId }: PlazaProps) {
 
       {/* HUD */}
       <div className="pointer-events-none absolute left-0 right-0 top-0 flex items-center justify-between p-3 text-xs text-white">
-        <a href="/" className="pointer-events-auto rounded-full bg-slate-900/70 px-3 py-1.5">← 回家</a>
+        <div className="pointer-events-auto flex gap-2">
+          <a href="/" className="rounded-full bg-slate-900/70 px-3 py-1.5">← 回家</a>
+          {identity && (
+            <button onClick={() => setShowFriends(v => !v)} className="rounded-full bg-slate-900/70 px-3 py-1.5">
+              💞 好友 {friends.length}
+            </button>
+          )}
+        </div>
         <div className="rounded-full bg-slate-900/70 px-3 py-1.5">
           {status === 'online' && room ? `❄️ 雪原 ${room} 区 · 在线 ${peers.length}/20` : status === 'connecting' ? '连接中…' : '已断开，正在重连…'}
         </div>
@@ -299,7 +316,23 @@ export function Plaza({ userName, adoptedBreedId }: PlazaProps) {
             <p className="text-center text-xs text-slate-200">已邀请 {nearPeer.petName} {INTERACT_LABEL[pendingInvite.kind]},等 TA 回应…</p>
           ) : (
             <>
-              <p className="text-center text-xs text-slate-300">🐾 靠近了 <span className="text-white">{nearPeer.petName}</span> · {nearPeer.name}</p>
+              <p className="text-center text-xs text-slate-300">🐾 靠近了 <span className="text-white">{badgeOf(nearPeer.id)} {nearPeer.petName}</span> · {nearPeer.name}</p>
+              {(() => {
+                const b = bonds.get(nearPeer.id) ?? { total: 0, level: 0 };
+                const lo = BOND_LEVELS[b.level].min, hi = nextLevelMin(b.level);
+                const pct = hi ? Math.round(((b.total - lo) / (hi - lo)) * 100) : 100;
+                return (
+                  <div className="mt-1.5">
+                    <div className="flex justify-between text-[10px] text-slate-400">
+                      <span>好感 {b.total} · {BOND_LEVELS[b.level].name}</span>
+                      <span>{hi ? `下一级 ${BOND_LEVELS[b.level + 1].name} ${hi}` : '已满级'}</span>
+                    </div>
+                    <div className="mt-0.5 h-1.5 overflow-hidden rounded-full bg-slate-700">
+                      <div className="h-full rounded-full bg-pink-400" style={{ width: `${pct}%` }} />
+                    </div>
+                  </div>
+                );
+              })()}
               <div className="mt-2 grid grid-cols-2 gap-2">
                 {(['rub', 'play'] as InteractKind[]).map(kind => (
                   <button
@@ -324,6 +357,52 @@ export function Plaza({ userName, adoptedBreedId }: PlazaProps) {
             <button onClick={() => sendReply(invite.from, true)} className="rounded-xl bg-pink-500 py-2 text-sm font-semibold text-white">好呀</button>
             <button onClick={() => sendReply(invite.from, false)} className="rounded-xl bg-slate-200 py-2 text-sm">下次吧</button>
           </div>
+        </div>
+      )}
+
+      {/* Friendship reward */}
+      {reward && (() => {
+        const g = rewardGrowth(reward);
+        const lvl = BOND_LEVELS[reward.level];
+        return (
+          <div className="pointer-events-none absolute left-1/2 top-24 z-30 w-[min(92%,320px)] -translate-x-1/2 rounded-2xl bg-white/95 p-3 text-center text-slate-900 shadow-2xl">
+            {reward.levelUp ? (
+              <p className="text-base font-bold">🎉 和 {reward.petName} 成为了「{lvl.name}」{lvl.badge}</p>
+            ) : reward.gained > 0 ? (
+              <p className="text-sm font-semibold">💗 好感 +{reward.gained} · {reward.petName}</p>
+            ) : (
+              <p className="text-sm">今天和 {reward.petName} 的好感已经满啦,明天再一起玩~</p>
+            )}
+            <p className="mt-1 text-[11px] text-slate-500">
+              好感 {reward.total}{nextLevelMin(reward.level) ? ` / ${nextLevelMin(reward.level)}` : ''} · {lvl.name}
+              {reward.capped && reward.gained > 0 ? ' · 今日已满' : ''}
+            </p>
+            {g.xp > 0 && <p className="mt-1 text-[11px] text-pink-600">经验 +{g.xp} · 金币 +{g.coins} · 和宠物亲密度 +{g.intimacy}</p>}
+          </div>
+        );
+      })()}
+
+      {showFriends && (
+        <div className="absolute left-3 right-3 top-14 z-30 mx-auto max-w-sm rounded-2xl bg-slate-900/95 p-4 text-white shadow-2xl ring-1 ring-white/10">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold">💞 我的猫友</h3>
+            <button onClick={() => setShowFriends(false)} className="text-xs text-slate-400">关闭</button>
+          </div>
+          {friends.length === 0 ? (
+            <p className="mt-3 text-xs text-slate-400">还没有猫友。走到别的猫身边,一起蹭蹭或一起玩就能加好感~</p>
+          ) : (
+            <ul className="mt-2 max-h-72 space-y-1.5 overflow-y-auto">
+              {friends.map((f, i) => (
+                <li key={i} className="flex items-center justify-between rounded-lg bg-slate-800/70 px-3 py-2 text-xs">
+                  <span>
+                    <span className={`mr-1.5 inline-block h-1.5 w-1.5 rounded-full ${f.online ? 'bg-green-400' : 'bg-slate-600'}`} />
+                    {BOND_LEVELS[f.level].badge} {f.petName} <span className="text-slate-400">· {f.name}</span>
+                  </span>
+                  <span className="text-slate-300">{BOND_LEVELS[f.level].name} · {f.total}</span>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       )}
 

@@ -27,3 +27,6 @@ public/models/generated/red-fox-meshy-rigged-walk-optimized.glb
 *.njsproj
 *.sln
 *.sw?
+
+# plaza friendship data (local dev)
+server/data/

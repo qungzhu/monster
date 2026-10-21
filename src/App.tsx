@@ -1,5 +1,6 @@
 import { LivingWorld } from './pages/LivingWorld';
 import { Plaza } from './pages/Plaza';
+import { rewardGrowth } from './plaza/protocol';
 import { useAppStore } from './store/useStore';
 
 /**
@@ -15,7 +16,18 @@ export default function App() {
   if (location.pathname.startsWith('/plaza')) {
     return (
       <div className="h-full relative">
-        <Plaza userName={store.userName} adoptedBreedId={store.adoptedBreedId} />
+        <Plaza
+          userName={store.userName}
+          adoptedBreedId={store.adoptedBreedId}
+          onReward={r => {
+            // Playing with friends grows you too: XP, coins, and your bond
+            // with your own pet back home.
+            const g = rewardGrowth(r);
+            store.addXP(g.xp);
+            store.addCoins(g.coins);
+            if (store.selectedCharacterId) store.addIntimacy(store.selectedCharacterId, g.intimacy);
+          }}
+        />
       </div>
     );
   }

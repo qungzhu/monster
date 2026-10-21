@@ -4,11 +4,34 @@
 // proxies /plaza-ws to it in dev.
 import { WebSocketServer } from 'ws';
 import { randomUUID } from 'node:crypto';
+import { readFileSync, writeFileSync, renameSync, mkdirSync } from 'node:fs';
+import { dirname, resolve } from 'node:path';
 import { PlazaRoom, TICK_MS } from './plazaRoom.js';
+import { BondStore } from './plazaBonds.js';
 
 const PORT = Number(process.env.PLAZA_PORT || 3002);
 const sockets = new Map();      // peerId -> ws
 const rooms = [];               // index = room number - 1
+
+// Friendship persists across restarts in a local JSON file (gitignored).
+const BONDS_FILE = resolve(process.env.PLAZA_BONDS_FILE || 'server/data/plaza-bonds.json');
+let saveTimer = null;
+const saveBonds = () => {
+  if (saveTimer) return;
+  saveTimer = setTimeout(() => {
+    saveTimer = null;
+    try {
+      mkdirSync(dirname(BONDS_FILE), { recursive: true });
+      writeFileSync(`${BONDS_FILE}.tmp`, JSON.stringify(bonds.toJSON()));
+      renameSync(`${BONDS_FILE}.tmp`, BONDS_FILE);   // atomic replace
+    } catch (err) {
+      console.error('[plaza] failed to save bonds:', err.message);
+    }
+  }, 1000);
+};
+let snapshot = {};
+try { snapshot = JSON.parse(readFileSync(BONDS_FILE, 'utf8')); } catch { /* first run */ }
+const bonds = new BondStore(snapshot, saveBonds);
 
 const send = (id, obj) => {
   const ws = sockets.get(id);
@@ -18,7 +41,7 @@ const send = (id, obj) => {
 function pickRoom() {
   let i = rooms.findIndex(r => !r.full);
   if (i === -1) {
-    rooms.push(new PlazaRoom(send));
+    rooms.push(new PlazaRoom(send, bonds));
     i = rooms.length - 1;
   }
   return i;

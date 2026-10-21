@@ -25,6 +25,8 @@ export type ServerMessage =
   | { t: 'invited'; from: string; kind: InteractKind; name: string; petName: string }
   | { t: 'declined'; by: string; petName: string }
   | { t: 'interact'; a: string; b: string; kind: InteractKind; mx: number; mz: number; angle: number; duration: number }
+  | { t: 'bonds'; list: Friend[] }
+  | { t: 'bond'; with: string; petName: string; gained: number; total: number; level: number; levelUp: boolean; capped: boolean }
   | { t: 'error'; message: string };
 
 /** Breeds that have a lightweight (LOD) model for the multiplayer plaza. */
@@ -104,3 +106,54 @@ export function interactionPose(it: Interaction, role: 0 | 1, t: number) {
   if (t < runFor) return { x, z, ry: phi + Math.PI / 2, action: 'Run' as PlazaAction };
   return { x, z, ry: phi + Math.PI, action: 'Happy' as PlazaAction };
 }
+
+// ———— Friendship (好感) — mirrors server/plazaBonds.js ————
+
+export const BOND_LEVELS = [
+  { min: 0, name: '陌生猫猫', badge: '' },
+  { min: 10, name: '点头之交', badge: '🤝' },
+  { min: 30, name: '好朋友', badge: '💛' },
+  { min: 60, name: '好闺蜜', badge: '💖' },
+  { min: 100, name: '形影不离', badge: '💞' },
+];
+
+export interface Friend {
+  name: string;
+  petName: string;
+  total: number;
+  level: number;
+  online: string | null;   // session id when in this room
+}
+
+export interface BondReward {
+  petName: string;
+  gained: number;
+  total: number;
+  level: number;
+  levelUp: boolean;
+  capped: boolean;
+}
+
+/** Next level threshold (or null at max) for a progress bar. */
+export const nextLevelMin = (level: number) => BOND_LEVELS[level + 1]?.min ?? null;
+
+/**
+ * Private per-device identity so friendship survives reconnects. Only the
+ * server sees it; other players only ever see session ids.
+ */
+export function plazaDeviceKey(): string {
+  const K = 'fp-plaza-key';
+  try {
+    let key = localStorage.getItem(K);
+    if (!key) {
+      key = crypto.randomUUID();
+      localStorage.setItem(K, key);
+    }
+    return key;
+  } catch {
+    return crypto.randomUUID();   // storage blocked: friendship lasts this session
+  }
+}
+
+/** What a bond reward is worth in the single-player app (XP, coins, intimacy). */
+export const rewardGrowth = (r: BondReward) => ({ xp: r.gained * 2, coins: r.gained, intimacy: r.gained > 0 ? 1 : 0 });
