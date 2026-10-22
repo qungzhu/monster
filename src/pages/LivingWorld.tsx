@@ -8,7 +8,7 @@ import { dailyQuests } from '../data/gameConfig';
 import type { GameItem } from '../data/gameConfig';
 import { parseIntent, getSuggestions } from '../utils/intents';
 import { getTimeOfDay } from '../utils/emotion';
-import { sendAIMessage } from '../utils/ai';
+import { extractMemoriesAI, sendAIMessage } from '../utils/ai';
 import { PetScene } from '../components/pets/PetScene';
 import type { EmoteKind } from '../components/pets/GLBPet';
 import { PetOnboarding } from '../components/game/PetOnboarding';
@@ -27,8 +27,11 @@ import type { Breed } from '../data/breeds';
 import { companionRoles, parseLifeCommand } from '../data/companion';
 import type { AgentRun, CompanionRole, LifeItem } from '../data/companion';
 import { getGeneratedPet } from '../data/generatedPetGallery';
+import { MemoryPanel } from '../components/game/MemoryPanel';
+import { extractMemoriesLocally, memoryCommand, memoryContext, pendingFollowUp, recallLine } from '../data/memory';
+import type { Memory, MemoryOp } from '../data/memory';
 
-type CardType = 'life' | 'quests' | 'shop' | 'adopt' | 'custom' | 'memories' | 'bond' | 'settings' | 'help' | null;
+type CardType = 'life' | 'quests' | 'shop' | 'adopt' | 'custom' | 'memories' | 'about-me' | 'bond' | 'settings' | 'help' | null;
 
 interface LivingWorldProps {
   character: Character | null;
@@ -76,6 +79,14 @@ interface LivingWorldProps {
   addLifeItem: (item: Omit<LifeItem, 'id' | 'createdAt' | 'completed'>) => LifeItem;
   toggleLifeItem: (id: string) => void;
   removeLifeItem: (id: string) => void;
+  memories: Memory[];
+  memoryEnabled: boolean;
+  setMemoryEnabled: (on: boolean) => void;
+  applyMemories: (ops: MemoryOp[]) => Memory[];
+  updateMemory: (id: string, text: string) => void;
+  removeMemory: (id: string) => void;
+  markMemoryFollowedUp: (id: string) => void;
+  clearMemories: () => void;
 }
 
 const themeColors: Record<string, string> = {
@@ -95,6 +106,8 @@ export function LivingWorld(props: LivingWorldProps) {
     adoptedBreedId, adoptBreed, petName, customPet, saveCustomPet,
     selectedGeneratedPetKey, hubName, setHubName, agentRuns, recordAgentRun,
     companionRole, setCompanionRole, lifeItems, addLifeItem, toggleLifeItem, removeLifeItem,
+    memories, memoryEnabled, setMemoryEnabled, applyMemories, updateMemory, removeMemory,
+    markMemoryFollowedUp, clearMemories,
   } = props;
 
   const [input, setInput] = useState('');
@@ -201,14 +214,35 @@ export function LivingWorld(props: LivingWorldProps) {
       say(response, 7000);
     };
 
-    if (apiKey) {
-      try {
-        const result = await sendAIMessage(text, character, chatHistory, intimacyLevel, userName, apiKey);
-        finish(result.response);
-        return;
-      } catch { /* fall through to template */ }
+    // Learn from what was said: the LLM extractor when the server has a key,
+    // otherwise the offline rules. Runs alongside the reply.
+    if (memoryEnabled) {
+      const recent = [...chatHistory.filter(m => m.role === 'user').slice(-3).map(m => m.content), text];
+      extractMemoriesAI(recent, memories, apiKey)
+        .then(ops => remember(ops ?? extractMemoriesLocally(text, memories)));
     }
-    setTimeout(() => finish(getCharacterResponse(character, emotion)), 900 + Math.random() * 1200);
+
+    const followUp = pendingFollowUp(memories);
+    const result = await sendAIMessage(text, character, chatHistory, intimacyLevel, userName, apiKey, {
+      role: companionRole,
+      memoryContext: memoryContext(memories),
+      followUp: followUp?.text,
+    });
+    if (result.isAI) {
+      if (followUp) markMemoryFollowedUp(followUp.id);
+      finish(result.response);
+      return;
+    }
+    // Offline: a template reply, plus a line that shows the pet remembers.
+    const recall = recallLine(memories);
+    if (recall?.followUpId) markMemoryFollowedUp(recall.followUpId);
+    const reply = getCharacterResponse(character, emotion);
+    setTimeout(() => finish(recall ? `${reply} ${recall.line}` : reply), 600 + Math.random() * 900);
+  };
+
+  const remember = (ops: MemoryOp[]) => {
+    const added = applyMemories(ops);
+    if (added.length) floatReward(`🧠 记住了:${added[0].text.replace(/\s*\([^)]*说的\)/u, '')}`);
   };
 
   const handleAction = (action: 'feed' | 'pet' | 'play' | 'clean') => {
@@ -242,6 +276,29 @@ export function LivingWorld(props: LivingWorldProps) {
     if (!text || isThinking) return;
     setInput('');
 
+    // Explicit memory commands and "你记得我什么" come before life commands
+    // ("记得…" would otherwise become a to-do).
+    const cmd = memoryCommand(text, memories);
+    if (cmd) {
+      if (cmd.kind === 'remember') {
+        applyMemories(cmd.ops);
+        playEmote('cute', 3000);
+        floatReward('🧠 记住了');
+        say(`好,我记住了:${cmd.ops[0].op === 'add' ? cmd.ops[0].text : ''} 💕`, 4200);
+      } else if (cmd.ops.length) {
+        applyMemories(cmd.ops);
+        say(`好~ 已经忘掉了 ${cmd.ops.length} 条,不会再提啦。`, 4000);
+      } else {
+        say('我好像没记过这件事哦~ 说「你记得我什么」可以看看我记住的。', 4500);
+      }
+      return;
+    }
+    if (parseIntent(text).type === 'about-me') {
+      setActiveCard('about-me');
+      say(memories.length ? `我记得你 ${memories.length} 件事哦,都在这里~` : '我还不太了解你,多和我聊聊吧~', 3500);
+      return;
+    }
+
     const lifeCommand = parseLifeCommand(text);
     if (lifeCommand) {
       const item = addLifeItem(lifeCommand);
@@ -253,6 +310,8 @@ export function LivingWorld(props: LivingWorldProps) {
     }
 
     const intent = parseIntent(text);
+    // Chat replies learn inside doChat (where the AI extractor can run).
+    if (memoryEnabled && intent.type !== 'chat' && intent.type !== 'mood') remember(extractMemoriesLocally(text, memories));
     switch (intent.type) {
       case 'feed': case 'pet': case 'play': case 'clean':
         handleAction(intent.type);
@@ -280,6 +339,7 @@ export function LivingWorld(props: LivingWorldProps) {
       case 'adopt': setActiveCard('adopt'); break;
       case 'custom': setActiveCard('custom'); break;
       case 'memories': setActiveCard('memories'); break;
+      case 'about-me': setActiveCard('about-me'); break;
       case 'bond': setActiveCard('bond'); break;
       case 'settings': setActiveCard('settings'); break;
       case 'help': setActiveCard('help'); break;
@@ -663,6 +723,8 @@ export function LivingWorld(props: LivingWorldProps) {
         chatCount={chatCount}
         moodCount={moodEntries.length}
         role={companionRole}
+        memoryCount={memories.length}
+        onOpenMemories={() => setActiveCard('about-me')}
         onRoleChange={role => {
           setCompanionRole(role);
           say(`好呀，现在我是你的${companionRoles[role].label}。${companionRoles[role].description}`, 4200);
@@ -682,6 +744,18 @@ export function LivingWorld(props: LivingWorldProps) {
           }
         }}
         onRemove={removeLifeItem}
+      />
+      <MemoryPanel
+        show={activeCard === 'about-me'}
+        onClose={() => setActiveCard(null)}
+        petName={petName || character.name}
+        memories={memories}
+        enabled={memoryEnabled}
+        onToggleEnabled={setMemoryEnabled}
+        onApply={ops => { applyMemories(ops); }}
+        onUpdate={updateMemory}
+        onRemove={removeMemory}
+        onClear={clearMemories}
       />
       <QuestPanel
         show={activeCard === 'quests'}

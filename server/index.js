@@ -158,6 +158,16 @@ const characterPrompts = {
 保持每条回复简短可爱（50-150字），用小小的身体传递大大的温暖。`,
 };
 
+// The companion role picked in the AI hub now actually shapes behaviour.
+const roleInstructions = {
+  friend: '你现在的角色是"朋友":多倾听、多共情,记得主人的心情和生活里的小事,自然地关心。',
+  butler: '你现在的角色是"管家":语气体贴周到,主动留意主人的日程、快递、作息和生活琐事,适时温柔提醒。',
+  assistant: '你现在的角色是"助手":在可爱的同时更有条理,帮主人理清今天的待办和优先级,回答具体、可执行。',
+  teacher: '你现在的角色是"老师":耐心鼓励,陪主人学习和复习,适时提问、帮他记住知识点,肯定每一点进步。',
+};
+
+const MEMORY_CONTEXT_LIMIT = 2000;
+
 function getIntimacyContext(level) {
   if (level < 20) return '你们刚认识不久，还在互相熟悉。';
   if (level < 40) return '你们已经比较熟悉了，开始建立信任。';
@@ -168,7 +178,7 @@ function getIntimacyContext(level) {
 
 app.post('/api/chat', async (req, res) => {
   try {
-    const { message, characterId, history, intimacyLevel, userName } = req.body;
+    const { message, characterId, history, intimacyLevel, userName, role, memoryContext, followUp } = req.body;
 
     const apiKey = req.headers['x-api-key'] || process.env.OPENAI_API_KEY;
     if (!apiKey) {
@@ -181,7 +191,15 @@ app.post('/api/chat', async (req, res) => {
     const intimacyContext = getIntimacyContext(intimacyLevel || 0);
     const nameContext = userName ? `主人的名字叫"${userName}"。` : '你还不知道主人的名字。';
 
-    const fullSystemPrompt = `${systemPrompt}\n\n当前状态：\n${intimacyContext}\n${nameContext}\n\n重要规则：\n- 始终保持角色扮演，不要跳出角色\n- 回复要自然、可爱、有温度\n- 感知主人的情绪，给予相应的回应\n- 不要给出专业建议，只需要用萌宠的方式陪伴和安慰`;
+    const roleContext = roleInstructions[role] || roleInstructions.friend;
+    const memoryBlock = typeof memoryContext === 'string' && memoryContext.trim()
+      ? `\n\n你记得的关于主人的事(长期记忆,自然地用上,不要一次全说出来,也不要说"根据记忆"):\n${memoryContext.slice(0, MEMORY_CONTEXT_LIMIT)}`
+      : '';
+    const followUpBlock = typeof followUp === 'string' && followUp.trim()
+      ? `\n\n如果合适,这次顺便问问主人:之前说的「${followUp.slice(0, 80)}」后来怎么样了。`
+      : '';
+
+    const fullSystemPrompt = `${systemPrompt}\n\n${roleContext}\n\n当前状态：\n${intimacyContext}\n${nameContext}${memoryBlock}${followUpBlock}\n\n重要规则：\n- 始终保持角色扮演，不要跳出角色\n- 回复要自然、可爱、有温度\n- 感知主人的情绪，给予相应的回应\n- 不要给出专业建议，只需要用萌宠的方式陪伴和安慰`;
 
     const messages = (history || []).slice(-20).map(msg => ({
       role: msg.role === 'user' ? 'user' : 'assistant',
@@ -369,6 +387,55 @@ app.post('/api/meshy/fetch-model', async (req, res) => {
   } catch (error) {
     console.error('Meshy fetch-model error:', error.message);
     res.status(500).json({ error: 'api_error', message: error.message });
+  }
+});
+
+// Long-term memory extraction: turn the latest things the owner said into
+// add/update/delete ops against what the pet already remembers. Returns
+// { ops: [] } on any problem — the client also has an offline extractor.
+const MEMORY_CATEGORIES = ['profile', 'preference', 'event', 'relationship', 'goal'];
+app.post('/api/memory/extract', async (req, res) => {
+  const apiKey = req.headers['x-api-key'] || process.env.OPENAI_API_KEY;
+  if (!apiKey) return res.status(400).json({ error: 'no_api_key', ops: [] });
+  try {
+    const { messages, memories } = req.body ?? {};
+    const said = (Array.isArray(messages) ? messages : []).slice(-6).map(m => String(m).slice(0, 400));
+    const known = (Array.isArray(memories) ? memories : []).slice(0, 120)
+      .map(m => ({ id: String(m.id).slice(0, 40), text: String(m.text).slice(0, 80), category: m.category }));
+    if (!said.length) return res.json({ ops: [] });
+
+    const client = new OpenAI({ apiKey });
+    const today = new Date().toISOString().slice(0, 10);
+    const instructions = `你是一个记忆整理器,为陪伴型宠物 App 记录"关于主人的长期事实"。
+只记录对以后聊天有用、稳定或重要的信息:身份(名字/生日/职业/学校/城市)、喜好与禁忌、身边的人和宠物、近期重要事件(考试/面试/出行等,写清日期,相对日期请换算,今天是 ${today})、目标。
+不要记录:一时的情绪、寒暄、对宠物说的话、敏感信息(证件号、密码、银行卡、精确住址、健康诊断细节)。
+输出严格 JSON:{"ops":[{"op":"add","text":"简短中文陈述,不超过30字","category":"profile|preference|event|relationship|goal"},{"op":"update","id":"已有记忆id","text":"新内容"},{"op":"delete","id":"已有记忆id"}]}
+主人纠正或推翻旧信息时用 update/delete;没有新信息就输出 {"ops":[]}。`;
+    const response = await client.responses.create({
+      model: OPENAI_MODEL,
+      max_output_tokens: 400,
+      instructions,
+      input: [{ role: 'user', content: JSON.stringify({ 已知记忆: known, 主人最近说的话: said }) }],
+      text: { format: { type: 'json_object' } },
+    });
+    let parsed;
+    try { parsed = JSON.parse(response.output_text || '{}'); } catch { parsed = {}; }
+    const ids = new Set(known.map(k => k.id));
+    const ops = (Array.isArray(parsed.ops) ? parsed.ops : []).slice(0, 10).flatMap(o => {
+      if (o?.op === 'add' && typeof o.text === 'string' && MEMORY_CATEGORIES.includes(o.category)) {
+        return [{ op: 'add', text: o.text.slice(0, 80), category: o.category, source: 'ai' }];
+      }
+      if ((o?.op === 'update' || o?.op === 'delete') && ids.has(String(o.id))) {
+        return o.op === 'update' && typeof o.text === 'string'
+          ? [{ op: 'update', id: String(o.id), text: o.text.slice(0, 80) }]
+          : o.op === 'delete' ? [{ op: 'delete', id: String(o.id) }] : [];
+      }
+      return [];
+    });
+    res.json({ ops });
+  } catch (error) {
+    console.error('Memory extract error:', error.message);
+    res.json({ ops: [] });
   }
 });
 

@@ -25,6 +25,8 @@ interface LifeDashboardProps {
   moodCount: number;
   role: CompanionRole;
   onRoleChange: (role: CompanionRole) => void;
+  memoryCount: number;
+  onOpenMemories: () => void;
   items: LifeItem[];
   onAdd: (item: Omit<LifeItem, 'id' | 'createdAt' | 'completed'>) => void;
   onToggle: (id: string) => void;
@@ -41,7 +43,7 @@ const starterPlan: Array<Omit<LifeItem, 'id' | 'createdAt' | 'completed'>> = [
 
 export function LifeDashboard({
   show, onClose, userName, petName, hubName, onHubNameChange, agentRuns, onAgentRun, chatCount, moodCount,
-  role, onRoleChange, items, onAdd, onToggle, onRemove,
+  role, onRoleChange, memoryCount, onOpenMemories, items, onAdd, onToggle, onRemove,
 }: LifeDashboardProps) {
   const [type, setType] = useState<LifeItemType>('todo');
   const [title, setTitle] = useState('');
@@ -282,6 +284,23 @@ export function LifeDashboard({
                       : '执行状态：等待你的指令'}
                 </div>
               </div>
+            </div>
+
+            <div className="px-5 py-2">
+              <button
+                type="button"
+                onClick={onOpenMemories}
+                className="flex w-full items-center gap-3 rounded-2xl border border-white/10 bg-black/15 px-3 py-2.5 text-left"
+              >
+                <Brain size={18} className="shrink-0 text-violet-300" />
+                <span className="min-w-0 flex-1">
+                  <span className="block text-xs font-bold text-text-primary">{petName}记得你的事</span>
+                  <span className="block text-[10px] text-text-muted">
+                    {memoryCount ? `已记住 ${memoryCount} 条 · 聊天时会用上` : '聊着聊着就会记住你'}
+                  </span>
+                </span>
+                <span className="text-xs text-text-muted">›</span>
+              </button>
             </div>
 
             <div className="px-5 py-2">

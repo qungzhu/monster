@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import type { Character, ChatMessage, MoodEntry, MoodType } from '../data/characters';
 import { characters } from '../data/characters';
 import type { PetStats } from '../data/gameConfig';
@@ -6,6 +6,8 @@ import { DEFAULT_PET_STATS, STAT_DECAY_PER_HOUR, getLevelFromXP, shopItems, petR
 import { getBreed, characterDefaultBreed, CUSTOM_BREED_ID } from '../data/breeds';
 import type { Breed } from '../data/breeds';
 import type { AgentRun, CompanionRole, LifeItem } from '../data/companion';
+import { applyMemoryOps } from '../data/memory';
+import type { Memory, MemoryOp } from '../data/memory';
 
 const STORAGE_KEYS = {
   selectedCharacter: 'fp-selected-character',
@@ -30,6 +32,8 @@ const STORAGE_KEYS = {
   agentRuns: 'fp-agent-runs',
   companionRole: 'fp-companion-role',
   lifeItems: 'fp-life-items',
+  memories: 'fp-memories',
+  memoryEnabled: 'fp-memory-enabled',
 };
 
 function loadFromStorage<T>(key: string, defaultValue: T): T {
@@ -121,6 +125,13 @@ export function useAppStore() {
   const [lifeItems, setLifeItems] = useState<LifeItem[]>(
     loadFromStorage(STORAGE_KEYS.lifeItems, [])
   );
+  // Long-term memory about the owner (device-local). A ref mirrors it so
+  // applyMemories can return what was actually added, synchronously.
+  const [memories, setMemories] = useState<Memory[]>(() => loadFromStorage(STORAGE_KEYS.memories, []));
+  const memoriesRef = useRef<Memory[]>(memories);
+  const [memoryEnabled, setMemoryEnabledState] = useState<boolean>(
+    loadFromStorage(STORAGE_KEYS.memoryEnabled, true)
+  );
 
   const selectedCharacter = characters.find(c => c.id === selectedCharacterId) || null;
   const adoptedBreed = adoptedBreedId === CUSTOM_BREED_ID ? customPet : getBreed(adoptedBreedId);
@@ -208,6 +219,39 @@ export function useAppStore() {
       saveToStorage(STORAGE_KEYS.agentRuns, updated);
       return updated;
     });
+  }, []);
+
+  const commitMemories = useCallback((next: Memory[]) => {
+    memoriesRef.current = next;
+    setMemories(next);
+    saveToStorage(STORAGE_KEYS.memories, next);
+  }, []);
+
+  /** Apply extracted/edited memory ops; returns the newly added memories. */
+  const applyMemories = useCallback((ops: MemoryOp[]): Memory[] => {
+    if (!ops.length) return [];
+    const { next, added } = applyMemoryOps(memoriesRef.current, ops);
+    commitMemories(next);
+    return added;
+  }, [commitMemories]);
+
+  const updateMemory = useCallback((id: string, text: string) => {
+    applyMemories([{ op: 'update', id, text }]);
+  }, [applyMemories]);
+
+  const removeMemory = useCallback((id: string) => {
+    applyMemories([{ op: 'delete', id }]);
+  }, [applyMemories]);
+
+  const markMemoryFollowedUp = useCallback((id: string) => {
+    commitMemories(memoriesRef.current.map(m => (m.id === id ? { ...m, followedUp: true } : m)));
+  }, [commitMemories]);
+
+  const clearMemories = useCallback(() => commitMemories([]), [commitMemories]);
+
+  const setMemoryEnabled = useCallback((on: boolean) => {
+    setMemoryEnabledState(on);
+    saveToStorage(STORAGE_KEYS.memoryEnabled, on);
   }, []);
 
   const addLifeItem = useCallback((item: Omit<LifeItem, 'id' | 'createdAt' | 'completed'>) => {
@@ -442,6 +486,9 @@ export function useAppStore() {
     setAgentRuns([]);
     setCompanionRoleState('friend');
     setLifeItems([]);
+    memoriesRef.current = [];
+    setMemories([]);
+    setMemoryEnabledState(true);
   }, []);
 
   return {
@@ -466,6 +513,14 @@ export function useAppStore() {
     addLifeItem,
     toggleLifeItem,
     removeLifeItem,
+    memories,
+    memoryEnabled,
+    setMemoryEnabled,
+    applyMemories,
+    updateMemory,
+    removeMemory,
+    markMemoryFollowedUp,
+    clearMemories,
     chatHistories,
     addMessage,
     getCharacterResponse,

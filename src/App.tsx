@@ -80,6 +80,14 @@ export default function App() {
         addLifeItem={store.addLifeItem}
         toggleLifeItem={store.toggleLifeItem}
         removeLifeItem={store.removeLifeItem}
+        memories={store.memories}
+        memoryEnabled={store.memoryEnabled}
+        setMemoryEnabled={store.setMemoryEnabled}
+        applyMemories={store.applyMemories}
+        updateMemory={store.updateMemory}
+        removeMemory={store.removeMemory}
+        markMemoryFollowedUp={store.markMemoryFollowedUp}
+        clearMemories={store.clearMemories}
       />
     </div>
   );

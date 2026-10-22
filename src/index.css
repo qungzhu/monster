@@ -17,10 +17,13 @@
   --font-body: 'Noto Sans SC', system-ui, sans-serif;
 }
 
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
+/* In the base layer so Tailwind's p-*/m-* utilities can override it. */
+@layer base {
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
 }
 
 html, body, #root {
