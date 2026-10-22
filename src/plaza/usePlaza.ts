@@ -37,7 +37,7 @@ export function usePlaza(
   const inviteTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const socket = useRef<WebSocket | null>(null);
   // Friendship: per-session level for name badges, full list for the panel.
-  const [bonds, setBonds] = useState<Map<string, { total: number; level: number }>>(new Map());
+  const [bonds, setBonds] = useState<Map<string, { total: number; level: number; todayLeft: number }>>(new Map());
   const [friends, setFriends] = useState<Friend[]>([]);
   const [reward, setReward] = useState<BondReward | null>(null);
   const onRewardRef = useRef(onReward);
@@ -111,8 +111,8 @@ export function usePlaza(
             setFriends(msg.list);
             break;
           case 'bond': {
-            const { with: other, total, level } = msg;
-            setBonds(prev => new Map(prev).set(other, { total, level }));
+            const { with: other, total, level, todayLeft } = msg;
+            setBonds(prev => new Map(prev).set(other, { total, level, todayLeft }));
             if (msg.gained > 0 || msg.capped) {
               const r: BondReward = { petName: msg.petName, gained: msg.gained, total, level, levelUp: msg.levelUp, capped: msg.capped };
               setReward(r);

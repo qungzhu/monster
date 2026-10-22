@@ -51,6 +51,13 @@ export class BondStore {
     return this.pairs.get(pairKey(a, b))?.total ?? 0;
   }
 
+  /** Points this pair can still earn today (resets at UTC midnight). */
+  todayLeft(a, b, now = Date.now()) {
+    const rec = this.pairs.get(pairKey(a, b));
+    if (!rec || rec.day !== today(now)) return DAILY_PAIR_CAP;
+    return Math.max(0, DAILY_PAIR_CAP - rec.dayPoints);
+  }
+
   /** Award points for a completed interaction, respecting the daily cap. */
   award(a, b, kind, now = Date.now()) {
     const k = pairKey(a, b);

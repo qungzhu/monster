@@ -27,6 +27,10 @@ interface Props {
   isSelf?: boolean;
   /** Friendship badge shown before the pet name (🤝 💛 💖 💞). */
   badge?: string;
+  /** Tapping the cat opens its profile card. */
+  onSelect?: () => void;
+  /** Highlight ring while its card is open. */
+  selected?: boolean;
 }
 
 /**
@@ -34,7 +38,7 @@ interface Props {
  * and heading are smoothed toward the latest pose so remote cats glide
  * instead of jumping at the 10 Hz network rate.
  */
-export function PlazaCat({ url, getPose, name, petName, isSelf, badge }: Props) {
+export function PlazaCat({ url, getPose, name, petName, isSelf, badge, onSelect, selected }: Props) {
   const outer = useRef<THREE.Group>(null);
   const animRoot = useRef<THREE.Group>(null);
   const { scene, animations } = useGLTF(url);
@@ -107,6 +111,25 @@ export function PlazaCat({ url, getPose, name, petName, isSelf, badge }: Props) 
       <group ref={animRoot} position={[fit.x, fit.y, fit.z]} scale={fit.s}>
         <primitive object={clone} />
       </group>
+      {/* Invisible, generous tap target: raycasting the skinned fur mesh is
+          slow and the cat is small on a phone screen. */}
+      {onSelect && (
+        <mesh
+          position={[0, CAT_HEIGHT / 2, 0]}
+          onClick={e => { e.stopPropagation(); onSelect(); }}
+          onPointerOver={() => { document.body.style.cursor = 'pointer'; }}
+          onPointerOut={() => { document.body.style.cursor = ''; }}
+        >
+          <cylinderGeometry args={[0.42, 0.42, CAT_HEIGHT, 12]} />
+          <meshBasicMaterial transparent opacity={0} depthWrite={false} />
+        </mesh>
+      )}
+      {selected && (
+        <mesh rotation-x={-Math.PI / 2} position={[0, 0.02, 0]}>
+          <ringGeometry args={[0.42, 0.5, 40]} />
+          <meshBasicMaterial color="#f472b6" transparent opacity={0.85} depthWrite={false} />
+        </mesh>
+      )}
       <Html position={[0, CAT_HEIGHT + 0.25, 0]} center distanceFactor={9} zIndexRange={[10, 0]}>
         <div
           className="pointer-events-none whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-medium text-white"

@@ -7,6 +7,7 @@ import { PlushLighting } from '../components/pets/PetScene';
 import { PlazaCat, ARENA_Z_OFFSET, GROUND_Y } from '../plaza/PlazaCat';
 import type { CatPose } from '../plaza/PlazaCat';
 import { usePlaza } from '../plaza/usePlaza';
+import { PetCard } from '../plaza/PetCard';
 import type { RemoteTarget } from '../plaza/usePlaza';
 import { ARENA_RADIUS, BOND_LEVELS, INTERACT_LABEL, nextLevelMin, rewardGrowth, INTERACT_PROMPT_RADIUS, PLAZA_BREEDS, PLAZA_EMOTES, SEND_HZ, interactionPose, liteModelUrl } from '../plaza/protocol';
 import type { BondReward, Interaction, InteractKind, Peer, PlazaAction } from '../plaza/protocol';
@@ -152,6 +153,7 @@ export function Plaza({ userName, adoptedBreedId, onReward }: PlazaProps) {
     bonds, friends, reward, setReward,
   } = usePlaza(identity, onReward);
   const [showFriends, setShowFriends] = useState(false);
+  const [selected, setSelected] = useState<string | null>(null);
   const badgeOf = (id: string) => BOND_LEVELS[bonds.get(id)?.level ?? 0].badge;
   const [near, setNear] = useState<string | null>(null);
   const selfIdRef = useRef<string | null>(null);
@@ -165,6 +167,23 @@ export function Plaza({ userName, adoptedBreedId, onReward }: PlazaProps) {
     if (!self) { s.ready = false; return; }
     if (!s.ready) Object.assign(s, { x: self.x, z: self.z, tx: self.x, tz: self.z, ry: self.ry, ready: true });
   }, [self]);
+
+  // Live readout for the open card (action, distance), sampled from refs.
+  const [cardLive, setCardLive] = useState<{ action: PlazaAction; dist: number | null } | null>(null);
+  useEffect(() => {
+    if (!selected) return;
+    const sample = () => {
+      const isMe = selected === selfIdRef.current;
+      const t = isMe ? sim.current : targets.current.get(selected);
+      setCardLive({
+        action: t?.action ?? 'Idle',
+        dist: isMe || !t ? null : Math.hypot(t.x - sim.current.x, t.z - sim.current.z),
+      });
+    };
+    const first = setTimeout(sample, 0);
+    const iv = setInterval(sample, 300);
+    return () => { clearTimeout(first); clearInterval(iv); };
+  }, [selected, targets]);
 
   const defaultBreed = PLAZA_BREEDS.some(b => b.id === adoptedBreedId) ? adoptedBreedId! : PLAZA_BREEDS[0].id;
   const onJoin = useCallback((name: string, breed: string) => {
@@ -241,6 +260,8 @@ export function Plaza({ userName, adoptedBreedId, onReward }: PlazaProps) {
   const peerById = (id: string | null | undefined) => peers.find(p => p.id === id);
   const busy = interactions.some(it => it.a === selfId || it.b === selfId);
   const nearPeer = near ? peerById(near) : undefined;
+  // If the cat whose card is open leaves the room, the card closes.
+  const selectedPeer = selected ? peerById(selected) : undefined;
 
   // Toasts fade on their own; an unanswered invite auto-declines.
   useEffect(() => {
@@ -276,17 +297,17 @@ export function Plaza({ userName, adoptedBreedId, onReward }: PlazaProps) {
           <mesh
             rotation-x={-Math.PI / 2}
             position={[0, GROUND_Y + 0.02, ARENA_Z_OFFSET]}
-            onClick={e => { e.stopPropagation(); onGroundClick(e.point); }}
+            onClick={e => { e.stopPropagation(); setSelected(null); onGroundClick(e.point); }}
           >
             <circleGeometry args={[ARENA_RADIUS + 0.5, 48]} />
             <meshBasicMaterial transparent opacity={0} depthWrite={false} />
           </mesh>
 
           {self && identity && (
-            <PlazaCat key={self.id} url={liteModelUrl(self.breed)} getPose={selfPose} name={self.name} petName={self.petName} isSelf />
+            <PlazaCat key={self.id} url={liteModelUrl(self.breed)} getPose={selfPose} name={self.name} petName={self.petName} isSelf onSelect={() => setSelected(self.id)} selected={selected === self.id} />
           )}
           {others.map(p => (
-            <PlazaCat key={p.id} url={liteModelUrl(p.breed)} getPose={remotePose(p.id)} name={p.name} petName={p.petName} badge={badgeOf(p.id)} />
+            <PlazaCat key={p.id} url={liteModelUrl(p.breed)} getPose={remotePose(p.id)} name={p.name} petName={p.petName} badge={badgeOf(p.id)} onSelect={() => setSelected(p.id)} selected={selected === p.id} />
           ))}
           <SelfController step={stepSelf} send={sendState} />
           <ProximityWatcher getSelf={selfPose} selfId={selfIdRef} targets={targets} onNear={setNear} />
@@ -310,7 +331,7 @@ export function Plaza({ userName, adoptedBreedId, onReward }: PlazaProps) {
       </div>
 
       {/* Proximity prompt: invite the cat next to you */}
-      {identity && status === 'online' && nearPeer && !busy && (
+      {identity && status === 'online' && nearPeer && !busy && !selectedPeer && (
         <div className="absolute bottom-16 left-1/2 w-[min(92%,340px)] -translate-x-1/2 rounded-2xl bg-slate-900/85 p-3 text-white shadow-xl ring-1 ring-pink-400/40 backdrop-blur">
           {pendingInvite?.to === nearPeer.id ? (
             <p className="text-center text-xs text-slate-200">已邀请 {nearPeer.petName} {INTERACT_LABEL[pendingInvite.kind]},等 TA 回应…</p>
@@ -359,6 +380,35 @@ export function Plaza({ userName, adoptedBreedId, onReward }: PlazaProps) {
           </div>
         </div>
       )}
+
+      {/* Profile card for the tapped cat */}
+      {selectedPeer && (() => {
+        const isMe = selectedPeer.id === selfId;
+        return (
+          <PetCard
+            peer={selectedPeer}
+            isSelf={isMe}
+            action={cardLive?.action ?? 'Idle'}
+            distance={cardLive?.dist ?? null}
+            bond={bonds.get(selectedPeer.id)}
+            friendCount={friends.length}
+            busy={busy}
+            pending={pendingInvite?.to === selectedPeer.id}
+            onInvite={kind => sendInvite(selectedPeer.id, kind)}
+            onWalkTo={() => {
+              // Stop just short of the other cat so the invite prompt appears.
+              const t = targets.current.get(selectedPeer.id);
+              if (!t) return;
+              const s = sim.current;
+              const dx = t.x - s.x, dz = t.z - s.z, d = Math.hypot(dx, dz) || 1;
+              s.tx = t.x - (dx / d) * 0.7;
+              s.tz = t.z - (dz / d) * 0.7;
+              s.emote = null;
+            }}
+            onClose={() => setSelected(null)}
+          />
+        );
+      })()}
 
       {/* Friendship reward */}
       {reward && (() => {

@@ -18,7 +18,7 @@
 //     { t: 'declined', by, petName }
 //     { t: 'interact', a, b, kind, mx, mz, angle, duration }  // to whole room
 //     { t: 'bonds', list: [{ name, petName, total, level, online }] }   // my friends
-//     { t: 'bond',  with, petName, gained, total, level, levelUp, capped }
+//     { t: 'bond',  with, petName, gained, total, level, levelUp, capped, todayLeft }
 //     { t: 'error',   message }
 
 import { BondStore, levelOf } from './plazaBonds.js';
@@ -103,8 +103,9 @@ export class PlazaRoom {
       if (other.id === id) continue;
       const total = this.bonds.total(peer.key, other.key);
       if (total <= 0) continue;
-      this.send(id, { t: 'bond', with: other.id, petName: other.petName, gained: 0, total, level: levelOf(total), levelUp: false, capped: false });
-      this.send(other.id, { t: 'bond', with: id, petName: peer.petName, gained: 0, total, level: levelOf(total), levelUp: false, capped: false });
+      const todayLeft = this.bonds.todayLeft(peer.key, other.key);
+      this.send(id, { t: 'bond', with: other.id, petName: other.petName, gained: 0, total, level: levelOf(total), levelUp: false, capped: false, todayLeft });
+      this.send(other.id, { t: 'bond', with: id, petName: peer.petName, gained: 0, total, level: levelOf(total), levelUp: false, capped: false, todayLeft });
     }
   }
 
@@ -175,7 +176,7 @@ export class PlazaRoom {
     if (!a || !b) return;                       // someone left mid-dance: no points
     if (a.key === b.key) return;                // same device in two tabs: no self-farming
     const r = this.bonds.award(a.key, b.key, kind);
-    const base = { gained: r.gained, total: r.total, level: levelOf(r.total), levelUp: r.levelUp, capped: r.capped };
+    const base = { gained: r.gained, total: r.total, level: levelOf(r.total), levelUp: r.levelUp, capped: r.capped, todayLeft: this.bonds.todayLeft(a.key, b.key) };
     this.send(a.id, { t: 'bond', with: b.id, petName: b.petName, ...base });
     this.send(b.id, { t: 'bond', with: a.id, petName: a.petName, ...base });
     this.sendBondList(a);

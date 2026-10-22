@@ -26,7 +26,7 @@ export type ServerMessage =
   | { t: 'declined'; by: string; petName: string }
   | { t: 'interact'; a: string; b: string; kind: InteractKind; mx: number; mz: number; angle: number; duration: number }
   | { t: 'bonds'; list: Friend[] }
-  | { t: 'bond'; with: string; petName: string; gained: number; total: number; level: number; levelUp: boolean; capped: boolean }
+  | { t: 'bond'; with: string; petName: string; gained: number; total: number; level: number; levelUp: boolean; capped: boolean; todayLeft: number }
   | { t: 'error'; message: string };
 
 /** Breeds that have a lightweight (LOD) model for the multiplayer plaza. */
@@ -108,6 +108,8 @@ export function interactionPose(it: Interaction, role: 0 | 1, t: number) {
 }
 
 // ———— Friendship (好感) — mirrors server/plazaBonds.js ————
+
+export const DAILY_PAIR_CAP = 20;
 
 export const BOND_LEVELS = [
   { min: 0, name: '陌生猫猫', badge: '' },

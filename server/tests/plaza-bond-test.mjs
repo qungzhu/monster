@@ -27,6 +27,7 @@ place('A', 0, 0); place('B', 1, 0);
 await dance('A', 'B', 'play', 6200);
 const bA = last('A', 'bond'), bB = last('B', 'bond');
 ok('一起玩结束后双方各 +5 好感', bA?.gained === 5 && bB?.gained === 5 && bA.total === 5);
+ok('好感消息带今日剩余额度(20-5=15)', bA?.todayLeft === 15 && bB?.todayLeft === 15);
 ok('好感消息指向对方的会话 id 和猫名', bA?.with === 'B' && bA?.petName === '狮狮' && bB?.with === 'A');
 
 await dance('A', 'B', 'rub', 4700);
@@ -41,6 +42,7 @@ const capped = last('A', 'bond');
 ok('每天上限 20:最后一次只加 2 分并标记已封顶', capped?.gained === 2 && capped?.capped === true && capped?.total === 20);
 await dance('A', 'B', 'rub', 4700);
 ok('封顶后再互动 +0', last('A', 'bond')?.gained === 0 && last('A', 'bond')?.total === 20);
+ok('封顶后今日剩余为 0', last('A', 'bond')?.todayLeft === 0);
 
 // leave mid-dance -> no points
 room.join('C', { name: 'Coco', petName: '布丁', breed: 'meshy-persian', key: KC });
