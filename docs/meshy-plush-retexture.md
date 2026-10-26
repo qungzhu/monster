@@ -1,5 +1,9 @@
 # Plan: plush-toy textures via Meshy Retexture
 
+> **Also queued: five new plush cats** from the owner's multi-view sheets —
+> see "New plush cats" at the end. Run that first; it may replace the
+> Maine Coon and Norwegian models (and their texture defects) outright.
+
 Goal: make the cats look like real plush toys (minky / short-pile fabric,
 soft embroidered-looking eyes and nose) by regenerating their textures with
 Meshy, while keeping the rigs and animations we built.
@@ -52,3 +56,28 @@ holes exist in several meshes (9–142 loops) but none are visible.
 - Retexture costs Meshy credits per model: do one, show the user, then batch.
 - Material side is already plush (`src/components/pets/plushMaterial.ts`):
   sheen, pile noise, wrap lighting. A fabric-looking albedo is what's missing.
+
+## New plush cats (multi-view → 3D)
+
+Reference sheets from the owner (plush-toy renders, 5 views each) are in
+`assets/plush-refs/sheets/`; clean per-view crops (768², one cat per image,
+no neighbours leaking in) are `assets/plush-refs/<name>-<view>.jpg`.
+
+| name | breed | look |
+|---|---|---|
+| `himalayan` | 喜马拉雅猫 (new) | cream long coat, seal-point mask/ears/paws/tail, blue eyes |
+| `mainecoon` | 缅因猫 (replace current model?) | brown tabby, lynx ear tufts, big round tail |
+| `norwegian` | 挪威森林猫 (replace current model?) | brown tabby + white bib and socks, bushy tail |
+| `birman` | 伯曼猫 (new) | colourpoint with white gloves, blue eyes |
+| `angora` | 土耳其安哥拉 (new) | all white, blue eyes, plume tail |
+
+1. `node scripts/generate-plush-cats.mjs [name…]` — 4 views each (front,
+   3/4, side, 3/4 back), same Meshy settings as the app; task ids are saved
+   to `assets/plush-refs/tasks.json` so re-runs resume instead of re-paying.
+   Do **one** cat first and show the owner before the rest.
+2. Check: `fix-normals.mjs --check`, the magenta-background viewer for holes,
+   facing (+Z toward camera; else `glbRotationY`).
+3. Optimise like the other `mesh-*.glb` (weld, ~100k tris, 1024 WebP
+   textures) and make a lite copy for the plaza (`public/models/lite/`).
+4. Register in `src/data/breeds.ts` (procedural motion like the other
+   multi-view cats: `glbDisableSkeletalAnimation: true`).
