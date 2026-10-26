@@ -29,6 +29,24 @@ it in chat.
   `cat2-rigged-safe.glb` (胖虎斑), `pixiebob-rigged.glb` (皮克斯鲍勃)
 - `mesh-*.glb` (欧短 / 挪威森林 / 缅因 / 波斯 / 布偶)
 
+## Audit of the current models (what retexturing should fix)
+
+Checked every cat with a fixed-angle viewer on a magenta background
+(holes would show magenta), with colour / normal maps toggled.
+
+| Cat | Issue | Where it lives | Fix |
+|---|---|---|---|
+| 挪威森林猫 `mesh-norweg` | dark "harness" lines around body and legs | painted into the colour texture where Meshy stitched the front/side/back views; not UV seams (texture dilation and edge refill don't remove them) | retexture |
+| 挪威森林猫 | white torn-looking patch on both sides of the neck | colour texture + a crease in the mesh; not a hole | retexture (+ maybe smooth the crease) |
+| 欧洲短毛虎斑 `mesh-tabby2` | rectangular patch on the hip (back view) | colour texture | retexture |
+| 金吉拉波斯 `mesh-persian` | a few dark specks on the body | colour texture | retexture |
+| 奶油长毛 `cat4` | faint light seam lines | colour texture | retexture |
+| 胖虎斑 `cat2` | a second long thin tail hangs to the ground behind the pom-pom tail, and pokes out as a hook beside the left shoulder from the front | geometry | ask the owner: remove it or keep it as the curly tail |
+
+Already fixed: inverted normals on cat3/4/5 and their backwards facing
+(see `tools/animation-retarget/fix-normals.mjs`, `glbRotationY`). Small
+holes exist in several meshes (9–142 loops) but none are visible.
+
 ## Notes
 
 - Retexture costs Meshy credits per model: do one, show the user, then batch.
