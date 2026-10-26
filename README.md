@@ -6,7 +6,7 @@
 - **冰雪奇缘风格场景**:实时 3D 冬季雪景
 - **真实照片复刻宠物**:上传萌宠多角度照片 → Meshy 生成专属 3D 形象
 - **真骨骼动画**:6 只猫各有 8 个骨骼动作(走/跑/待机/舔爪/吃/睡/喵/开心)+ 会摆动的尾巴 + 十余种程序化动作(翻肚子/打滚/疯跑/捕猎扑击等)
-- **毛绒玩具材质**:MeshPhysicalMaterial + sheen 织物绒感
+- **毛绒玩具材质**:MeshPhysicalMaterial + sheen 织物绒感 + 着色器里的绒面纹理(随身体走、不闪烁)+ 包裹光照(明暗过渡柔和，像光透进布料)+ 逆光绒边，全部不加几何体(`src/components/pets/plushMaterial.ts`,URL 加 `?plushlab` 可实时调参)
 
 ---
 
@@ -197,6 +197,7 @@ npm run dev        # 前端(Vite 已代理 /plaza-ws)
 - `retarget.html` / `run.mjs` —— **跨骨骼动画重定向**(世界空间旋转增量法),把任意四足素材的动作移植到目标骨架
 - `add-tail-bone.cjs` —— 给绑骨模型**加会摆动的尾巴骨**
 - `tail-uv.cjs` / `tail-smooth.cjs` —— 尾巴 UV 重映射到身体毛发 + 表面平滑
+- `fix-normals.mjs` —— **法线修复**:按三角形朝向重算平滑法线(跨 UV 接缝焊接，不出接缝线)。`--check` 只检查。骨架迁移后的 cat3/4/5 曾有 60–74% 法线朝内，光照里外颠倒、看起来像塑胶
 - `inject.cjs` / `merge.js` —— 动画剪辑注入/合并
 
 模型来源与授权见 `public/models/custom/CREDITS.md`(Meshy 生成 / Fox CC-BY / Catson 商用授权)。

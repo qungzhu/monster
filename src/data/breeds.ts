@@ -54,6 +54,8 @@ export interface Breed {
   glbGroundOffset?: number;
   /** Generated asset contains a disconnected flat display pedestal. */
   glbRemoveFlatBase?: boolean;
+  /** Turn the model to face the camera (radians), for meshes exported facing away. */
+  glbRotationY?: number;
   /** Retargeted head weights tear the face; use safe procedural motion instead. */
   glbDisableSkeletalAnimation?: boolean;
 }
@@ -252,6 +254,7 @@ export const breeds: Breed[] = [
     description: '黑橘白三色斑块分布，招财又可爱',
     personality: ['招财', '亲人', '甜美'],
     glbUrl: '/models/custom/cat3-rigged-safe.glb',
+    glbRotationY: Math.PI,
     glbDisableSkeletalAnimation: true,
   },
   {
@@ -260,6 +263,7 @@ export const breeds: Breed[] = [
     description: '蓬松的胸毛、奶茶色调，软绵绵一大团',
     personality: ['温柔', '慵懒', '软萌'],
     glbUrl: '/models/custom/cat4-rigged-safe.glb',
+    glbRotationY: Math.PI,
     glbRemoveFlatBase: true,
     glbDisableSkeletalAnimation: true,
   },
@@ -269,6 +273,7 @@ export const breeds: Breed[] = [
     description: '灰色渐变条纹配白手套，粉鼻子圆脸颊',
     personality: ['沉稳', '优雅', '粘人'],
     glbUrl: '/models/custom/cat5-rigged-safe.glb',
+    glbRotationY: Math.PI,
     glbDisableSkeletalAnimation: true,
   },
 

@@ -7,6 +7,11 @@ export interface GLBModelConfig {
   yOffset: number;
   /** Y rotation in radians (face the camera) */
   rotationY?: number;
+  /**
+   * Fix a mesh exported facing away from +Z (radians). Applied inside the
+   * emote layer so walk/run paths still go the way the cat is facing.
+   */
+  facingY?: number;
   /** Animation clip name to loop when idle */
   idleAnimation: string;
   /** Animation clip name to play on hover/interaction */

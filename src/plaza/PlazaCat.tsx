@@ -3,7 +3,7 @@ import { useFrame } from '@react-three/fiber';
 import { Html, useAnimations, useGLTF } from '@react-three/drei';
 import { SkeletonUtils } from 'three-stdlib';
 import * as THREE from 'three';
-import { toPlushMaterial } from '../components/pets/GLBPet';
+import { toPlushMaterial } from '../components/pets/plushMaterial';
 import type { PlazaAction } from './protocol';
 
 /** Plaza world placement: arena (x, z) -> world, on the snow clearing. */
@@ -53,7 +53,7 @@ export function PlazaCat({ url, getPose, name, petName, isSelf, badge, onSelect,
       if (!mesh.isMesh) return;
       mesh.castShadow = true;
       const m = mesh.material as THREE.MeshStandardMaterial;
-      if (m?.isMeshStandardMaterial) mesh.material = toPlushMaterial(m);
+      if (m?.isMeshStandardMaterial) mesh.material = toPlushMaterial(m, mesh);
     });
   }, [clone]);
 

@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
+import { toPlushMaterial } from './plushMaterial';
 import { useGLTF, useAnimations } from '@react-three/drei';
 import { SkeletonUtils } from 'three-stdlib';
 import type { Group } from 'three';
@@ -53,65 +54,6 @@ interface GLBPetProps {
  * animation and back. The scene graph is cloned per instance so the
  * same GLB can appear in several canvases at once.
  */
-/**
- * Upgrade a smooth (plastic-looking) PBR surface to a plush fabric one:
- * MeshPhysicalMaterial + sheen gives cloth / velvet its soft fuzzy rim
- * instead of a hard specular highlight. Built by hand on purpose —
- * MeshPhysicalMaterial.copy(standardMat) throws (it reads physical-only
- * props off the plain source), which silently drops the pet to its
- * procedural fallback.
- */
-export function toPlushMaterial(std: THREE.MeshStandardMaterial): THREE.MeshPhysicalMaterial {
-  const mat = new THREE.MeshPhysicalMaterial();
-  mat.name = std.name;
-  mat.color.copy(std.color);
-  mat.map = std.map;
-  mat.normalMap = std.normalMap;
-  mat.normalScale.copy(std.normalScale).multiplyScalar(0.4);
-  mat.aoMap = std.aoMap;
-  mat.aoMapIntensity = std.aoMapIntensity;
-  mat.emissive.copy(std.emissive);
-  mat.emissiveMap = std.emissiveMap;
-  // Some Meshy exports (red fox, the Pixie-Bob) ship a full-strength
-  // self-illumination: emissive [1,1,1] driven by the albedo texture, i.e.
-  // the model glows in its own colour. Stacked on the studio lighting that
-  // blows those pets out while emissive-free ones (ragdoll) look right.
-  // Keep only a trace of it so every pet is lit by the same rules.
-  mat.emissiveIntensity = std.emissiveMap ? 0.22 : std.emissiveIntensity;
-  mat.alphaMap = std.alphaMap;
-  mat.alphaTest = std.alphaTest;
-  mat.transparent = std.transparent;
-  mat.opacity = std.opacity;
-  mat.side = std.side;
-  mat.vertexColors = std.vertexColors; // euro tail COLOR_0 tint
-  mat.roughness = 1;
-  mat.metalness = 0;
-  // Fabric has no hard spec highlight; the physical default white
-  // specular blows out the lit side under the bright scene lights.
-  mat.specularIntensity = 0;
-  mat.sheen = 0.55;
-  mat.sheenRoughness = 0.8; // broad, soft fabric lobe
-  mat.sheenColor = new THREE.Color('#b8a898');
-  // Let the studio softbox environment wrap the fabric (plush toys are
-  // lit from everywhere, that's what makes them look soft). The scene-wide
-  // environment is kept dim so the snow doesn't blow out; the pet boosts
-  // it locally.
-  mat.envMapIntensity = 2.8;
-  // Backlit fuzz glow: on a plush toy the fibres along the silhouette catch
-  // the light and glow in their own colour. Add a fresnel-weighted emissive
-  // in the albedo colour — no extra geometry, so no outline artifacts.
-  mat.onBeforeCompile = shader => {
-    shader.fragmentShader = shader.fragmentShader.replace(
-      '#include <emissivemap_fragment>',
-      `#include <emissivemap_fragment>
-  float plushRim = 1.0 - clamp(dot(normalize(normal), normalize(vViewPosition)), 0.0, 1.0);
-  totalEmissiveRadiance += diffuseColor.rgb * pow(plushRim, 2.4) * 0.3;`,
-    );
-  };
-  mat.customProgramCacheKey = () => 'plush-rim-v2';
-  return mat;
-}
-
 export function GLBPet({ config, isHovered, tint, normalize, emote }: GLBPetProps) {
   const group = useRef<Group>(null);
   const emoteGroup = useRef<Group>(null);
@@ -264,7 +206,7 @@ export function GLBPet({ config, isHovered, tint, normalize, emote }: GLBPetProp
         const materials = hasMaterialArray ? currentMaterial : [currentMaterial];
         const clonedMaterials = materials.map(source => {
           const material = (source as THREE.MeshStandardMaterial).isMeshStandardMaterial
-            ? toPlushMaterial(source as THREE.MeshStandardMaterial)
+            ? toPlushMaterial(source as THREE.MeshStandardMaterial, mesh)
             : source.clone();
           if (tintColor && 'color' in material) {
             (material as THREE.MeshStandardMaterial).color.multiply(tintColor);
@@ -500,8 +442,10 @@ export function GLBPet({ config, isHovered, tint, normalize, emote }: GLBPetProp
     return (
       <group ref={group} position={[0, config.yOffset, 0]} rotation={[0, config.rotationY ?? 0, 0]}>
         <group ref={emoteGroup}>
-          <group position={[fit.offsetX, fit.offsetY, fit.offsetZ]} scale={fit.scale}>
-            <primitive object={clonedScene} />
+          <group rotation={[0, config.facingY ?? 0, 0]}>
+            <group position={[fit.offsetX, fit.offsetY, fit.offsetZ]} scale={fit.scale}>
+              <primitive object={clonedScene} />
+            </group>
           </group>
         </group>
       </group>
@@ -516,7 +460,9 @@ export function GLBPet({ config, isHovered, tint, normalize, emote }: GLBPetProp
       scale={config.scale}
     >
       <group ref={emoteGroup}>
-        <primitive object={clonedScene} />
+        <group rotation={[0, config.facingY ?? 0, 0]}>
+          <primitive object={clonedScene} />
+        </group>
       </group>
     </group>
   );
