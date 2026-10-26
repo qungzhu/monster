@@ -31,6 +31,8 @@ check('compound request becomes two actions', () => {
   assert.equal(p.actions[0].title, '取快递');
   assert.equal(p.actions[0].due, at(1, 15));
   assert.equal(p.actions[1].itemType, 'weight');
+  const r = plan('每天早上8点提醒我喝水，再提醒我每周一晚上交周报');
+  assert.deepEqual(r.actions.map(a => `${a.title} ${a.repeat}`), ['喝水 daily', '交周报 weekly']);
 });
 
 check('complete / remove match existing items', () => {

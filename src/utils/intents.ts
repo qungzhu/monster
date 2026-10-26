@@ -18,6 +18,7 @@ export type IntentType =
   | 'custom'
   | 'memories'
   | 'about-me'
+  | 'proactive'
   | 'bond'
   | 'settings'
   | 'help'
@@ -62,6 +63,7 @@ const intentPatterns: Array<{ type: IntentType; patterns: RegExp }> = [
   { type: 'shop', patterns: /商店|购买|买东西|物品|背包|道具/ },
   { type: 'custom', patterns: /照片|照相|拍照|上传|定制|复刻|我家的?[猫狗宠]|自己的[猫狗宠]|专属/ },
   { type: 'adopt', patterns: /领养|换伙伴|新伙伴|换宠|图鉴|品种|其他宠物|别的宠物/ },
+  { type: 'proactive', patterns: /开启?通知|通知设置|主动提醒|早安问候|离线提醒|主动关心/ },
   { type: 'about-me', patterns: /你(?:都|还)?记得(?:我|些?什么|哪些|关于我)|关于我的(?:事|记忆)|你记住了(?:什么|哪些)|我的记忆|你(?:有多)?了解我/ },
   { type: 'memories', patterns: /回忆|日记|历史|记录|日历|以前|心情统计/ },
   { type: 'bond', patterns: /档案|资料|羁绊|亲密度|成就|等级|我们的关系/ },

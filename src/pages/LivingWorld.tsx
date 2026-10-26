@@ -33,6 +33,11 @@ import { PlanCard } from '../components/game/PlanCard';
 import type { PlanStatus } from '../components/game/PlanCard';
 import { CANCEL_RE, CONFIRM_RE, describeAction, looksLikeTask, normalizePlan, planLocally } from '../data/agent';
 import type { AgentPlan } from '../data/agent';
+import { useProactive } from '../proactive/useProactive';
+import { ProactiveCard } from '../proactive/ProactiveCard';
+import type { Job } from '../proactive/jobs';
+import { localTimeZone } from '../data/time';
+import { rollForward } from '../../shared/recurrence';
 import { extractMemoriesLocally, memoryCommand, memoryContext, pendingFollowUp, recallLine } from '../data/memory';
 import type { Memory, MemoryOp } from '../data/memory';
 
@@ -200,22 +205,51 @@ export function LivingWorld(props: LivingWorldProps) {
     return () => { alive = false; };
   }, []);
 
-  // Reminders: while the app is open, the pet speaks up when something is
-  // due (reminders that fire with the app closed come with step 3).
+  // Reminders. While the app is open the pet speaks up itself; with
+  // notifications on, pushes from the reminder server arrive too — `spoken`
+  // makes sure each occurrence is said once either way.
+  const spoken = useRef(new Set<string>());
+  const remindItem = useCallback((item: LifeItem) => {
+    if (!item.due) return;
+    const key = `r:${item.id}@${Date.parse(item.due)}`;
+    if (item.repeat) {
+      // Repeating: move on to the next occurrence.
+      updateLifeItem(item.id, { due: new Date(rollForward(Date.parse(item.due), item.repeat, localTimeZone(), Date.now())).toISOString() });
+    } else {
+      updateLifeItem(item.id, { remindedAt: new Date().toISOString() });
+    }
+    if (spoken.current.has(key)) return;
+    spoken.current.add(key);
+    playEmote('meow', 3500);
+    say(`⏰ 到时间啦:${item.title}!`, 7000);
+  }, [updateLifeItem, playEmote, say]);
+
   useEffect(() => {
     const check = () => {
       const now = Date.now();
-      const due = lifeItems.find(it => it.due && !it.completed && !it.remindedAt
+      const due = lifeItems.find(it => it.due && !it.completed && (it.repeat || !it.remindedAt)
         && Date.parse(it.due) <= now && now - Date.parse(it.due) < 12 * 3_600_000);
-      if (!due) return;
-      updateLifeItem(due.id, { remindedAt: new Date(now).toISOString() });
-      playEmote('meow', 3500);
-      say(`⏰ 到时间啦:${due.title}!`, 7000);
+      if (due) remindItem(due);
     };
     const t = setInterval(check, 15_000);
     const first = setTimeout(check, 2500);
     return () => { clearInterval(t); clearTimeout(first); };
-  }, [lifeItems, updateLifeItem, playEmote, say]);
+  }, [lifeItems, remindItem]);
+
+  const onPush = useCallback((job: Job) => {
+    if (job.kind === 'reminder') {
+      const item = lifeItems.find(it => `r:${it.id}` === job.id);
+      if (item && Date.parse(item.due ?? '') === job.at) { remindItem(item); return; }
+    }
+    const key = `${job.id}@${job.at}`;
+    if (spoken.current.has(key)) return;
+    spoken.current.add(key);
+    if (job.kind === 'event-followup') markMemoryFollowedUp(job.id.replace(/^ask:/, ''));
+    playEmote(job.kind === 'miss-you' ? 'rub' : 'cute', 3500);
+    say(job.body, 7000);
+  }, [lifeItems, remindItem, markMemoryFollowedUp, playEmote, say]);
+
+  const proactive = useProactive({ items: lifeItems, memories, petName: petName || character?.name || '我', onMessage: onPush });
 
   useEffect(() => () => {
     if (planCloseTimer.current) clearTimeout(planCloseTimer.current);
@@ -347,7 +381,7 @@ export function LivingWorld(props: LivingWorldProps) {
       try {
         switch (a.type) {
           case 'add_item':
-            addLifeItem({ type: a.itemType, title: a.title, due: a.due, detail: plan.command });
+            addLifeItem({ type: a.itemType, title: a.title, due: a.due, repeat: a.repeat, detail: plan.command });
             break;
           case 'complete_item':
             if (lifeItems.find(it => it.id === a.id && !it.completed)) toggleLifeItem(a.id);
@@ -467,6 +501,7 @@ export function LivingWorld(props: LivingWorldProps) {
       case 'custom': setActiveCard('custom'); break;
       case 'memories': setActiveCard('memories'); break;
       case 'about-me': setActiveCard('about-me'); break;
+      case 'proactive': setActiveCard('life'); say('提醒和主动关心的设置在这里~', 3000); break;
       case 'bond': setActiveCard('bond'); break;
       case 'settings': setActiveCard('settings'); break;
       case 'help': setActiveCard('help'); break;
@@ -856,6 +891,19 @@ export function LivingWorld(props: LivingWorldProps) {
         hubName={hubName}
         onHubNameChange={setHubName}
         agentRuns={agentRuns}
+        extra={(
+          <ProactiveCard
+            petName={petName || character.name}
+            settings={proactive.settings}
+            onSettings={proactive.setSettings}
+            status={proactive.status}
+            upcoming={proactive.upcoming}
+            error={proactive.error}
+            onEnable={() => { void proactive.enable(); }}
+            onDisable={() => { void proactive.disable(); }}
+            onTest={() => { void proactive.sendTest(); }}
+          />
+        )}
         onCommand={command => {
           setActiveCard(null);
           void handleSubmit(command);

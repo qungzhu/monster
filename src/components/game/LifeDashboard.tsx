@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import type { ReactNode } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Brain, CalendarDays, Check, LoaderCircle, Pencil, Play, Plus, RefreshCw, Sparkles, Trash2, X } from 'lucide-react';
 import { companionRoles, lifeItemMeta } from '../../data/companion';
-import { formatDue } from '../../data/agent';
+import { formatDue, formatRepeat } from '../../data/agent';
 import type { AgentRun, CompanionRole, LifeItem, LifeItemType } from '../../data/companion';
 import {
   disconnectGoogleCalendar,
@@ -27,6 +28,8 @@ interface LifeDashboardProps {
   onOpenMemories: () => void;
   /** Hand a request to the pet's task agent (plan → confirm → run). */
   onCommand: (command: string) => void;
+  /** Extra section under the memory entry (proactive settings). */
+  extra?: ReactNode;
   items: LifeItem[];
   onAdd: (item: Omit<LifeItem, 'id' | 'createdAt' | 'completed'>) => void;
   onToggle: (id: string) => void;
@@ -43,7 +46,7 @@ const starterPlan: Array<Omit<LifeItem, 'id' | 'createdAt' | 'completed'>> = [
 
 export function LifeDashboard({
   show, onClose, userName, petName, hubName, onHubNameChange, agentRuns, chatCount, moodCount,
-  role, onRoleChange, memoryCount, onOpenMemories, onCommand, items, onAdd, onToggle, onRemove,
+  role, onRoleChange, memoryCount, onOpenMemories, onCommand, extra, items, onAdd, onToggle, onRemove,
 }: LifeDashboardProps) {
   const [type, setType] = useState<LifeItemType>('todo');
   const [title, setTitle] = useState('');
@@ -253,6 +256,8 @@ export function LifeDashboard({
               </button>
             </div>
 
+            {extra && <div className="px-5 py-2">{extra}</div>}
+
             <div className="px-5 py-2">
               <div className="rounded-2xl border border-white/10 bg-black/15 p-3">
                 <div className="mb-2 flex items-center justify-between">
@@ -453,7 +458,7 @@ export function LifeDashboard({
                     </p>
                     <p className="mt-0.5 text-[9px] text-text-muted">
                       {item.due
-                        ? `⏰ ${formatDue(item.due)}${item.remindedAt ? ' · 已提醒' : ''}`
+                        ? `⏰ ${item.repeat ? `${formatRepeat(item.due, item.repeat)} · 下次 ${formatDue(item.due)}` : formatDue(item.due)}${!item.repeat && item.remindedAt ? ' · 已提醒' : ''}`
                         : new Date(item.createdAt).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                     </p>
                   </div>

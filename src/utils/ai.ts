@@ -78,6 +78,7 @@ export async function extractMemoriesAI(said: string[], memories: Memory[], apiK
       body: JSON.stringify({
         messages: said,
         memories: memories.map(m => ({ id: m.id, text: m.text, category: m.category })),
+        now: new Date().toString(),
       }),
     });
     if (!res.ok) return null;

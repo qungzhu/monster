@@ -9,6 +9,8 @@
  * Everything stays on the device; it is only sent to the AI as chat context.
  */
 
+import { parseDue } from './time';
+
 export type MemoryCategory = 'profile' | 'preference' | 'event' | 'relationship' | 'goal';
 
 export interface Memory {
@@ -22,10 +24,12 @@ export interface Memory {
   updatedAt: number;
   /** For events: the pet already asked how it went. */
   followedUp?: boolean;
+  /** For events: when it happens (ISO), so the pet can cheer and follow up on the day. */
+  when?: string;
 }
 
 export type MemoryOp =
-  | { op: 'add'; text: string; category: MemoryCategory; slot?: string; source?: Memory['source'] }
+  | { op: 'add'; text: string; category: MemoryCategory; slot?: string; source?: Memory['source']; when?: string }
   | { op: 'update'; id: string; text: string }
   | { op: 'delete'; id: string };
 
@@ -69,7 +73,7 @@ export function memoryCommand(raw: string, existing: Memory[]): { kind: 'remembe
 }
 
 /** Facts mentioned in passing (not commands — see memoryCommand). */
-export function extractMemoriesLocally(raw: string, existing: Memory[]): MemoryOp[] {
+export function extractMemoriesLocally(raw: string, existing: Memory[], now = new Date()): MemoryOp[] {
   const text = raw.trim();
   const ops: MemoryOp[] = [];
   if (!text) return ops;
@@ -106,7 +110,10 @@ export function extractMemoriesLocally(raw: string, existing: Memory[]): MemoryO
 
   // Upcoming events: "下周三要考试", "明天面试".
   if ((m = text.match(new RegExp(`(${WHEN})(?:我)?(?:要|得|有|去|参加)?(?:${STOP}{0,8}?)(${EVENTS})`, 'u')))) {
-    add(`${m[1]}${m[2]}(${new Date().getMonth() + 1}月${new Date().getDate()}日说的)`, 'event');
+    add(`${m[1]}${m[2]}(${now.getMonth() + 1}月${now.getDate()}日说的)`, 'event');
+    const when = parseDue(m[1], now)?.due;
+    const last = ops[ops.length - 1];
+    if (when && last?.op === 'add' && last.category === 'event') last.when = when;
   }
 
   // Goals.
@@ -160,6 +167,7 @@ export function applyMemoryOps(list: Memory[], ops: MemoryOp[], now = Date.now()
       category: o.category,
       slot: o.slot,
       source: o.source ?? 'auto',
+      ...(o.when ? { when: o.when } : {}),
       createdAt: now,
       updatedAt: now,
     };
@@ -195,9 +203,18 @@ export function memoryContext(list: Memory[], max = 40): string {
  */
 export function pendingFollowUp(list: Memory[], now = Date.now()): Memory | null {
   const DAY = 86_400_000;
+  // Dated events: from 18:00 on the day. Undated: 1–14 days after mentioned.
+  const startAt = (m: Memory) => (m.when ? followUpTime(m.when) : m.createdAt + DAY);
   return list
-    .filter(m => m.category === 'event' && !m.followedUp && now - m.createdAt > DAY && now - m.createdAt < 14 * DAY)
-    .sort((a, b) => a.createdAt - b.createdAt)[0] ?? null;
+    .filter(m => m.category === 'event' && !m.followedUp && now >= startAt(m) && now - startAt(m) < 14 * DAY)
+    .sort((a, b) => startAt(a) - startAt(b))[0] ?? null;
+}
+
+/** 18:00 local on the event's day — when the pet asks how it went. */
+export function followUpTime(when: string): number {
+  const d = new Date(when);
+  d.setHours(18, 0, 0, 0);
+  return d.getTime();
 }
 
 /** Offline flavour line that shows the pet remembers. */

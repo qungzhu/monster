@@ -1,5 +1,5 @@
 // Lets `node --experimental-strip-types` import src/*.ts modules that use
-// extensionless relative imports (as Vite allows): retry with ".ts".
+// extensionless relative imports (as Vite allows): retry with ".ts", ".js".
 import { registerHooks } from 'node:module';
 
 registerHooks({
@@ -7,8 +7,12 @@ registerHooks({
     try {
       return next(specifier, context);
     } catch (err) {
-      if (specifier.startsWith('.') && !/\.\w+$/.test(specifier)) return next(`${specifier}.ts`, context);
-      throw err;
+      if (!specifier.startsWith('.') || /\.\w+$/.test(specifier)) throw err;
+      try {
+        return next(`${specifier}.ts`, context);
+      } catch {
+        return next(`${specifier}.js`, context);
+      }
     }
   },
 });

@@ -20,7 +20,10 @@
     "plaza": "node server/plaza.js",
     "test:plaza": "node server/tests/plaza-room-test.mjs && node server/tests/plaza-bond-test.mjs",
     "test:memory": "node --experimental-strip-types --no-warnings --import ./server/tests/ts-hooks.mjs server/tests/memory-test.mjs",
-    "test:agent": "node --experimental-strip-types --no-warnings --import ./server/tests/ts-hooks.mjs server/tests/agent-test.mjs"
+    "test:agent": "node --experimental-strip-types --no-warnings --import ./server/tests/ts-hooks.mjs server/tests/agent-test.mjs",
+    "test:schedule": "node --experimental-strip-types --no-warnings --import ./server/tests/ts-hooks.mjs server/tests/schedule-test.mjs",
+    "test": "npm run test:plaza && npm run test:memory && npm run test:agent && npm run test:schedule && npm run test:push",
+    "test:push": "node server/tests/push-e2e.mjs"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.7",
@@ -38,6 +41,7 @@
     "react-router-dom": "^7.13.2",
     "tailwindcss": "^4.2.2",
     "three": "^0.184.0",
+    "web-push": "^3.6.7",
     "ws": "^8.22.0"
   },
   "devDependencies": {

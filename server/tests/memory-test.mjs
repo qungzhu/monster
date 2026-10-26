@@ -4,7 +4,7 @@ import { applyMemoryOps, extractMemoriesLocally, memoryCommand, memoryContext, p
 
 let passed = 0;
 const check = (name, fn) => { fn(); passed++; console.log(`  ✓ ${name}`); };
-const learn = (list, text, now = Date.now()) => applyMemoryOps(list, extractMemoriesLocally(text, list), now).next;
+const learn = (list, text, now = Date.now()) => applyMemoryOps(list, extractMemoriesLocally(text, list, new Date(now)), now).next;
 const texts = list => list.map(m => m.text);
 
 check('extracts name, likes, job, workplace, event', () => {
@@ -54,6 +54,15 @@ check('follow-up after 1–14 days, once', () => {
   assert.match(recallLine(l, now).line, /你之前说「明天面试」/);
   assert.equal(pendingFollowUp([{ ...l[0], followedUp: true }], now), null);
   assert.equal(pendingFollowUp(l, now + 20 * day), null);       // too old
+});
+
+check('dated events: no follow-up before the day, from 18:00 on it', () => {
+  const now = new Date(2026, 9, 26, 10).getTime(); // Monday
+  const l = learn([], '周三要考试', now);
+  assert.equal(new Date(l[0].when).getDate(), 28);
+  assert.equal(pendingFollowUp(l, new Date(2026, 9, 27, 20).getTime()), null); // day before
+  assert.equal(pendingFollowUp(l, new Date(2026, 9, 28, 12).getTime()), null); // exam in progress
+  assert.equal(pendingFollowUp(l, new Date(2026, 9, 28, 19).getTime())?.id, l[0].id);
 });
 
 check('context groups by category; limit keeps manual memories', () => {

@@ -1,3 +1,5 @@
+import type { Repeat } from '../../shared/recurrence';
+
 export type CompanionRole = 'friend' | 'butler' | 'assistant' | 'teacher';
 export type LifeItemType = 'todo' | 'package' | 'weight' | 'study' | 'mood';
 
@@ -10,8 +12,10 @@ export interface LifeItem {
   completed: boolean;
   /** When to remind (ISO). */
   due?: string;
-  /** Set once the pet has reminded the owner. */
+  /** Set once the pet has reminded the owner (one-off items). */
   remindedAt?: string;
+  /** Repeating reminder; `due` always holds the next occurrence. */
+  repeat?: Repeat;
 }
 
 export interface AgentRun {

@@ -11,9 +11,13 @@ import { companionRoles, lifeItemMeta, parseLifeCommand } from './companion';
 import type { CompanionRole, LifeItem, LifeItemType } from './companion';
 import { memoryCategoryMeta } from './memory';
 import type { MemoryCategory } from './memory';
+import { REPEATS, cleanTitle as clean, parseDue, parseRepeat, repeatLabel } from './time';
+import type { Repeat } from './time';
+
+export { parseDue, parseRepeat };
 
 export type AgentAction =
-  | { type: 'add_item'; itemType: LifeItemType; title: string; due?: string }
+  | { type: 'add_item'; itemType: LifeItemType; title: string; due?: string; repeat?: Repeat }
   | { type: 'complete_item'; id: string; title: string }
   | { type: 'remove_item'; id: string; title: string }
   | { type: 'calendar_event'; summary: string; start: string; end: string }
@@ -36,99 +40,6 @@ const TASK_HINT = /提醒我|提醒一下|帮我|记得|别忘了|(?:添加|加�
 /** Cheap pre-check so ordinary chat never pays for planning. */
 export function looksLikeTask(text: string): boolean {
   return TASK_HINT.test(text);
-}
-
-// ———————————————— time parsing ————————————————
-
-const CN_NUM: Record<string, number> = { 零: 0, 一: 1, 二: 2, 两: 2, 三: 3, 四: 4, 五: 5, 六: 6, 七: 7, 八: 8, 九: 9, 十: 10 };
-function cnToInt(s: string): number {
-  if (/^\d+$/.test(s)) return Number(s);
-  if (s === '十') return 10;
-  if (s.startsWith('十')) return 10 + (CN_NUM[s[1]] ?? 0);
-  if (s.includes('十')) return (CN_NUM[s[0]] ?? 0) * 10 + (CN_NUM[s[2]] ?? 0);
-  return CN_NUM[s] ?? NaN;
-}
-const WEEKDAY: Record<string, number> = { 日: 0, 天: 0, 一: 1, 二: 2, 三: 3, 四: 4, 五: 5, 六: 6 };
-const NUM = '\\d{1,2}|[零一二两三四五六七八九十]{1,3}';
-
-const TIME_RE = new RegExp(
-  [
-    `(\\d{1,2}|[一二三四五六七八九十]{1,3})(分钟|个?小时|个?钟头)(?:之|以)?后`,
-    `大后天|后天|明天|今天|今晚|明早|明晚`,
-    `下个?(?:周|星期|礼拜)[一二三四五六日天]|这个?(?:周|星期|礼拜)[一二三四五六日天]|(?:周|星期|礼拜)[一二三四五六日天]`,
-    `(?:${NUM})月(?:${NUM})[日号]?`,
-    `(?:早上|早晨|上午|中午|下午|傍晚|晚上|半夜)`,
-    `(?:${NUM})(?:[:：]\\d{2}|点(?:半|一刻|三刻|(?:${NUM})分?)?)`,
-  ].join('|'),
-  'gu',
-);
-
-/**
- * Find a due time in the text. Returns the ISO time and the text with the
- * time words removed (for a clean title), or null when no time is given.
- * A day without a clock time means 9:00 that day.
- */
-export function parseDue(text: string, now = new Date()): { due: string; rest: string } | null {
-  const d = new Date(now);
-  let dayHit = false, clockHit = false;
-  let hour = 9, minute = 0, period = '';
-
-  for (const m of text.matchAll(TIME_RE)) {
-    const t = m[0];
-    if (m[1]) {
-      const n = cnToInt(m[1]);
-      if (!Number.isFinite(n)) continue;
-      const ms = m[2] === '分钟' ? n * 60_000 : n * 3_600_000;
-      return { due: new Date(now.getTime() + ms).toISOString(), rest: clean(text.replace(t, '')) };
-    }
-    if (/^(?:今天|今晚|明天|明早|明晚|后天|大后天)$/.test(t)) {
-      d.setDate(now.getDate() + ({ 今天: 0, 今晚: 0, 明天: 1, 明早: 1, 明晚: 1, 后天: 2, 大后天: 3 } as Record<string, number>)[t]);
-      if (t.endsWith('晚')) period = '晚上';
-      if (t === '明早') period = '早上';
-      dayHit = true;
-    } else if (/(?:周|星期|礼拜)[一二三四五六日天]$/.test(t)) {
-      // Weeks start on Monday: 周一=1 … 周日=7.
-      const target = WEEKDAY[t.slice(-1)] || 7, today = now.getDay() || 7;
-      let diff = t.startsWith('下') ? 7 - today + target : target - today;
-      if (diff < 0) diff += 7; // 周X already passed this week → the coming one
-      d.setDate(now.getDate() + diff);
-      dayHit = true;
-    } else if (/月/.test(t)) {
-      const [mo, da] = t.replace(/[日号]$/, '').split('月').map(cnToInt);
-      if (mo >= 1 && mo <= 12 && da >= 1 && da <= 31) {
-        d.setMonth(mo - 1, da);
-        if (d.getTime() < now.getTime() - 86_400_000) d.setFullYear(d.getFullYear() + 1);
-        dayHit = true;
-      }
-    } else if (/^(?:早上|早晨|上午|中午|下午|傍晚|晚上|半夜)$/.test(t)) {
-      period = t;
-    } else {
-      const hm = t.match(new RegExp(`^(${NUM})(?:[:：](\\d{2})|点(半|一刻|三刻|(${NUM})分?)?)$`, 'u'));
-      if (!hm) continue;
-      hour = cnToInt(hm[1]);
-      minute = hm[2] ? Number(hm[2]) : hm[3] === '半' ? 30 : hm[3] === '一刻' ? 15 : hm[3] === '三刻' ? 45 : hm[4] ? cnToInt(hm[4]) : 0;
-      clockHit = true;
-    }
-  }
-  if (!dayHit && !clockHit && !period) return null;
-
-  if (!clockHit) hour = ({ 早上: 8, 早晨: 8, 上午: 10, 中午: 12, 下午: 15, 傍晚: 18, 晚上: 20, 半夜: 23 } as Record<string, number>)[period] ?? 9;
-  else if (/下午|傍晚|晚上|今晚|明晚/.test(period) && hour < 12) hour += 12;
-  else if (period === '中午' && hour < 6) hour += 12;
-  if (!Number.isFinite(hour) || hour > 23 || minute > 59) return null;
-  d.setHours(hour, minute, 0, 0);
-  // "3点提醒我" said at 16:00 without a day means tomorrow.
-  if (!dayHit && d.getTime() <= now.getTime()) d.setDate(d.getDate() + 1);
-  return { due: d.toISOString(), rest: clean(text.replace(TIME_RE, '')) };
-}
-
-function clean(s: string) {
-  return s
-    .replace(/^[\s，,。]*(?:请|麻烦)?(?:你)?(?:帮我|给我)?(?:提醒我?|提醒一下|记得|别忘了|记一下|添加待办|待办|安排)?[\s:：，,]*/u, '')
-    .replace(/(?:的时候)?(?:提醒我|叫我|喊我)/u, '')
-    .replace(/^[要去得]\s*/u, '')
-    .replace(/[\s，,。！!~～吧哦呀啦]+$/u, '')
-    .trim();
 }
 
 // ———————————————— local planner ————————————————
@@ -167,6 +78,8 @@ function planClause(raw: string, items: LifeItem[], now: Date): AgentAction | nu
   }
 
   const life = parseLifeCommand(text);
+  const rep = parseRepeat(text, now);
+  if (rep && rep.rest) return { type: 'add_item', itemType: life?.type === 'study' ? 'study' : 'todo', title: rep.rest, due: rep.due, repeat: rep.repeat };
   const due = parseDue(text, now);
   if (life?.type === 'weight') return { type: 'add_item', itemType: 'weight', title: life.title };
   if (life || (due && /提醒|记得|别忘|要|去|日程|日历|会议|开会|预约/.test(text))) {
@@ -184,7 +97,7 @@ function planClause(raw: string, items: LifeItem[], now: Date): AgentAction | nu
 
 /** Offline planner: split compound requests, plan each clause. */
 export function planLocally(text: string, items: LifeItem[], now = new Date()): AgentPlan | null {
-  const clauses = text.split(/[，,；;。]\s*(?=然后|再|还有|并且|另外|顺便|以及)|(?:然后|还有|并且|另外|顺便|以及)|[；;。]/u).map(s => s?.trim()).filter(Boolean) as string[];
+  const clauses = text.split(/[，,；;。]\s*(?=然后|再|还有|并且|另外|顺便|以及)|(?:然后|还有|并且|另外|顺便|以及)|[；;。]/u).map(s => s?.trim().replace(/^(?:然后|再|还有|并且|另外|顺便|以及)/u, '')).filter(Boolean) as string[];
   let actions = clauses.map(c => planClause(c, items, now)).filter(Boolean) as AgentAction[];
   // A single clause the splitter broke apart badly: try the whole sentence.
   if (!actions.length) actions = [planClause(text, items, now)].filter(Boolean) as AgentAction[];
@@ -220,7 +133,9 @@ export function normalizePlan(raw: unknown, command: string, items: LifeItem[], 
       case 'add_item': {
         const title = str(o.title);
         const itemType = ITEM_TYPES.includes(o.itemType as LifeItemType) ? (o.itemType as LifeItemType) : 'todo';
-        if (title) actions.push({ type: 'add_item', itemType, title, due: isoOrUndef(o.due) });
+        const due = isoOrUndef(o.due);
+        const repeat = due && REPEATS.includes(o.repeat as Repeat) ? (o.repeat as Repeat) : undefined;
+        if (title) actions.push({ type: 'add_item', itemType, title, due, ...(repeat ? { repeat } : {}) });
         break;
       }
       case 'complete_item': case 'remove_item': {
@@ -257,10 +172,19 @@ export function formatDue(iso: string, now = new Date()): string {
   return `${day} ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
 }
 
+/** "每天 08:00", "每周三 20:00", "每月5号 09:00", "工作日 08:30". */
+export function formatRepeat(iso: string, repeat: Repeat): string {
+  const d = new Date(iso);
+  const hm = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+  if (repeat === 'weekly') return `每周${'日一二三四五六'[d.getDay()]} ${hm}`;
+  if (repeat === 'monthly') return `每月${d.getDate()}号 ${hm}`;
+  return `${repeatLabel[repeat]} ${hm}`;
+}
+
 /** Icon + one-line description for the confirmation card. */
 export function describeAction(a: AgentAction, now = new Date()): { icon: string; text: string } {
   switch (a.type) {
-    case 'add_item': return { icon: lifeItemMeta[a.itemType].emoji, text: `新建${lifeItemMeta[a.itemType].label}「${a.title}」${a.due ? `,${formatDue(a.due, now)} 提醒你` : ''}` };
+    case 'add_item': return { icon: lifeItemMeta[a.itemType].emoji, text: `新建${lifeItemMeta[a.itemType].label}「${a.title}」${a.due ? `,${a.repeat ? formatRepeat(a.due, a.repeat) : formatDue(a.due, now)} 提醒你` : ''}` };
     case 'complete_item': return { icon: '☑️', text: `把「${a.title}」标记为完成` };
     case 'remove_item': return { icon: '🗑️', text: `删除「${a.title}」` };
     case 'calendar_event': return { icon: '📅', text: `写入 Google 日历:${formatDue(a.start, now)}「${a.summary}」` };

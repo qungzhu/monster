@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import OpenAI from 'openai';
 import dotenv from 'dotenv';
+import { mountSchedule } from './schedule.js';
 import {
   buildGoogleAuthorizationUrl,
   createGoogleCalendarEvent,
@@ -19,6 +20,7 @@ dotenv.config();
 const app = express();
 app.use(cors());
 app.use(express.json());
+mountSchedule(app);
 
 const PORT = process.env.PORT || 3001;
 const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-5.5';
@@ -408,7 +410,7 @@ app.post('/api/agent/plan', async (req, res) => {
     const instructions = `你是陪伴型宠物 App 里的任务助手。判断主人这句话是不是要你"做事",是的话拆成具体动作。
 现在时间:${String(now ?? new Date().toString()).slice(0, 80)}。相对时间(明天/下周三/30分钟后)请换算成带时区偏移的 ISO 8601;只说了日期没说时间就用 09:00。
 可用动作(最多 6 个):
-- {"type":"add_item","itemType":"todo|package|weight|study","title":"简短标题","due":"ISO 时间或省略"}  新建待办/快递/体重/学习事项,有时间就是提醒
+- {"type":"add_item","itemType":"todo|package|weight|study","title":"简短标题","due":"ISO 时间或省略","repeat":"daily|weekdays|weekly|monthly 或省略"}  新建待办/快递/体重/学习事项,有时间就是提醒;"每天/工作日/每周X/每月N号"用 repeat,due 填下一次的时间
 - {"type":"complete_item","id":"已有事项id"}  主人说某件事做完了
 - {"type":"remove_item","id":"已有事项id"}  主人要删掉/取消某件事
 - {"type":"calendar_event","summary":"标题","start":"ISO","end":"ISO"}  ${calendarConnected ? '写入 Google 日历(会议、预约、日程类)' : '日历未连接,不要用这个,改用带 due 的 add_item'}
@@ -449,11 +451,11 @@ app.post('/api/memory/extract', async (req, res) => {
     if (!said.length) return res.json({ ops: [] });
 
     const client = new OpenAI({ apiKey });
-    const today = new Date().toISOString().slice(0, 10);
+    const today = String(req.body?.now ?? new Date().toString()).slice(0, 80);
     const instructions = `你是一个记忆整理器,为陪伴型宠物 App 记录"关于主人的长期事实"。
 只记录对以后聊天有用、稳定或重要的信息:身份(名字/生日/职业/学校/城市)、喜好与禁忌、身边的人和宠物、近期重要事件(考试/面试/出行等,写清日期,相对日期请换算,今天是 ${today})、目标。
 不要记录:一时的情绪、寒暄、对宠物说的话、敏感信息(证件号、密码、银行卡、精确住址、健康诊断细节)。
-输出严格 JSON:{"ops":[{"op":"add","text":"简短中文陈述,不超过30字","category":"profile|preference|event|relationship|goal"},{"op":"update","id":"已有记忆id","text":"新内容"},{"op":"delete","id":"已有记忆id"}]}
+输出严格 JSON:{"ops":[{"op":"add","text":"简短中文陈述,不超过30字","category":"profile|preference|event|relationship|goal","when":"仅 event:事件发生时间,带时区的 ISO 8601,不知道就省略"},{"op":"update","id":"已有记忆id","text":"新内容"},{"op":"delete","id":"已有记忆id"}]}
 主人纠正或推翻旧信息时用 update/delete;没有新信息就输出 {"ops":[]}。`;
     const response = await client.responses.create({
       model: OPENAI_MODEL,
@@ -467,7 +469,9 @@ app.post('/api/memory/extract', async (req, res) => {
     const ids = new Set(known.map(k => k.id));
     const ops = (Array.isArray(parsed.ops) ? parsed.ops : []).slice(0, 10).flatMap(o => {
       if (o?.op === 'add' && typeof o.text === 'string' && MEMORY_CATEGORIES.includes(o.category)) {
-        return [{ op: 'add', text: o.text.slice(0, 80), category: o.category, source: 'ai' }];
+        const when = o.category === 'event' && typeof o.when === 'string' && Number.isFinite(Date.parse(o.when))
+          ? new Date(Date.parse(o.when)).toISOString() : undefined;
+        return [{ op: 'add', text: o.text.slice(0, 80), category: o.category, source: 'ai', ...(when ? { when } : {}) }];
       }
       if ((o?.op === 'update' || o?.op === 'delete') && ids.has(String(o.id))) {
         return o.op === 'update' && typeof o.text === 'string'
