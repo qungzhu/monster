@@ -1,16 +1,15 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { Brain, CalendarDays, Check, LoaderCircle, Pencil, Play, Plus, RefreshCw, Sparkles, Trash2, X } from 'lucide-react';
-import { companionRoles, lifeItemMeta, parseLifeCommand } from '../../data/companion';
+import { companionRoles, lifeItemMeta } from '../../data/companion';
+import { formatDue } from '../../data/agent';
 import type { AgentRun, CompanionRole, LifeItem, LifeItemType } from '../../data/companion';
 import {
-  addGoogleCalendarEvent,
   disconnectGoogleCalendar,
   getGoogleCalendarEvents,
   getGoogleCalendarStatus,
-  parseGoogleCalendarCommand,
 } from '../../utils/googleCalendar';
-import type { GoogleCalendarEvent, GoogleCalendarEventDraft, GoogleCalendarStatus } from '../../utils/googleCalendar';
+import type { GoogleCalendarEvent, GoogleCalendarStatus } from '../../utils/googleCalendar';
 
 interface LifeDashboardProps {
   show: boolean;
@@ -20,13 +19,14 @@ interface LifeDashboardProps {
   hubName: string;
   onHubNameChange: (name: string) => void;
   agentRuns: AgentRun[];
-  onAgentRun: (command: string, summary: string) => void;
   chatCount: number;
   moodCount: number;
   role: CompanionRole;
   onRoleChange: (role: CompanionRole) => void;
   memoryCount: number;
   onOpenMemories: () => void;
+  /** Hand a request to the pet's task agent (plan → confirm → run). */
+  onCommand: (command: string) => void;
   items: LifeItem[];
   onAdd: (item: Omit<LifeItem, 'id' | 'createdAt' | 'completed'>) => void;
   onToggle: (id: string) => void;
@@ -42,8 +42,8 @@ const starterPlan: Array<Omit<LifeItem, 'id' | 'createdAt' | 'completed'>> = [
 ];
 
 export function LifeDashboard({
-  show, onClose, userName, petName, hubName, onHubNameChange, agentRuns, onAgentRun, chatCount, moodCount,
-  role, onRoleChange, memoryCount, onOpenMemories, items, onAdd, onToggle, onRemove,
+  show, onClose, userName, petName, hubName, onHubNameChange, agentRuns, chatCount, moodCount,
+  role, onRoleChange, memoryCount, onOpenMemories, onCommand, items, onAdd, onToggle, onRemove,
 }: LifeDashboardProps) {
   const [type, setType] = useState<LifeItemType>('todo');
   const [title, setTitle] = useState('');
@@ -51,18 +51,10 @@ export function LifeDashboard({
   const [hubNameDraft, setHubNameDraft] = useState('');
   const [agentState, setAgentState] = useState<'idle' | 'working' | 'done'>('idle');
   const [agentCommand, setAgentCommand] = useState('');
-  const [commandState, setCommandState] = useState<'idle' | 'ready' | 'running' | 'done'>('idle');
-  const [commandError, setCommandError] = useState('');
   const [calendarStatus, setCalendarStatus] = useState<GoogleCalendarStatus | null>(null);
   const [calendarEvents, setCalendarEvents] = useState<GoogleCalendarEvent[]>([]);
   const [calendarLoading, setCalendarLoading] = useState(false);
   const [calendarError, setCalendarError] = useState('');
-  const [proposal, setProposal] = useState<{
-    command: string;
-    item: Omit<LifeItem, 'id' | 'createdAt' | 'completed'>;
-    note: string;
-    calendarEvent?: GoogleCalendarEventDraft;
-  } | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const pending = useMemo(() => items.filter(item => !item.completed).length, [items]);
   const completed = items.length - pending;
@@ -117,53 +109,11 @@ export function LifeDashboard({
     }, 850);
   };
 
-  const analyzeCommand = () => {
+  const sendCommand = () => {
     const command = agentCommand.trim();
     if (!command) return;
-    const calendarEvent = parseGoogleCalendarCommand(command);
-    const parsed = calendarEvent ? {
-      type: 'todo' as const,
-      title: calendarEvent.summary,
-      detail: command,
-    } : parseLifeCommand(command) || {
-      type: 'todo' as const,
-      title: command.replace(/^(帮我|请|安排一下|安排|添加)\s*/, ''),
-      detail: command,
-    };
-    const needsExternalService = /查.*快递|物流.*(?:到哪|进度)|日历|会议|预约/.test(command);
-    const canWriteCalendar = Boolean(calendarEvent && calendarStatus?.connected);
-    setProposal({
-      command,
-      item: parsed,
-      calendarEvent: canWriteCalendar ? calendarEvent || undefined : undefined,
-      note: canWriteCalendar
-        ? `将写入 Google Calendar，并同步记录为${lifeItemMeta[parsed.type].label}`
-        : needsExternalService
-          ? `将先记录为${lifeItemMeta[parsed.type].label}；对应外部服务尚未连接`
-        : `准备创建一条${lifeItemMeta[parsed.type].label}事项`,
-    });
-    setCommandError('');
-    setCommandState('ready');
-  };
-
-  const executeCommand = async () => {
-    if (!proposal || commandState !== 'ready') return;
-    setCommandState('running');
-    setCommandError('');
-    try {
-      if (proposal.calendarEvent) await addGoogleCalendarEvent(proposal.calendarEvent);
-      onAdd(proposal.item);
-      const summary = proposal.calendarEvent
-        ? `已写入 Google 日历：${proposal.calendarEvent.summary}`
-        : `已创建${lifeItemMeta[proposal.item.type].label}：${proposal.item.title}`;
-      onAgentRun(proposal.command, summary);
-      setCommandState('done');
-      setAgentCommand('');
-      if (proposal.calendarEvent) void loadCalendarConnection();
-    } catch {
-      setCommandError('执行失败，没有写入日历或本地清单，请检查连接后重试');
-      setCommandState('ready');
-    }
+    setAgentCommand('');
+    onCommand(command);
   };
 
   const disconnectCalendar = async () => {
@@ -312,52 +262,21 @@ export function LifeDashboard({
                 <div className="flex gap-2">
                   <input
                     value={agentCommand}
-                    onChange={event => {
-                      setAgentCommand(event.target.value);
-                      setCommandState('idle');
-                      setProposal(null);
-                    }}
-                    onKeyDown={event => { if (event.key === 'Enter') analyzeCommand(); }}
-                    placeholder="例如：提醒我明天下午拿快递"
+                    onChange={event => setAgentCommand(event.target.value)}
+                    onKeyDown={event => { if (event.key === 'Enter') sendCommand(); }}
+                    placeholder="例如：明天下午3点提醒我取快递，再记一下体重"
                     aria-label="Agent 指令"
                     className="min-w-0 flex-1 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-text-primary outline-none focus:border-violet-400/50"
                   />
                   <button
                     type="button"
-                    onClick={analyzeCommand}
-                    disabled={!agentCommand.trim() || commandState === 'running'}
+                    onClick={sendCommand}
+                    disabled={!agentCommand.trim()}
                     className="rounded-xl bg-white/10 px-3 text-[10px] font-semibold text-text-primary disabled:opacity-40"
                   >
                     分析
                   </button>
                 </div>
-
-                {proposal && (
-                  <div className="mt-2 rounded-xl border border-violet-400/20 bg-violet-500/10 p-3">
-                    <p className="text-[10px] font-semibold text-violet-200">执行预览</p>
-                    <p className="mt-1 text-xs text-text-primary">{lifeItemMeta[proposal.item.type].emoji} {proposal.item.title}</p>
-                    <p className="mt-1 text-[9px] text-text-muted">{proposal.note}</p>
-                    <div className="mt-2 flex items-center justify-between gap-2">
-                      <button
-                        type="button"
-                        onClick={() => { setProposal(null); setCommandState('idle'); }}
-                        disabled={commandState === 'running'}
-                        className="text-[10px] text-text-muted disabled:opacity-40"
-                      >
-                        取消
-                      </button>
-                      <button
-                        type="button"
-                        onClick={executeCommand}
-                        disabled={commandState !== 'ready'}
-                        className="rounded-lg bg-emerald-500 px-3 py-1.5 text-[10px] font-semibold text-white disabled:opacity-60"
-                      >
-                        {commandState === 'running' ? '执行中…' : commandState === 'done' ? '执行完成' : '确认执行'}
-                      </button>
-                    </div>
-                    {commandError && <p className="mt-2 text-[9px] text-red-300">{commandError}</p>}
-                  </div>
-                )}
 
                 {agentRuns.length > 0 && (
                   <div className="mt-2 border-t border-white/6 pt-2">
@@ -533,7 +452,9 @@ export function LifeDashboard({
                       {lifeItemMeta[item.type].emoji} {item.title}
                     </p>
                     <p className="mt-0.5 text-[9px] text-text-muted">
-                      {new Date(item.createdAt).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                      {item.due
+                        ? `⏰ ${formatDue(item.due)}${item.remindedAt ? ' · 已提醒' : ''}`
+                        : new Date(item.createdAt).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
                     </p>
                   </div>
                   <button onClick={() => onRemove(item.id)} className="p-1.5 text-text-muted hover:text-red-400">

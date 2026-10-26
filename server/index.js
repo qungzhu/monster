@@ -390,6 +390,50 @@ app.post('/api/meshy/fetch-model', async (req, res) => {
   }
 });
 
+// Task agent: understand a request and propose concrete actions. The client
+// shows them for confirmation and validates every action before running it,
+// so this only ever proposes. Returns { plan: null } when it isn't a task.
+app.post('/api/agent/plan', async (req, res) => {
+  const apiKey = req.headers['x-api-key'] || process.env.OPENAI_API_KEY;
+  if (!apiKey) return res.status(400).json({ error: 'no_api_key', plan: null });
+  try {
+    const { command, now, items, memoryContext, calendarConnected } = req.body ?? {};
+    const text = String(command ?? '').slice(0, 300);
+    if (!text) return res.json({ plan: null });
+    const list = (Array.isArray(items) ? items : []).slice(0, 60).map(i => ({
+      id: String(i.id).slice(0, 60), type: String(i.type).slice(0, 12), title: String(i.title).slice(0, 60),
+      completed: Boolean(i.completed), due: i.due ? String(i.due).slice(0, 40) : undefined,
+    }));
+    const client = new OpenAI({ apiKey });
+    const instructions = `你是陪伴型宠物 App 里的任务助手。判断主人这句话是不是要你"做事",是的话拆成具体动作。
+现在时间:${String(now ?? new Date().toString()).slice(0, 80)}。相对时间(明天/下周三/30分钟后)请换算成带时区偏移的 ISO 8601;只说了日期没说时间就用 09:00。
+可用动作(最多 6 个):
+- {"type":"add_item","itemType":"todo|package|weight|study","title":"简短标题","due":"ISO 时间或省略"}  新建待办/快递/体重/学习事项,有时间就是提醒
+- {"type":"complete_item","id":"已有事项id"}  主人说某件事做完了
+- {"type":"remove_item","id":"已有事项id"}  主人要删掉/取消某件事
+- {"type":"calendar_event","summary":"标题","start":"ISO","end":"ISO"}  ${calendarConnected ? '写入 Google 日历(会议、预约、日程类)' : '日历未连接,不要用这个,改用带 due 的 add_item'}
+- {"type":"remember","text":"关于主人的事实","category":"profile|preference|event|relationship|goal"}  主人明确要你记住某事
+- {"type":"set_role","role":"friend|butler|assistant|teacher"}  主人要你当朋友/管家/助手/老师
+complete_item 和 remove_item 只能用下面已有事项里的 id。
+不是做事(闲聊、倾诉、提问)就输出 {"actions":[]}。不要处理敏感信息(证件号、密码、银行卡)。
+输出严格 JSON:{"reply":"用宠物口吻的一句确认,不超过25字","actions":[...]}`;
+    const response = await client.responses.create({
+      model: OPENAI_MODEL,
+      max_output_tokens: 500,
+      instructions,
+      input: [{ role: 'user', content: JSON.stringify({ 主人说: text, 已有事项: list, 关于主人: String(memoryContext ?? '').slice(0, 1200) }) }],
+      text: { format: { type: 'json_object' } },
+    });
+    let parsed;
+    try { parsed = JSON.parse(response.output_text || '{}'); } catch { parsed = {}; }
+    const actions = Array.isArray(parsed.actions) ? parsed.actions.slice(0, 6) : [];
+    res.json({ plan: actions.length ? { reply: typeof parsed.reply === 'string' ? parsed.reply.slice(0, 80) : '', actions } : null });
+  } catch (error) {
+    console.error('Agent plan error:', error.message);
+    res.status(502).json({ error: 'api_error', plan: null });
+  }
+});
+
 // Long-term memory extraction: turn the latest things the owner said into
 // add/update/delete ops against what the pet already remembers. Returns
 // { ops: [] } on any problem — the client also has an offline extractor.

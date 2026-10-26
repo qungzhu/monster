@@ -277,6 +277,14 @@ export function useAppStore() {
     });
   }, []);
 
+  const updateLifeItem = useCallback((id: string, patch: Partial<Omit<LifeItem, 'id'>>) => {
+    setLifeItems(prev => {
+      const updated = prev.map(item => item.id === id ? { ...item, ...patch } : item);
+      saveToStorage(STORAGE_KEYS.lifeItems, updated);
+      return updated;
+    });
+  }, []);
+
   const removeLifeItem = useCallback((id: string) => {
     setLifeItems(prev => {
       const updated = prev.filter(item => item.id !== id);
@@ -512,6 +520,7 @@ export function useAppStore() {
     lifeItems,
     addLifeItem,
     toggleLifeItem,
+    updateLifeItem,
     removeLifeItem,
     memories,
     memoryEnabled,

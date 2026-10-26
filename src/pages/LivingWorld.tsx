@@ -8,7 +8,8 @@ import { dailyQuests } from '../data/gameConfig';
 import type { GameItem } from '../data/gameConfig';
 import { parseIntent, getSuggestions } from '../utils/intents';
 import { getTimeOfDay } from '../utils/emotion';
-import { extractMemoriesAI, sendAIMessage } from '../utils/ai';
+import { extractMemoriesAI, planWithAI, sendAIMessage } from '../utils/ai';
+import { addGoogleCalendarEvent, getGoogleCalendarStatus } from '../utils/googleCalendar';
 import { PetScene } from '../components/pets/PetScene';
 import type { EmoteKind } from '../components/pets/GLBPet';
 import { PetOnboarding } from '../components/game/PetOnboarding';
@@ -24,10 +25,14 @@ import { CustomPetStudio } from '../components/game/CustomPetStudio';
 import { LifeDashboard } from '../components/game/LifeDashboard';
 import { getBreed } from '../data/breeds';
 import type { Breed } from '../data/breeds';
-import { companionRoles, parseLifeCommand } from '../data/companion';
+import { companionRoles } from '../data/companion';
 import type { AgentRun, CompanionRole, LifeItem } from '../data/companion';
 import { getGeneratedPet } from '../data/generatedPetGallery';
 import { MemoryPanel } from '../components/game/MemoryPanel';
+import { PlanCard } from '../components/game/PlanCard';
+import type { PlanStatus } from '../components/game/PlanCard';
+import { CANCEL_RE, CONFIRM_RE, describeAction, looksLikeTask, normalizePlan, planLocally } from '../data/agent';
+import type { AgentPlan } from '../data/agent';
 import { extractMemoriesLocally, memoryCommand, memoryContext, pendingFollowUp, recallLine } from '../data/memory';
 import type { Memory, MemoryOp } from '../data/memory';
 
@@ -79,6 +84,7 @@ interface LivingWorldProps {
   addLifeItem: (item: Omit<LifeItem, 'id' | 'createdAt' | 'completed'>) => LifeItem;
   toggleLifeItem: (id: string) => void;
   removeLifeItem: (id: string) => void;
+  updateLifeItem: (id: string, patch: Partial<Omit<LifeItem, 'id'>>) => void;
   memories: Memory[];
   memoryEnabled: boolean;
   setMemoryEnabled: (on: boolean) => void;
@@ -107,7 +113,7 @@ export function LivingWorld(props: LivingWorldProps) {
     selectedGeneratedPetKey, hubName, setHubName, agentRuns, recordAgentRun,
     companionRole, setCompanionRole, lifeItems, addLifeItem, toggleLifeItem, removeLifeItem,
     memories, memoryEnabled, setMemoryEnabled, applyMemories, updateMemory, removeMemory,
-    markMemoryFollowedUp, clearMemories,
+    markMemoryFollowedUp, clearMemories, updateLifeItem,
   } = props;
 
   const [input, setInput] = useState('');
@@ -126,6 +132,13 @@ export function LivingWorld(props: LivingWorldProps) {
   const pettingHandled = useRef(false);
   const rewardId = useRef(0);
   const greetedRef = useRef(false);
+  // Task agent: a proposed plan waits here until the owner confirms.
+  const [plan, setPlan] = useState<AgentPlan | null>(null);
+  const [planStatus, setPlanStatus] = useState<PlanStatus>('ready');
+  const [planSelected, setPlanSelected] = useState<boolean[]>([]);
+  const [planResults, setPlanResults] = useState<Array<{ ok: boolean; note?: string }>>([]);
+  const [calendarConnected, setCalendarConnected] = useState(false);
+  const planCloseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const color = character ? themeColors[character.id] : '#d97706';
   const generatedPet = getGeneratedPet(selectedGeneratedPetKey);
@@ -180,7 +193,32 @@ export function LivingWorld(props: LivingWorldProps) {
     return () => clearTimeout(t);
   }, [character, lowStat, say]);
 
+  // Calendar actions are only offered when Google Calendar is connected.
+  useEffect(() => {
+    let alive = true;
+    getGoogleCalendarStatus().then(st => { if (alive) setCalendarConnected(st.connected); }).catch(() => {});
+    return () => { alive = false; };
+  }, []);
+
+  // Reminders: while the app is open, the pet speaks up when something is
+  // due (reminders that fire with the app closed come with step 3).
+  useEffect(() => {
+    const check = () => {
+      const now = Date.now();
+      const due = lifeItems.find(it => it.due && !it.completed && !it.remindedAt
+        && Date.parse(it.due) <= now && now - Date.parse(it.due) < 12 * 3_600_000);
+      if (!due) return;
+      updateLifeItem(due.id, { remindedAt: new Date(now).toISOString() });
+      playEmote('meow', 3500);
+      say(`⏰ 到时间啦:${due.title}!`, 7000);
+    };
+    const t = setInterval(check, 15_000);
+    const first = setTimeout(check, 2500);
+    return () => { clearInterval(t); clearTimeout(first); };
+  }, [lifeItems, updateLifeItem, playEmote, say]);
+
   useEffect(() => () => {
+    if (planCloseTimer.current) clearTimeout(planCloseTimer.current);
     if (pettingTimer.current) clearTimeout(pettingTimer.current);
     if (emoteTimer.current) clearTimeout(emoteTimer.current);
   }, []);
@@ -271,10 +309,105 @@ export function LivingWorld(props: LivingWorldProps) {
     say(`签到成功！已经连续 ${checkInStreak + 1} 天啦，谢谢你每天都来看我 💕`, 5000);
   };
 
-  const handleSubmit = (raw: string) => {
+  const logExchange = (userText: string, reply: string) => {
+    if (!character) return;
+    addMessage(character.id, { id: `user-${Date.now()}`, role: 'user', content: userText, timestamp: Date.now() });
+    addMessage(character.id, { id: `char-${Date.now() + 1}`, role: 'character', content: reply, timestamp: Date.now() + 1 });
+  };
+
+  const closePlan = () => {
+    if (planCloseTimer.current) clearTimeout(planCloseTimer.current);
+    setPlan(null);
+  };
+
+  /** Understand a request; returns false when it isn't a task after all. */
+  const proposePlan = async (text: string): Promise<boolean> => {
+    setIsThinking(true);
+    const ai = await planWithAI(text, lifeItems, memoryContext(memories), calendarConnected, apiKey);
+    setIsThinking(false);
+    const next = normalizePlan(ai ? ai.plan : planLocally(text, lifeItems), text, lifeItems, calendarConnected);
+    if (!next) return false;
+    if (planCloseTimer.current) clearTimeout(planCloseTimer.current);
+    setPlan(next);
+    setPlanSelected(next.actions.map(() => true));
+    setPlanResults([]);
+    setPlanStatus('ready');
+    playEmote('cute', 2500);
+    say(next.reply, 3500);
+    logExchange(text, `${next.reply}${next.actions.map(a => `\n${describeAction(a).icon} ${describeAction(a).text}`).join('')}`);
+    return true;
+  };
+
+  const executePlan = async () => {
+    if (!plan || planStatus !== 'ready') return;
+    setPlanStatus('running');
+    const results: Array<{ ok: boolean; note?: string }> = [];
+    for (const [i, a] of plan.actions.entries()) {
+      if (!planSelected[i]) { results.push({ ok: false, note: '已跳过' }); continue; }
+      try {
+        switch (a.type) {
+          case 'add_item':
+            addLifeItem({ type: a.itemType, title: a.title, due: a.due, detail: plan.command });
+            break;
+          case 'complete_item':
+            if (lifeItems.find(it => it.id === a.id && !it.completed)) toggleLifeItem(a.id);
+            break;
+          case 'remove_item':
+            removeLifeItem(a.id);
+            break;
+          case 'calendar_event':
+            try {
+              await addGoogleCalendarEvent({ summary: a.summary, start: a.start, end: a.end, description: `由 FurryPal 根据「${plan.command}」创建` });
+            } catch {
+              // Keep the intent: fall back to a local reminder.
+              addLifeItem({ type: 'todo', title: a.summary, due: a.start, detail: plan.command });
+              results.push({ ok: true, note: '日历写入失败,已改为本地提醒' });
+              setPlanResults([...results]);
+              continue;
+            }
+            break;
+          case 'remember':
+            applyMemories([{ op: 'add', text: a.text, category: a.category, source: 'manual' }]);
+            break;
+          case 'set_role':
+            setCompanionRole(a.role);
+            break;
+        }
+        results.push({ ok: true });
+      } catch {
+        results.push({ ok: false, note: '没能完成' });
+      }
+      setPlanResults([...results]);
+    }
+    const done = results.filter((r, i) => r.ok && planSelected[i]).length;
+    const summary = plan.actions.filter((_, i) => planSelected[i] && results[i]?.ok).map(a => describeAction(a).text).join(';');
+    recordAgentRun(plan.command, summary || '没有执行任何动作');
+    setPlanStatus('done');
+    addXP(2 * done);
+    if (done) floatReward(`✅ 完成 ${done} 件`);
+    playEmote('cute', 3000);
+    say(done ? `搞定啦!${done > 1 ? `${done} 件事都` : ''}办好了 ✨` : '这次什么都没做哦~', 3500);
+    planCloseTimer.current = setTimeout(() => setPlan(null), 3200);
+  };
+
+  const cancelPlan = () => {
+    if (!plan || planStatus === 'running') return;
+    closePlan();
+    say('好,那就先不做啦~', 2500);
+  };
+
+  const handleSubmit = async (raw: string) => {
     const text = raw.trim();
     if (!text || isThinking) return;
     setInput('');
+
+    // A plan is waiting: "好的" runs it, "算了" drops it, anything else
+    // replaces it with whatever comes next.
+    if (plan && planStatus === 'ready') {
+      if (CONFIRM_RE.test(text)) { void executePlan(); return; }
+      if (CANCEL_RE.test(text)) { cancelPlan(); return; }
+      closePlan();
+    }
 
     // Explicit memory commands and "你记得我什么" come before life commands
     // ("记得…" would otherwise become a to-do).
@@ -288,7 +421,8 @@ export function LivingWorld(props: LivingWorldProps) {
       } else if (cmd.ops.length) {
         applyMemories(cmd.ops);
         say(`好~ 已经忘掉了 ${cmd.ops.length} 条,不会再提啦。`, 4000);
-      } else {
+      } else if (!looksLikeTask(text) || !(await proposePlan(text))) {
+        // "删掉X" with no matching memory may still be a to-do to delete.
         say('我好像没记过这件事哦~ 说「你记得我什么」可以看看我记住的。', 4500);
       }
       return;
@@ -299,15 +433,8 @@ export function LivingWorld(props: LivingWorldProps) {
       return;
     }
 
-    const lifeCommand = parseLifeCommand(text);
-    if (lifeCommand) {
-      const item = addLifeItem(lifeCommand);
-      playEmote('cute', 3500);
-      addXP(2);
-      floatReward('📝 已记录');
-      say(`记住啦！${item.title}，我会和你一起看着它。`, 4200);
-      return;
-    }
+    // Requests to do something get a plan to confirm, not instant changes.
+    if (looksLikeTask(text) && (await proposePlan(text))) return;
 
     const intent = parseIntent(text);
     // Chat replies learn inside doChat (where the AI extractor can run).
@@ -669,6 +796,16 @@ export function LivingWorld(props: LivingWorldProps) {
 
       {/* Universal input — the only control in the world */}
       <div className="absolute bottom-0 left-0 right-0 z-30 px-4 pb-6 pt-2">
+        <PlanCard
+          plan={plan}
+          status={planStatus}
+          selected={planSelected}
+          onToggle={i => setPlanSelected(sel => sel.map((v, j) => (j === i ? !v : v)))}
+          results={planResults}
+          onConfirm={() => { void executePlan(); }}
+          onCancel={planStatus === 'done' ? closePlan : cancelPlan}
+          color={color}
+        />
         {/* Contextual suggestion chips */}
         <div className="flex gap-2 mb-2.5 overflow-x-auto pb-1" style={{ scrollbarWidth: 'none' }}>
           {['摸摸头', '陪我玩', '扑跳', '雪原广场', ...getSuggestions({
@@ -719,7 +856,10 @@ export function LivingWorld(props: LivingWorldProps) {
         hubName={hubName}
         onHubNameChange={setHubName}
         agentRuns={agentRuns}
-        onAgentRun={recordAgentRun}
+        onCommand={command => {
+          setActiveCard(null);
+          void handleSubmit(command);
+        }}
         chatCount={chatCount}
         moodCount={moodEntries.length}
         role={companionRole}

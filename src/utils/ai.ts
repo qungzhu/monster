@@ -1,7 +1,7 @@
 import type { Character, ChatMessage, MoodType } from '../data/characters';
 import { detectEmotion } from './emotion';
 import type { Memory, MemoryOp } from '../data/memory';
-import type { CompanionRole } from '../data/companion';
+import type { CompanionRole, LifeItem } from '../data/companion';
 
 // Same-origin: Vite proxies /api to the Express server in dev, so the
 // server's own OPENAI_API_KEY works without the user pasting a key.
@@ -83,6 +83,37 @@ export async function extractMemoriesAI(said: string[], memories: Memory[], apiK
     if (!res.ok) return null;
     const data = await res.json();
     return Array.isArray(data.ops) ? data.ops : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * LLM task planning. Returns null when the server is unavailable or has no
+ * key (use the offline planner); { plan: null } means "not a task".
+ */
+export async function planWithAI(
+  command: string,
+  items: LifeItem[],
+  memoryContext: string,
+  calendarConnected: boolean,
+  apiKey: string,
+): Promise<{ plan: unknown } | null> {
+  try {
+    const res = await fetch(`${API_BASE}/api/agent/plan`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...(apiKey ? { 'X-API-Key': apiKey } : {}) },
+      body: JSON.stringify({
+        command,
+        now: new Date().toString(),
+        items: items.slice(0, 60).map(({ id, type, title, completed, due }) => ({ id, type, title, completed, due })),
+        memoryContext,
+        calendarConnected,
+      }),
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    return { plan: data.plan ?? null };
   } catch {
     return null;
   }

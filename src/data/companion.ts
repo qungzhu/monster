@@ -8,6 +8,10 @@ export interface LifeItem {
   detail?: string;
   createdAt: string;
   completed: boolean;
+  /** When to remind (ISO). */
+  due?: string;
+  /** Set once the pet has reminded the owner. */
+  remindedAt?: string;
 }
 
 export interface AgentRun {

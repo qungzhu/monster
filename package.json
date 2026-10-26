@@ -19,7 +19,8 @@
     "preview": "vite preview",
     "plaza": "node server/plaza.js",
     "test:plaza": "node server/tests/plaza-room-test.mjs && node server/tests/plaza-bond-test.mjs",
-    "test:memory": "node --experimental-strip-types --no-warnings server/tests/memory-test.mjs"
+    "test:memory": "node --experimental-strip-types --no-warnings --import ./server/tests/ts-hooks.mjs server/tests/memory-test.mjs",
+    "test:agent": "node --experimental-strip-types --no-warnings --import ./server/tests/ts-hooks.mjs server/tests/agent-test.mjs"
   },
   "dependencies": {
     "@react-three/drei": "^10.7.7",

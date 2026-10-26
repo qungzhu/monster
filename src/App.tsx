@@ -80,6 +80,7 @@ export default function App() {
         addLifeItem={store.addLifeItem}
         toggleLifeItem={store.toggleLifeItem}
         removeLifeItem={store.removeLifeItem}
+        updateLifeItem={store.updateLifeItem}
         memories={store.memories}
         memoryEnabled={store.memoryEnabled}
         setMemoryEnabled={store.setMemoryEnabled}
