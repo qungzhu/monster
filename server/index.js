@@ -320,7 +320,7 @@ app.post('/api/meshy/generate', async (req, res) => {
     const multi = urls.length > 1;
     const endpoint = multi ? 'multi-image-to-3d' : 'image-to-3d';
     const payload = {
-      ai_model: 'meshy-5',
+      ai_model: process.env.MESHY_AI_MODEL || 'meshy-6-lite',
       should_texture: true,
       enable_pbr: true,
       should_remesh: true,

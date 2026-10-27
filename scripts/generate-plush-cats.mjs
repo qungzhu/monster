@@ -40,7 +40,7 @@ async function create(name) {
     headers: { ...auth, 'Content-Type': 'application/json' },
     body: JSON.stringify({
       image_urls,
-      ai_model: 'meshy-5',
+      ai_model: process.env.MESHY_AI_MODEL || 'meshy-6-lite',
       should_texture: true,
       enable_pbr: true,
       should_remesh: true,

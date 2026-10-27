@@ -81,16 +81,16 @@ def surface(origin, direction):
     return loc, nor
 
 def eye(x):
-    loc, nor = surface((x, -6, 2.70), (0, 1, 0))
-    bpy.ops.mesh.primitive_uv_sphere_add(segments=32, ring_count=16, radius=0.24, location=loc - nor * 0.07)
+    loc, nor = surface((x, -6, 2.55), (0, 1, 0))
+    bpy.ops.mesh.primitive_uv_sphere_add(segments=32, ring_count=16, radius=0.20, location=loc - nor * 0.06)
     o = bpy.context.active_object
     o.scale = (1.0, 0.75, 1.1)
     bpy.ops.object.shade_smooth()
     return o
 
 def nose():
-    loc, nor = surface((0, -6, 2.40), (0, 1, 0))
-    bpy.ops.mesh.primitive_uv_sphere_add(segments=16, ring_count=8, radius=0.1, location=loc + nor * 0.02)
+    loc, nor = surface((0, -6, 2.28), (0, 1, 0))
+    bpy.ops.mesh.primitive_uv_sphere_add(segments=16, ring_count=8, radius=0.075, location=loc + nor * 0.015)
     o = bpy.context.active_object
     o.scale = (1.3, 0.7, 0.85)
     bpy.ops.object.shade_smooth()
@@ -107,7 +107,7 @@ def ear(x):
     bpy.ops.object.shade_smooth()
     return o
 
-eyes = [eye(0.52), eye(-0.52)]
+eyes = [eye(0.56), eye(-0.56)]
 nose_o = nose()
 ears = [ear(0.78), ear(-0.78)]
 
@@ -130,17 +130,31 @@ def smooth(e0, e1, x):
 def lin(srgb):  # colour attributes are linear
     return Vector([c ** 2.2 for c in srgb])
 BASE, POINT, INNER_EAR = lin((0.95, 0.89, 0.77)), lin((0.50, 0.44, 0.42)), lin((0.93, 0.62, 0.62))
+PAD = lin((0.90, 0.58, 0.60))
 def point_amount(co):
     mask = 1 - smooth(0.55, 1.15, (co - Vector((0, -2.20, 2.40))).length)      # face mask
     paws = 1 - smooth(0.55, 0.95, co.z)                                          # socks
     tail = smooth(1.55, 2.05, co.y) * smooth(1.3, 1.9, co.z)                     # tail
     return max(mask, paws, tail)
 
+def pad_amount(v):
+    # Pink toe pads on the front-lower face of each paw (visible like the
+    # reference's plush paws).
+    if v.co.z > 0.42 or v.normal.y > -0.35:
+        return 0.0
+    for px in (0.62, -0.62, 0.66, -0.66):
+        for py in (-0.88 - 0.42, 0.92 - 0.45):
+            d = math.hypot(v.co.x - px, (v.co.z - 0.22) * 1.3)
+            if abs(v.co.y - py) < 0.35:
+                return 1 - smooth(0.10, 0.20, d)
+    return 0.0
+
 def paint(obj, fn):
     attr = obj.data.color_attributes.new('Col', 'FLOAT_COLOR', 'POINT')
     for v in obj.data.vertices:
         a = fn(v.co)
         c = BASE.lerp(POINT, a)  # linear
+        c = c.lerp(PAD, pad_amount(v))
         attr.data[v.index].color = (c.x, c.y, c.z, 1)
 
 paint(body, point_amount)
