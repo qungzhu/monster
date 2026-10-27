@@ -30,3 +30,5 @@ public/models/generated/red-fox-meshy-rigged-walk-optimized.glb
 
 # plaza friendship data (local dev)
 server/data/
+
+__pycache__/
