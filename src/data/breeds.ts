@@ -319,7 +319,7 @@ export const breeds: Breed[] = [
     petName: '松松', emoji: '🌲', rarity: 'legendary', characterId: 'xiaoxue',
     description: '半长毛棕虎斑配雪白围脖，深色耳尖，森系毛茸茸大尾巴，会8种灵活动作',
     personality: ['温厚', '沉静', '毛茸茸'],
-    glbUrl: '/models/custom/mesh-norweg.glb',
+    glbUrl: '/models/plush/meshy-norwegian.glb',
     glbDisableSkeletalAnimation: true,
   },
   {
@@ -327,7 +327,7 @@ export const breeds: Breed[] = [
     petName: '狮狮', emoji: '🦁', rarity: 'legendary', characterId: 'xiaoxue',
     description: '长毛棕虎斑配猞猁般的黑色耳簇，蓬松条纹大尾，温柔的巨型猫，会8种灵活动作',
     personality: ['威武', '温柔', '大块头'],
-    glbUrl: '/models/custom/mesh-mainecoon.glb',
+    glbUrl: '/models/plush/meshy-mainecoon.glb',
     glbDisableSkeletalAnimation: true,
   },
   {
