@@ -45,11 +45,17 @@ Checked every cat with a fixed-angle viewer on a magenta background
 | 欧洲短毛虎斑 `mesh-tabby2` | rectangular patch on the hip (back view) | colour texture | retexture |
 | 金吉拉波斯 `mesh-persian` | a few dark specks on the body | colour texture | retexture |
 | 奶油长毛 `cat4` | faint light seam lines | colour texture | retexture |
-| 胖虎斑 `cat2` | a second long thin tail hangs to the ground behind the pom-pom tail, and pokes out as a hook beside the left shoulder from the front | geometry | ask the owner: remove it or keep it as the curly tail |
+| 胖虎斑 `cat2` | ~~a second long thin tail trailing from the pom-pom~~ | geometry | **fixed**: removed with `tools/blender/remove_tail.py` (one pom-pom tail left) |
 
 Already fixed: inverted normals on cat3/4/5 and their backwards facing
 (see `tools/animation-retarget/fix-normals.mjs`, `glbRotationY`). Small
 holes exist in several meshes (9–142 loops) but none are visible.
+
+**Rule: every pet has exactly one tail, undeformed.** Checked all cats, the
+fox and the procedural dogs/cats (side, back and above views). Multi-view
+generation can grow a tail per view when the sheet draws the tail at
+different angles (the Meshy Himalayan test came out with two), so check
+every new model from the side and back before using it.
 
 ## Notes
 
