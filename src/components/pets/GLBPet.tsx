@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { toPlushMaterial } from './plushMaterial';
+import { addFurShells } from './plushFur';
 import { useGLTF, useAnimations } from '@react-three/drei';
 import { SkeletonUtils } from 'three-stdlib';
 import type { Group } from 'three';
@@ -198,14 +199,18 @@ export function GLBPet({ config, isHovered, tint, normalize, emote }: GLBPetProp
   useEffect(() => {
     const tintColor = tint ? new THREE.Color(tint) : null;
     clonedScene.traverse(obj => {
-      if ((obj as THREE.Mesh).isMesh) {
+      if ((obj as THREE.Mesh).isMesh && !obj.userData.furShell) {
         obj.castShadow = true;
         const mesh = obj as THREE.Mesh;
         const currentMaterial = mesh.material as THREE.Material | THREE.Material[];
         const hasMaterialArray = Array.isArray(currentMaterial);
         const materials = hasMaterialArray ? currentMaterial : [currentMaterial];
         const clonedMaterials = materials.map(source => {
-          const material = (source as THREE.MeshStandardMaterial).isMeshStandardMaterial
+          // Plush (Blender) cats: only the fur becomes fabric; eyes and nose
+          // keep their glossy glTF materials.
+          const fabric = (source as THREE.MeshStandardMaterial).isMeshStandardMaterial
+            && (!config.plushFur || source.name.startsWith('fur'));
+          const material = fabric
             ? toPlushMaterial(source as THREE.MeshStandardMaterial, mesh)
             : source.clone();
           if (tintColor && 'color' in material) {
@@ -216,7 +221,8 @@ export function GLBPet({ config, isHovered, tint, normalize, emote }: GLBPetProp
         mesh.material = hasMaterialArray ? clonedMaterials : clonedMaterials[0];
       }
     });
-  }, [clonedScene, tint]);
+    if (config.plushFur) addFurShells(clonedScene);
+  }, [clonedScene, tint, config.plushFur]);
 
   useEffect(() => {
     const idle = actions[config.idleAnimation];

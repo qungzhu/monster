@@ -75,6 +75,7 @@ function PetModel({ characterId, breedId, customBreed, isHovered, emote }: { cha
         scale: 1,
         yOffset: -0.65 + (breed.glbGroundOffset ?? 0),
         facingY: breed.glbRotationY,
+        plushFur: breed.glbPlushFur,
         // Rigged breeds carry an 'Idle' clip (e.g. retargeted look-around);
         // static breeds simply have no matching action and skip it.
         idleAnimation: breed.glbIdleAnimation ?? 'Idle',

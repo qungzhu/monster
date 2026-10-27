@@ -21,5 +21,17 @@ matching the owner's reference sheets in `assets/plush-refs/`.
 
 Writes `TAG-front/q34/side.png` renders and `TAG.blend`.
 
+`--export out.glb` joins body + ears into one `fur` mesh (~7k faces,
+light enough for real-time shell fur), unwraps it, bakes the painted coat
+and the iris into textures, and writes a GLB with three materials:
+`fur`, `eyes`, `nose`. In the app a breed with `glbPlushFur: true` gets
+shell fur on `fur` (`src/components/pets/plushFur.ts`) while the eyes and
+nose stay glossy; fur is automatically short around the eyes and nose.
+
+```bash
+.venv-blender/bin/python tools/blender/base_cat.py /tmp/out himalayan \
+  --export public/models/plush/plush-himalayan.glb --no-render
+```
+
 Next: breed presets (shape + coat), skeleton + automatic weights, shared
-keyframed animations, bake to texture, export GLB for the app.
+keyframed animations.

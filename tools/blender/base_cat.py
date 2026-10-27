@@ -4,12 +4,15 @@ are placed by ray-casting onto the head surface, so nothing floats.
 
 Built at 10x scale (metaball resolution), scaled to metres at the end.
 Z up, the cat faces -Y (glTF +Z after export).
-Run: python base_cat.py OUT_DIR [TAG]
+Run: python base_cat.py OUT_DIR TAG [--export out.glb] [--no-render]
 """
 import bpy, sys, math, os
 from mathutils import Vector, Quaternion
 
-OUT, TAG = sys.argv[-2], sys.argv[-1]
+args = sys.argv[sys.argv.index('--') + 1:] if '--' in sys.argv else sys.argv[1:]
+OUT, TAG = args[0], args[1]
+EXPORT = args[args.index('--export') + 1] if '--export' in args else None
+RENDER = '--no-render' not in args
 bpy.ops.wm.read_factory_settings(use_empty=True)
 scene = bpy.context.scene
 
@@ -63,7 +66,7 @@ bpy.ops.object.convert(target='MESH')
 body = bpy.context.active_object
 body.name = 'cat_body'
 rm = body.modifiers.new('voxel', 'REMESH')
-rm.mode, rm.voxel_size, rm.use_smooth_shade = 'VOXEL', 0.055, True
+rm.mode, rm.voxel_size, rm.use_smooth_shade = 'VOXEL', 0.085, True  # ~7k quads: light enough for fur shells
 bpy.ops.object.modifier_apply(modifier='voxel')
 bpy.ops.object.shade_smooth()
 print('body faces', len(body.data.polygons))
@@ -126,9 +129,9 @@ def smooth(e0, e1, x):
 
 def lin(srgb):  # colour attributes are linear
     return Vector([c ** 2.2 for c in srgb])
-BASE, POINT = lin((0.93, 0.86, 0.72)), lin((0.42, 0.36, 0.34))
+BASE, POINT, INNER_EAR = lin((0.95, 0.89, 0.77)), lin((0.50, 0.44, 0.42)), lin((0.93, 0.62, 0.62))
 def point_amount(co):
-    mask = 1 - smooth(0.75, 1.40, (co - Vector((0, -2.15, 2.45))).length)      # face mask
+    mask = 1 - smooth(0.55, 1.15, (co - Vector((0, -2.20, 2.40))).length)      # face mask
     paws = 1 - smooth(0.55, 0.95, co.z)                                          # socks
     tail = smooth(1.55, 2.05, co.y) * smooth(1.3, 1.9, co.z)                     # tail
     return max(mask, paws, tail)
@@ -141,8 +144,15 @@ def paint(obj, fn):
         attr.data[v.index].color = (c.x, c.y, c.z, 1)
 
 paint(body, point_amount)
+def paint_ear(e):
+    # Dark outside, pink inside: the inner side faces the camera (-Y).
+    attr = e.data.color_attributes.new('Col', 'FLOAT_COLOR', 'POINT')
+    for v in e.data.vertices:
+        inner = v.normal.y < -0.5 and v.co.z < 0.25
+        c = INNER_EAR if inner else POINT
+        attr.data[v.index].color = (c.x, c.y, c.z, 1)
 for e in ears:
-    paint(e, lambda co: 1.0)
+    paint_ear(e)
 
 fur = mat('fur', (1, 1, 1))
 nt = fur.node_tree
@@ -172,12 +182,76 @@ for o in eyes:
     o.data.materials.append(eye_m)
 nose_o.data.materials.append(mat('nose', (0.75, 0.35, 0.38), rough=0.5, sheen=0.2))
 
+# ---------------------------------------------------------------- bake + export
+def bake_to_image(obj, mat_, name, size):
+    """Bake the material's base colour (vertex paint / procedural) into an image."""
+    img = bpy.data.images.new(name, size, size)
+    nt = mat_.node_tree
+    node = nt.nodes.new('ShaderNodeTexImage'); node.image = img
+    nt.nodes.active = node
+    bpy.ops.object.select_all(action='DESELECT')
+    obj.select_set(True); bpy.context.view_layer.objects.active = obj
+    scene.render.engine = 'CYCLES'
+    scene.cycles.samples = 4
+    bpy.ops.object.bake(type='DIFFUSE', pass_filter={'COLOR'}, margin=16)
+    # Replace the procedural colour with the baked image (what glTF can carry).
+    p = nt.nodes['Principled BSDF']
+    nt.links.new(node.outputs['Color'], p.inputs['Base Color'])
+    return img
+
+def unwrap(obj):
+    bpy.ops.object.select_all(action='DESELECT')
+    obj.select_set(True); bpy.context.view_layer.objects.active = obj
+    bpy.ops.object.mode_set(mode='EDIT')
+    bpy.ops.mesh.select_all(action='SELECT')
+    bpy.ops.uv.smart_project(angle_limit=math.radians(66), island_margin=0.01)
+    bpy.ops.object.mode_set(mode='OBJECT')
+
+def export_glb(path):
+    # One fur mesh (body + ears), eyes, nose: three materials in the GLB.
+    bpy.ops.object.select_all(action='DESELECT')
+    for o in [body, *ears]:
+        o.select_set(True)
+    bpy.context.view_layer.objects.active = body
+    bpy.ops.object.join()
+    # Bake the iris while each eye still has its own object space (the
+    # procedural uses object coordinates); both eyes share the UVs + image.
+    for o in eyes:
+        unwrap(o)
+    bake_to_image(eyes[0], eye_m, 'eye_color', 256)
+    eyes_j = eyes[0]
+    bpy.ops.object.select_all(action='DESELECT')
+    for o in eyes:
+        o.select_set(True)
+    bpy.context.view_layer.objects.active = eyes_j
+    bpy.ops.object.join()
+    for o in (body, eyes_j, nose_o):
+        bpy.ops.object.select_all(action='DESELECT')
+        o.select_set(True); bpy.context.view_layer.objects.active = o
+        bpy.ops.object.transform_apply(location=False, rotation=True, scale=True)
+    unwrap(body)
+    bake_to_image(body, fur, 'fur_color', 1024)
+    body.name, eyes_j.name, nose_o.name = 'fur', 'eyes', 'nose'
+    bpy.ops.object.select_all(action='DESELECT')
+    for o in (body, eyes_j, nose_o):
+        o.select_set(True)
+    bpy.ops.export_scene.gltf(filepath=path, export_format='GLB', use_selection=True,
+                              export_image_format='WEBP', export_image_quality=90,
+                              export_apply=True, export_yup=True)
+    print('exported', path, 'fur faces', len(body.data.polygons))
+
 # To metres.
 for o in [body, *eyes, nose_o, *ears]:
     o.location *= 0.1
     o.scale *= 0.1
 
+# ---------------------------------------------------------------- export
+if EXPORT:
+    export_glb(EXPORT)
+
 # ---------------------------------------------------------------- render
+if not RENDER:
+    sys.exit(0)
 w = bpy.data.worlds.new('w'); w.use_nodes = True
 w.node_tree.nodes['Background'].inputs[0].default_value = (0.9, 0.88, 0.88, 1)
 w.node_tree.nodes['Background'].inputs[1].default_value = 0.35

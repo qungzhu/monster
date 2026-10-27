@@ -56,6 +56,8 @@ export interface Breed {
   glbRemoveFlatBase?: boolean;
   /** Turn the model to face the camera (radians), for meshes exported facing away. */
   glbRotationY?: number;
+  /** Plush cat from the Blender pipeline: real-time shell fur, glossy eyes. */
+  glbPlushFur?: boolean;
   /** Retargeted head weights tear the face; use safe procedural motion instead. */
   glbDisableSkeletalAnimation?: boolean;
 }
@@ -275,6 +277,16 @@ export const breeds: Breed[] = [
     glbUrl: '/models/custom/cat5-rigged-safe.glb',
     glbRotationY: Math.PI,
     glbDisableSkeletalAnimation: true,
+  },
+
+  // ————— 毛绒玩具系列（Blender 管线：干净网格 + 实时绒毛）—————
+  {
+    id: 'plush-himalayan', species: 'cat', name: '喜马拉雅猫', englishName: 'Himalayan',
+    petName: '雪糕', emoji: '🧸', rarity: 'legendary', characterId: 'xiaoxue',
+    description: '奶油色长毛配海豹色脸罩、耳朵和小脚，一双蓝宝石大眼睛，抱起来像毛绒玩具',
+    personality: ['温柔', '黏人', '软萌'],
+    glbUrl: '/models/plush/plush-himalayan.glb',
+    glbPlushFur: true,
   },
 
   // ————— 多角度三视图重建（front/side/back/quarter 四视角，颜色高保真）—————

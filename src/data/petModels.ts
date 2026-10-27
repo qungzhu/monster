@@ -12,6 +12,8 @@ export interface GLBModelConfig {
    * emote layer so walk/run paths still go the way the cat is facing.
    */
   facingY?: number;
+  /** Light plush model (Blender pipeline): add shell fur to the 'fur' material, keep eyes/nose glossy. */
+  plushFur?: boolean;
   /** Animation clip name to loop when idle */
   idleAnimation: string;
   /** Animation clip name to play on hover/interaction */
