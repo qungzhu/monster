@@ -3,6 +3,8 @@
 //
 //   MESHY_API_KEY=... node scripts/generate-plush-cats.mjs            # all five
 //   MESHY_API_KEY=... node scripts/generate-plush-cats.mjs birman      # just one
+//   ... generate-plush-cats.mjs --force mainecoon    # regenerate (new task)
+//   MESHY_AI_MODEL=meshy-6 MESHY_VIEWS=front,side,back34 ...   # model / views
 //
 // Each cat sends 4 views (front, 3/4 front, side, 3/4 back). Task ids are
 // saved to assets/plush-refs/tasks.json right after creation, so a re-run
@@ -18,13 +20,15 @@ const REFS = new URL('../assets/plush-refs/', import.meta.url);
 const TASKS = new URL('tasks.json', REFS);
 const OUT = new URL('../public/models/custom/', import.meta.url);
 const ALL = ['himalayan', 'mainecoon', 'norwegian', 'birman', 'angora'];
-const VIEWS = ['front', 'q34', 'side', 'back34'];
+const VIEWS = (process.env.MESHY_VIEWS || 'front,q34,side,back34').split(',');
 
 if (!KEY) {
   console.error('MESHY_API_KEY is not set (add it in the environment settings, then start a new session).');
   process.exit(1);
 }
-const names = process.argv.slice(2).length ? process.argv.slice(2) : ALL;
+const FORCE = process.argv.includes('--force');
+const picked = process.argv.slice(2).filter(a => a !== '--force');
+const names = picked.length ? picked : ALL;
 for (const n of names) if (!ALL.includes(n)) { console.error(`unknown cat "${n}" (one of ${ALL.join(', ')})`); process.exit(1); }
 
 const tasks = existsSync(TASKS) ? JSON.parse(readFileSync(TASKS, 'utf8')) : {};
@@ -67,7 +71,8 @@ async function waitFor(name, id) {
 
 for (const name of names) {
   const out = new URL(`plush-${name}.glb`, OUT);
-  if (existsSync(out)) { console.log(`${name}: already downloaded, skipping`); continue; }
+  if (FORCE) delete tasks[name];
+  else if (existsSync(out)) { console.log(`${name}: already downloaded, skipping`); continue; }
   try {
     if (!tasks[name]) {
       tasks[name] = await create(name);

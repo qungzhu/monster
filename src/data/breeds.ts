@@ -285,8 +285,24 @@ export const breeds: Breed[] = [
     petName: '雪糕', emoji: '🧸', rarity: 'legendary', characterId: 'xiaoxue',
     description: '奶油色长毛配海豹色脸罩、耳朵和小脚，一双蓝宝石大眼睛，抱起来像毛绒玩具',
     personality: ['温柔', '黏人', '软萌'],
-    glbUrl: '/models/plush/plush-himalayan.glb',
-    glbPlushFur: true,
+    glbUrl: '/models/plush/meshy-himalayan.glb',
+    glbDisableSkeletalAnimation: true,
+  },
+  {
+    id: 'plush-birman', species: 'cat', name: '伯曼猫', englishName: 'Birman',
+    petName: '手套', emoji: '🧤', rarity: 'legendary', characterId: 'xiaoxue',
+    description: '重点色配四只雪白小手套，蓝眼睛温柔又安静，像穿了袜子的毛绒公仔',
+    personality: ['温顺', '安静', '贴心'],
+    glbUrl: '/models/plush/meshy-birman.glb',
+    glbDisableSkeletalAnimation: true,
+  },
+  {
+    id: 'plush-angora', species: 'cat', name: '土耳其安哥拉', englishName: 'Turkish Angora',
+    petName: '云朵', emoji: '☁️', rarity: 'legendary', characterId: 'xiaoxue',
+    description: '一身雪白，蓝宝石眼睛，羽毛一样蓬松的大尾巴，优雅又爱玩',
+    personality: ['优雅', '活泼', '聪明'],
+    glbUrl: '/models/plush/meshy-angora.glb',
+    glbDisableSkeletalAnimation: true,
   },
 
   // ————— 多角度三视图重建（front/side/back/quarter 四视角，颜色高保真）—————
