@@ -1,4 +1,5 @@
 import { useState, Suspense, useMemo, Component } from 'react';
+import { plushTuning } from './plushMaterial';
 import type { ReactNode } from 'react';
 import { Canvas } from '@react-three/fiber';
 import { OrbitControls, ContactShadows, Environment, Lightformer } from '@react-three/drei';
@@ -139,35 +140,48 @@ function PetModel({ characterId, breedId, customBreed, isHovered, emote }: { cha
  * environment (no network fetch) that the fabric sheen can pick up, a soft
  * low-contrast key, and a warm rim light from behind.
  */
+// Lighting variants for comparison (?light=a|b|c), default = current.
+const LIGHT = (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('light')) || '';
+const LIGHTS: Record<string, { env: number; amb: number; hemi: number; key: number; rim: number; fill: number; wrap: number }> = {
+  '': { env: 0.3, amb: 0.65, hemi: 0.75, key: 0.95, rim: 0.9, fill: 1.1, wrap: 0.6 },
+  a: { env: 0.22, amb: 0.35, hemi: 0.5, key: 1.5, rim: 0.9, fill: 0.6, wrap: 0.35 },
+  b: { env: 0.18, amb: 0.22, hemi: 0.4, key: 1.9, rim: 1.0, fill: 0.4, wrap: 0.25 },
+  c: { env: 0.14, amb: 0.12, hemi: 0.32, key: 2.3, rim: 1.1, fill: 0.25, wrap: 0.15 },
+};
+export const plushLight = LIGHTS[LIGHT] ?? LIGHTS[''];
+plushTuning.wrap.value = plushLight.wrap;
+
 export function PlushLighting({ color }: { color: string }) {
+  const L = plushLight;
   return (
     <>
-      <Environment resolution={128} frames={1} environmentIntensity={0.3}>
+      <Environment resolution={128} frames={1} environmentIntensity={L.env}>
         {/* big warm softbox above-front */}
         <Lightformer form="rect" intensity={2.2} color="#fff3e4" position={[0, 4, 4]} rotation-x={-Math.PI / 4} scale={[8, 4, 1]} />
         {/* cool side fills */}
-        <Lightformer form="rect" intensity={1.1} color="#e8eeff" position={[-5, 1, 1]} rotation-y={Math.PI / 2} scale={[4, 4, 1]} />
-        <Lightformer form="rect" intensity={1.1} color="#fff0f4" position={[5, 1, 1]} rotation-y={-Math.PI / 2} scale={[4, 4, 1]} />
+        <Lightformer form="rect" intensity={L.fill} color="#e8eeff" position={[-5, 1, 1]} rotation-y={Math.PI / 2} scale={[4, 4, 1]} />
+        <Lightformer form="rect" intensity={L.fill} color="#fff0f4" position={[5, 1, 1]} rotation-y={-Math.PI / 2} scale={[4, 4, 1]} />
         {/* warm back panel -> fuzzy rim */}
         <Lightformer form="rect" intensity={2.6} color="#fff6ea" position={[0, 2, -5]} scale={[8, 5, 1]} />
         {/* snow bounce from below */}
         <Lightformer form="rect" intensity={0.8} color="#f4f8ff" position={[0, -3, 0]} rotation-x={Math.PI / 2} scale={[10, 10, 1]} />
       </Environment>
-      <ambientLight intensity={0.65} color="#fff6ee" />
-      <hemisphereLight args={['#fff4e8', '#c8d4ee', 0.75]} />
-      {/* soft, low-contrast key */}
+      <ambientLight intensity={L.amb} color="#fff6ee" />
+      <hemisphereLight args={['#fff4e8', '#c8d4ee', L.hemi]} />
+      {/* key from upper side: one clearly lit side gives the body volume */}
       <directionalLight
         position={[3, 6, 5]}
-        intensity={0.95}
+        intensity={L.key}
         color="#fff6ec"
         castShadow
-        shadow-mapSize-width={512}
-        shadow-mapSize-height={512}
+        shadow-mapSize-width={1024}
+        shadow-mapSize-height={1024}
         shadow-radius={6}
+        shadow-bias={-0.0005}
       />
       {/* warm rim from behind: makes the fur edge glow like a plush toy */}
-      <directionalLight position={[-1.5, 3, -5]} intensity={0.9} color="#ffe9d2" />
-      <directionalLight position={[2, 2.5, -4]} intensity={0.5} color="#ffeef6" />
+      <directionalLight position={[-1.5, 3, -5]} intensity={L.rim} color="#ffe9d2" />
+      <directionalLight position={[2, 2.5, -4]} intensity={L.rim * 0.55} color="#ffeef6" />
       <pointLight position={[0, 1, 3]} intensity={0.25} color={color} distance={8} />
     </>
   );
