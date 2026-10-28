@@ -37,6 +37,9 @@ export const PLAZA_BREEDS: { id: string; label: string; url: string }[] = [
   { id: 'meshy-mainecoon', label: '缅因 · 狮狮', url: '/models/lite/mesh-mainecoon.glb' },
   { id: 'meshy-persian', label: '金吉拉波斯 · 布丁', url: '/models/lite/mesh-persian.glb' },
   { id: 'meshy-ragdoll', label: '布偶 · 雪球', url: '/models/lite/mesh-ragdoll.glb' },
+  { id: 'plush-himalayan', label: '喜马拉雅 · 雪糕', url: '/models/lite/plush-himalayan.glb' },
+  { id: 'plush-birman', label: '伯曼 · 手套', url: '/models/lite/plush-birman.glb' },
+  { id: 'plush-angora', label: '土耳其安哥拉 · 云朵', url: '/models/lite/plush-angora.glb' },
 ];
 
 export const liteModelUrl = (breed: string) =>

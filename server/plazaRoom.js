@@ -30,6 +30,7 @@ export const ACTIONS = ['Idle', 'Walk', 'Run', 'Scratch', 'Eat', 'Sleep', 'Meow'
 export const BREEDS = [
   'meshy-tabby', 'meshy-eurotabby', 'meshy-norwegian',
   'meshy-mainecoon', 'meshy-persian', 'meshy-ragdoll',
+  'plush-himalayan', 'plush-birman', 'plush-angora',
 ];
 
 // Max distance a cat may cover per second. Running is ~2.6 u/s on the
