@@ -114,7 +114,7 @@ export const plushTuning = {
   /** Albedo variation of the pile, 0–1. */
   noise: { value: 0.12 },
   /** Wrap-lighting amount: 0 = Lambert, 1 = fully wrapped. */
-  wrap: { value: 0.6 },
+  wrap: { value: 0.25 },
   /** Backlit rim glow strength. */
   rim: { value: 0.3 },
 };

@@ -140,10 +140,13 @@ function PetModel({ characterId, breedId, customBreed, isHovered, emote }: { cha
  * environment (no network fetch) that the fabric sheen can pick up, a soft
  * low-contrast key, and a warm rim light from behind.
  */
-// Lighting variants for comparison (?light=a|b|c), default = current.
+// Lighting variants for comparison (?light=flat|a|b|c).
 const LIGHT = (typeof window !== 'undefined' && new URLSearchParams(window.location.search).get('light')) || '';
 const LIGHTS: Record<string, { env: number; amb: number; hemi: number; key: number; rim: number; fill: number; wrap: number }> = {
-  '': { env: 0.3, amb: 0.65, hemi: 0.75, key: 0.95, rim: 0.9, fill: 1.1, wrap: 0.6 },
+  // Default: one clearly lit side + gradual falloff gives the plush volume
+  // (the old even light, now 'flat', read as a cutout).
+  '': { env: 0.18, amb: 0.22, hemi: 0.4, key: 1.9, rim: 1.0, fill: 0.4, wrap: 0.25 },
+  flat: { env: 0.3, amb: 0.65, hemi: 0.75, key: 0.95, rim: 0.9, fill: 1.1, wrap: 0.6 },
   a: { env: 0.22, amb: 0.35, hemi: 0.5, key: 1.5, rim: 0.9, fill: 0.6, wrap: 0.35 },
   b: { env: 0.18, amb: 0.22, hemi: 0.4, key: 1.9, rim: 1.0, fill: 0.4, wrap: 0.25 },
   c: { env: 0.14, amb: 0.12, hemi: 0.32, key: 2.3, rim: 1.1, fill: 0.25, wrap: 0.15 },
