@@ -54,16 +54,31 @@ export function toPlushMaterial(std: THREE.MeshStandardMaterial, mesh?: THREE.Me
   const radius = mesh?.geometry?.boundingSphere?.radius
     ?? (mesh?.geometry?.computeBoundingSphere(), mesh?.geometry?.boundingSphere?.radius) ?? 1;
   const perRadius = { value: 1 / Math.max(radius, 1e-4) };
+  if (mesh?.geometry && !mesh.geometry.attributes.plushInflateNormal) {
+    mesh.geometry.setAttribute('plushInflateNormal', smoothOutward(mesh.geometry, radius));
+  }
   mat.onBeforeCompile = shader => {
     shader.uniforms.uPlushPerRadius = perRadius;
     shader.uniforms.uPlushFibres = plushTuning.fibresPerRadius;
     shader.uniforms.uPlushNoise = plushTuning.noise;
     shader.uniforms.uPlushWrap = plushTuning.wrap;
     shader.uniforms.uPlushRim = plushTuning.rim;
-    shader.vertexShader = 'varying vec3 vPlushPos;\n' + shader.vertexShader.replace(
-      '#include <begin_vertex>',
-      '#include <begin_vertex>\n  vPlushPos = position;',
-    );
+    shader.uniforms.uPlushInflate = plushTuning.inflate;
+    // No mesh -> no welded normals: stuffing off (it would push sideways).
+    shader.uniforms.uPlushRadius = { value: mesh?.geometry?.attributes.plushInflateNormal ? radius : 0 };
+    // Stuffing: push the surface out along its (skinned) normal, so the cat
+    // is plumper everywhere — like a toy with more filling. After skinning,
+    // so it follows every pose.
+    // Uses a spatially smoothed normal (plushInflateNormal), so seam copies
+    // and separate fur pieces move together and the surface doesn't crack.
+    shader.vertexShader = 'varying vec3 vPlushPos;\nuniform float uPlushInflate, uPlushRadius;\nattribute vec3 plushInflateNormal;\n' + shader.vertexShader
+      .replace('#include <skinnormal_vertex>', `#include <skinnormal_vertex>
+  vec3 plushN = plushInflateNormal;
+  #ifdef USE_SKINNING
+    plushN = vec4( skinMatrix * vec4( plushN, 0.0 ) ).xyz;
+  #endif`)
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\n  vPlushPos = position;')
+      .replace('#include <skinning_vertex>', '#include <skinning_vertex>\n  transformed += normalize(plushN + 1e-6) * uPlushInflate * uPlushRadius;');
     shader.fragmentShader = PLUSH_FRAGMENT_HEAD + shader.fragmentShader
       .replace('#include <map_fragment>', `#include <map_fragment>
   vec3 plushV = normalize(vViewPosition);
@@ -83,8 +98,50 @@ export function toPlushMaterial(std: THREE.MeshStandardMaterial, mesh?: THREE.Me
       .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
   totalEmissiveRadiance += diffuseColor.rgb * pow(1.0 - plushNdV, 2.4) * uPlushRim;`);
   };
-  mat.customProgramCacheKey = () => 'plush-v3';
+  mat.customProgramCacheKey = () => 'plush-v4';
   return mat;
+}
+
+/**
+ * A smooth "outward" direction per vertex for the stuffing: normals averaged
+ * over everything within a small radius in space, regardless of which piece
+ * they belong to. Meshy meshes are split along UV seams and some fur is made
+ * of separate little pieces; averaging spatially makes neighbours move
+ * together, so inflating never cracks the surface.
+ */
+function smoothOutward(geo: THREE.BufferGeometry, radius: number): THREE.BufferAttribute {
+  const pos = geo.attributes.position;
+  const nrm = geo.attributes.normal;
+  const n = pos.count;
+  const out = new Float32Array(n * 3);
+  if (!nrm) return new THREE.BufferAttribute(out, 3);
+  const cell = Math.max(radius * 0.04, 1e-6);
+  const grid = new Map<string, number[]>();
+  const cx = new Int32Array(n), cy = new Int32Array(n), cz = new Int32Array(n);
+  for (let i = 0; i < n; i++) {
+    cx[i] = Math.floor(pos.getX(i) / cell); cy[i] = Math.floor(pos.getY(i) / cell); cz[i] = Math.floor(pos.getZ(i) / cell);
+    const k = `${cx[i]},${cy[i]},${cz[i]}`;
+    let list = grid.get(k);
+    if (!list) grid.set(k, (list = []));
+    list.push(i);
+  }
+  // Sum of normals per cell, then each vertex takes its 3x3x3 neighbourhood.
+  const cellSum = new Map<string, [number, number, number]>();
+  for (const [k, list] of grid) {
+    let x = 0, y = 0, z = 0;
+    for (const i of list) { x += nrm.getX(i); y += nrm.getY(i); z += nrm.getZ(i); }
+    cellSum.set(k, [x, y, z]);
+  }
+  for (let i = 0; i < n; i++) {
+    let x = 0, y = 0, z = 0;
+    for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) for (let dz = -1; dz <= 1; dz++) {
+      const c = cellSum.get(`${cx[i] + dx},${cy[i] + dy},${cz[i] + dz}`);
+      if (c) { x += c[0]; y += c[1]; z += c[2]; }
+    }
+    const l = Math.hypot(x, y, z) || 1;
+    out[3 * i] = x / l; out[3 * i + 1] = y / l; out[3 * i + 2] = z / l;
+  }
+  return new THREE.BufferAttribute(out, 3);
 }
 
 const PLUSH_FRAGMENT_HEAD = `
@@ -117,6 +174,8 @@ export const plushTuning = {
   wrap: { value: 0.25 },
   /** Backlit rim glow strength. */
   rim: { value: 0.3 },
+  /** Stuffing: how far the surface is pushed out, as a fraction of the mesh's radius. */
+  inflate: { value: 0.035 },
 };
 if (typeof window !== 'undefined' && window.location.search.includes('plushlab')) {
   (window as unknown as { __plush: typeof plushTuning }).__plush = plushTuning;
