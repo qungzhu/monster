@@ -72,7 +72,7 @@ export function ShopPanel({ show, onClose, coins, inventory, onBuy, onUse }: Sho
             </div>
 
             {/* Items by type */}
-            <div className="px-4 pb-8 overflow-y-auto max-h-[60vh] space-y-4">
+            <div className="fp-stagger px-4 pb-8 overflow-y-auto max-h-[60vh] space-y-4">
               {types.map(type => (
                 <div key={type}>
                   <h3 className="text-xs font-medium text-text-muted mb-2">{typeLabels[type]}</h3>

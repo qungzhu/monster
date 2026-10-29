@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import type { CSSProperties } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { Send, Coins, PawPrint } from 'lucide-react';
 import type { Character, ChatMessage, MoodType, MoodEntry } from '../data/characters';
 import type { PetStats, Quest } from '../data/gameConfig';
@@ -137,6 +137,8 @@ export function LivingWorld(props: LivingWorldProps) {
   const pettingHandled = useRef(false);
   const rewardId = useRef(0);
   const greetedRef = useRef(false);
+  const reduceMotion = useReducedMotion();
+  const [dockPop, setDockPop] = useState<{ label: string; n: number }>({ label: '', n: 0 });
   // Task agent: a proposed plan waits here until the owner confirms.
   const [plan, setPlan] = useState<AgentPlan | null>(null);
   const [planStatus, setPlanStatus] = useState<PlanStatus>('ready');
@@ -627,7 +629,12 @@ export function LivingWorld(props: LivingWorldProps) {
       <div className="absolute inset-0 pointer-events-none" style={{ background: `radial-gradient(ellipse at 50% 42%, ${color}14 0%, transparent 50%)` }} />
 
       {/* Ambient status — one line, tappable, no panels */}
-      <div className="absolute top-0 left-0 right-0 z-30 px-4 pt-3 flex items-center justify-between">
+      <motion.div
+        initial={reduceMotion ? false : { opacity: 0, y: -24 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ type: 'spring', stiffness: 260, damping: 20, delay: 0.1 }}
+        className="absolute top-0 left-0 right-0 z-30 px-4 pt-3 flex items-center justify-between"
+      >
         <button onClick={() => setActiveCard('bond')} aria-label="等级与亲密度" className="soft-glass flex h-9 items-center gap-2 rounded-full px-3.5">
           <span className="text-[13px] font-bold" style={{ color }}>Lv.{levelInfo.level}</span>
           <div className="h-1.5 w-12 overflow-hidden rounded-full bg-black/10">
@@ -638,18 +645,23 @@ export function LivingWorld(props: LivingWorldProps) {
         </button>
         <button onClick={() => setActiveCard('shop')} aria-label="金币与商店" className="soft-glass flex h-9 items-center gap-1.5 rounded-full px-3.5">
           <Coins size={15} className="text-amber-500" />
-          <span className="text-[13px] font-bold text-amber-600">{coins}</span>
+          <motion.span key={coins} initial={reduceMotion ? false : { scale: 1.5 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 400, damping: 12 }} className="text-[13px] font-bold text-amber-600">{coins}</motion.span>
         </button>
-      </div>
+      </motion.div>
       {/* Today, in one line: opens the hub. */}
       <motion.button
-        initial={{ opacity: 0, y: -8 }}
-        animate={{ opacity: 1, y: 0 }}
+        initial={reduceMotion ? false : { opacity: 0, x: -30 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ type: 'spring', stiffness: 240, damping: 18, delay: 0.25 }}
+        whileTap={{ scale: 0.95 }}
         onClick={() => setActiveCard('life')}
-        className="soft-glass absolute left-4 top-[3.6rem] z-30 flex h-9 max-w-[62vw] items-center gap-2 rounded-full pl-3 pr-3.5 text-[13px]"
+        className="soft-glass fp-shimmer absolute left-4 top-[3.6rem] z-30 flex h-9 max-w-[62vw] items-center gap-2 rounded-full pl-3 pr-3.5 text-[13px]"
         aria-label={`打开${displayHubName}`}
       >
-        <span className="h-2 w-2 shrink-0 rounded-full bg-emerald-400" />
+        <span className="relative flex h-2 w-2 shrink-0">
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60 motion-reduce:hidden" />
+          <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
+        </span>
         <span className="truncate">
           {pendingLifeItems > 0 ? `今天还有 ${pendingLifeItems} 件事` : '今天想做点什么？'}
         </span>
@@ -676,25 +688,49 @@ export function LivingWorld(props: LivingWorldProps) {
 
       {/* Companion actions: a slim dock at the right edge, so the pet stays
           the centre of the scene. */}
-      <aside aria-label="宠物动作栏" className="absolute right-3 top-1/2 z-30 flex -translate-y-1/2 flex-col gap-2.5">
+      <motion.aside
+        aria-label="宠物动作栏"
+        className="absolute right-3 top-1/2 z-30 flex -translate-y-1/2 flex-col gap-2.5"
+        initial={reduceMotion ? false : 'hidden'}
+        animate="shown"
+        variants={{ shown: { transition: { staggerChildren: 0.07, delayChildren: 0.35 } } }}
+      >
         {([
           [null, '待机', '🌿'],
           ['pounce', '扑跳', '⚡'],
           ['zoomies', '玩耍', '🎾'],
           ['rub', '撒娇', '💕'],
-        ] as const).map(([name, label, icon]) => (
-          <motion.button
+        ] as const).map(([name, label, icon], i) => (
+          <motion.div
             key={label}
-            whileTap={{ scale: 0.9 }}
-            onClick={() => playEmote(name)}
-            aria-label={label}
-            className="soft-glass flex h-14 w-14 flex-col items-center justify-center rounded-2xl"
+            variants={{ hidden: { opacity: 0, x: 40, scale: 0.6 }, shown: { opacity: 1, x: 0, scale: 1, transition: { type: 'spring', stiffness: 300, damping: 16 } } }}
           >
-            <span className="text-xl leading-none">{icon}</span>
-            <span className="mt-1 text-[11px] font-medium">{label}</span>
-          </motion.button>
+            <motion.button
+              whileHover={{ scale: 1.08, rotate: -4 }}
+              whileTap={{ scale: 0.82, rotate: 8 }}
+              onClick={() => { playEmote(name); setDockPop(p => ({ label, n: p.n + 1 })); }}
+              aria-label={label}
+              aria-pressed={emote === name && name !== null}
+              className="soft-glass fp-bob flex h-14 w-14 flex-col items-center justify-center rounded-2xl transition-shadow"
+              style={{
+                animationDelay: `${i * 0.4}s`,
+                boxShadow: emote === name && name !== null ? `0 0 0 2px ${color}, 0 8px 24px ${color}55` : undefined,
+              }}
+            >
+              <motion.span
+                key={dockPop.label === label ? dockPop.n : 0}
+                initial={dockPop.label === label && !reduceMotion ? { scale: 1.8, rotate: -20 } : false}
+                animate={{ scale: 1, rotate: 0 }}
+                transition={{ type: 'spring', stiffness: 500, damping: 10 }}
+                className="text-xl leading-none"
+              >
+                {icon}
+              </motion.span>
+              <span className="mt-1 text-[11px] font-medium">{label}</span>
+            </motion.button>
+          </motion.div>
         ))}
-      </aside>
+      </motion.aside>
 
       {/* Pet tap zone + bubble anchor (over the pet's spot in the scene) */}
       <div className="absolute left-1/2 top-[56%] -translate-x-1/2 -translate-y-1/2 z-10">
@@ -731,9 +767,11 @@ export function LivingWorld(props: LivingWorldProps) {
           <AnimatePresence>
             {(bubble || isThinking) && (
               <motion.div
-                initial={{ opacity: 0, y: 12, scale: 0.85 }}
+                initial={{ opacity: 0, y: 16, scale: 0.6 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
-                exit={{ opacity: 0, y: -8, scale: 0.9 }}
+                exit={{ opacity: 0, y: -10, scale: 0.85 }}
+                transition={{ type: 'spring', stiffness: 380, damping: 18 }}
+                style={{ transformOrigin: 'bottom center' }}
                 className="absolute -top-4 left-1/2 -translate-x-1/2 z-20 w-max max-w-[260px]"
               >
                 <div className="soft-glass relative rounded-2xl px-4 py-2.5 text-[15px] leading-relaxed">
@@ -741,7 +779,7 @@ export function LivingWorld(props: LivingWorldProps) {
                     <motion.span animate={{ opacity: [0.4, 1, 0.4] }} transition={{ duration: 1.2, repeat: Infinity }}>
                       {petName || character.name}正在想...
                     </motion.span>
-                  ) : bubble}
+                  ) : <TypeText text={bubble ?? ''} instant={!!reduceMotion} />}
                   <div className="absolute -bottom-1.5 left-1/2 h-3 w-3 -translate-x-1/2 rotate-45"
                     style={{ background: 'rgba(255, 250, 244, 0.95)' }} />
                 </div>
@@ -766,20 +804,25 @@ export function LivingWorld(props: LivingWorldProps) {
             ))}
           </AnimatePresence>
 
-          {/* Tap hearts */}
-          <AnimatePresence>
-            {petTapCount > 0 && (
-              <motion.span
-                key={petTapCount}
-                initial={{ opacity: 1, scale: 0.5, y: 0 }}
-                animate={{ opacity: 0, scale: 1.4, y: -36 }}
-                transition={{ duration: 0.9 }}
-                className="absolute top-16 right-8 z-20 text-xl pointer-events-none"
-              >
-                💕
-              </motion.span>
-            )}
-          </AnimatePresence>
+          {/* Tap hearts: a little burst around the pet */}
+          {petTapCount > 0 && !reduceMotion && (
+            <div key={petTapCount} className="pointer-events-none absolute inset-0 z-20">
+              {['💕', '💗', '✨', '💖', '💕', '✨'].map((h, k) => {
+                const a = (k / 6) * Math.PI * 2 - Math.PI / 2;
+                return (
+                  <motion.span
+                    key={k}
+                    initial={{ opacity: 1, scale: 0.3, x: 0, y: 0 }}
+                    animate={{ opacity: 0, scale: 1.3, x: Math.cos(a) * 70, y: Math.sin(a) * 60 - 30 }}
+                    transition={{ duration: 0.9, ease: 'easeOut' }}
+                    className="absolute left-1/2 top-1/3 text-xl"
+                  >
+                    {h}
+                  </motion.span>
+                );
+              })}
+            </div>
+          )}
 
           <motion.span
             animate={isPetting ? { y: -2, scale: 1.05 } : { y: 0, scale: 1 }}
@@ -791,7 +834,12 @@ export function LivingWorld(props: LivingWorldProps) {
       </div>
 
       {/* Universal input — the only control in the world */}
-      <div className="absolute bottom-0 left-0 right-0 z-30 px-4 pb-6 pt-2">
+      <motion.div
+        initial={reduceMotion ? false : { opacity: 0, y: 60 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ type: 'spring', stiffness: 200, damping: 22, delay: 0.45 }}
+        className="absolute bottom-0 left-0 right-0 z-30 px-4 pb-6 pt-2"
+      >
         <PlanCard
           plan={plan}
           status={planStatus}
@@ -809,10 +857,14 @@ export function LivingWorld(props: LivingWorldProps) {
             isCheckedIn,
             lowStat,
             hasClaimableQuest,
-          })].filter((chip, index, chips) => chips.indexOf(chip) === index).map(chip => (
+          })].filter((chip, index, chips) => chips.indexOf(chip) === index).map((chip, k) => (
             <motion.button
               key={chip}
-              whileTap={{ scale: 0.94 }}
+              initial={reduceMotion ? false : { opacity: 0, y: 16, scale: 0.8 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              transition={{ type: 'spring', stiffness: 320, damping: 18, delay: 0.55 + k * 0.05 }}
+              whileHover={{ y: -2 }}
+              whileTap={{ scale: 0.9 }}
               onClick={() => handleSubmit(chip)}
               className="soft-glass shrink-0 rounded-full px-4 py-2 text-[13px] font-medium"
             >
@@ -823,7 +875,7 @@ export function LivingWorld(props: LivingWorldProps) {
 
         <form
           onSubmit={e => { e.preventDefault(); handleSubmit(input); }}
-          className="soft-glass flex items-center gap-2 rounded-2xl px-3 py-2"
+          className="soft-glass fp-glow flex items-center gap-2 rounded-2xl px-3 py-2 transition-shadow"
         >
           <input
             type="text" value={input} onChange={e => setInput(e.target.value)}
@@ -832,14 +884,16 @@ export function LivingWorld(props: LivingWorldProps) {
             className="flex-1 bg-transparent px-2 py-2 text-[15px] text-[#4a3a33] placeholder:text-[#9b8a80] outline-none"
           />
           <motion.button
-            type="submit" disabled={!input.trim() || isThinking} whileTap={{ scale: 0.9 }}
+            type="submit" disabled={!input.trim() || isThinking} whileTap={{ scale: 0.8, rotate: 15 }}
+            animate={input.trim() && !reduceMotion ? { scale: [1, 1.12, 1] } : { scale: 1 }}
+            transition={{ duration: 1.4, repeat: input.trim() ? Infinity : 0 }}
             className="p-2 rounded-xl disabled:opacity-30 transition-opacity"
             style={{ background: input.trim() ? `${color}33` : 'transparent' }}
           >
             <Send size={18} style={{ color: input.trim() ? color : undefined }} className={input.trim() ? '' : 'text-[#b5a59b]'} />
           </motion.button>
         </form>
-      </div>
+      </motion.div>
 
       {/* ————— Summoned cards ————— */}
       <LifeDashboard
@@ -1050,5 +1104,28 @@ export function LivingWorld(props: LivingWorldProps) {
         )}
       </AnimatePresence>
     </div>
+  );
+}
+
+/** Speech appears as if the pet is saying it, a few characters at a time. */
+function TypeText({ text, instant }: { text: string; instant: boolean }) {
+  const [shown, setShown] = useState({ text: '', n: 0 });
+  useEffect(() => {
+    if (instant) return;
+    let n = 0;
+    const t = setInterval(() => {
+      n += 1;
+      setShown({ text, n });
+      if (n >= text.length) clearInterval(t);
+    }, 28);
+    return () => clearInterval(t);
+  }, [text, instant]);
+  if (instant) return <>{text}</>;
+  const n = shown.text === text ? shown.n : 0;
+  return (
+    <span aria-label={text}>
+      <span aria-hidden>{text.slice(0, n)}</span>
+      <span aria-hidden className="invisible">{text.slice(n)}</span>
+    </span>
   );
 }

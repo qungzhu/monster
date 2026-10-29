@@ -53,7 +53,7 @@ export function MemoryPanel({
           <motion.section
             initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
             transition={{ type: 'spring', stiffness: 300, damping: 32 }}
-            className="game-panel relative w-full max-w-lg overflow-y-auto rounded-t-3xl"
+            className="game-panel fp-stagger relative w-full max-w-lg overflow-y-auto rounded-t-3xl"
             style={{ height: 'min(86vh, 720px)' }}
             onClick={event => event.stopPropagation()}
             aria-label="它记得你的事"

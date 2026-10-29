@@ -195,3 +195,42 @@ body {
   animation-iteration-count: infinite;
   animation-timing-function: ease-in-out;
 }
+
+/* ————— Motion: a living, bouncy UI (all disabled for reduced motion) ————— */
+@keyframes fp-bob { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-4px); } }
+.fp-bob { animation: fp-bob 3.2s ease-in-out infinite; }
+
+@keyframes fp-shimmer { 0% { transform: translateX(-120%) skewX(-18deg); } 60%, 100% { transform: translateX(260%) skewX(-18deg); } }
+.fp-shimmer { position: relative; overflow: hidden; }
+.fp-shimmer::after {
+  content: ''; position: absolute; inset: 0; width: 40%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.75), transparent);
+  animation: fp-shimmer 4.5s ease-in-out infinite 1.2s; pointer-events: none;
+}
+
+@keyframes fp-aurora { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+.fp-aurora {
+  background: linear-gradient(120deg, rgba(139, 92, 246, 0.42), rgba(236, 72, 153, 0.22), rgba(52, 211, 153, 0.18), rgba(139, 92, 246, 0.42));
+  background-size: 300% 300%;
+  animation: fp-aurora 12s ease-in-out infinite;
+}
+
+/* Sheet content flows in row by row. */
+@keyframes fp-rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+.fp-stagger > * { animation: fp-rise 0.45s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.fp-stagger > *:nth-child(1) { animation-delay: 0.04s; }
+.fp-stagger > *:nth-child(2) { animation-delay: 0.08s; }
+.fp-stagger > *:nth-child(3) { animation-delay: 0.12s; }
+.fp-stagger > *:nth-child(4) { animation-delay: 0.16s; }
+.fp-stagger > *:nth-child(5) { animation-delay: 0.2s; }
+.fp-stagger > *:nth-child(6) { animation-delay: 0.24s; }
+.fp-stagger > *:nth-child(7) { animation-delay: 0.28s; }
+.fp-stagger > *:nth-child(8) { animation-delay: 0.32s; }
+.fp-stagger > *:nth-child(n+9) { animation-delay: 0.36s; }
+
+/* Input lights up while typing. */
+.fp-glow:focus-within { box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.25), 0 8px 28px rgba(139, 92, 246, 0.25); }
+
+@media (prefers-reduced-motion: reduce) {
+  .fp-bob, .fp-aurora, .fp-shimmer::after, .fp-stagger > * { animation: none !important; }
+}

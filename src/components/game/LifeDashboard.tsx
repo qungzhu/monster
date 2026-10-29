@@ -147,7 +147,7 @@ export function LifeDashboard({
           <motion.section
             initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
             transition={{ type: 'spring', stiffness: 300, damping: 32 }}
-            className="game-panel relative w-full max-w-lg overflow-y-auto rounded-t-3xl"
+            className="game-panel fp-stagger relative w-full max-w-lg overflow-y-auto rounded-t-3xl"
             style={{ height: 'min(90vh, 760px)' }}
             onClick={event => event.stopPropagation()}
           >
@@ -204,7 +204,7 @@ export function LifeDashboard({
             </div>
 
             <div className="px-5 py-2">
-              <div className="rounded-2xl border border-violet-400/25 bg-gradient-to-br from-violet-500/20 via-fuchsia-500/10 to-transparent p-4">
+              <div className="rounded-2xl border border-violet-400/25 fp-aurora p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
                     <div className="flex items-center gap-1.5 text-[11px] font-semibold text-violet-200">

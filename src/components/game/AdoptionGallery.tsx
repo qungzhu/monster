@@ -87,7 +87,7 @@ export function AdoptionGallery({ show, onClose, onAdopt, currentBreedId, onOpen
               ))}
             </div>
 
-            <div className="overflow-y-auto" style={{ maxHeight: 'calc(88vh - 130px)' }}>
+            <div className="fp-stagger overflow-y-auto" style={{ maxHeight: 'calc(88vh - 130px)' }}>
               {/* Live 3D preview of the highlighted breed */}
               <div className="flex items-center gap-4 px-5 py-2">
                 <div className="shrink-0 rounded-2xl overflow-hidden" style={{ background: 'rgba(255,255,255,0.04)' }}>
