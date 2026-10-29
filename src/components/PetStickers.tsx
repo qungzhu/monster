@@ -75,7 +75,7 @@ export function PetStickers({ show, onSelect, characterId }: PetStickersProps) {
                   className="flex flex-col items-center gap-0.5 p-2 rounded-xl hover:bg-surface-lighter transition-colors"
                 >
                   <span className="text-2xl">{emoji}</span>
-                  <span className="text-[9px] text-text-muted">{label}</span>
+                  <span className="text-[11px] text-text-muted">{label}</span>
                 </motion.button>
               ))}
             </div>

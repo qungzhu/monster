@@ -75,7 +75,7 @@ export function MoodCalendar({ entries }: MoodCalendarProps) {
       {/* Weekday Headers */}
       <div className="grid grid-cols-7 gap-1 mb-1">
         {WEEKDAYS.map(day => (
-          <div key={day} className="text-center text-[10px] text-text-muted py-1">
+          <div key={day} className="text-center text-[11px] text-text-muted py-1">
             {day}
           </div>
         ))}

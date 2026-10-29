@@ -21,7 +21,7 @@ export function PetStatusBar({ stats }: PetStatusBarProps) {
         return (
           <div key={key} className="flex items-center gap-2">
             <span className="text-xs w-4 text-center">{icon}</span>
-            <span className={`text-[9px] w-6 ${isLow ? warnColor : 'text-text-muted'}`}>{label}</span>
+            <span className={`text-[11px] w-6 ${isLow ? warnColor : 'text-text-muted'}`}>{label}</span>
             <div className="flex-1 h-2 bg-black/40 rounded-full overflow-hidden border border-white/10">
               <motion.div
                 className={`h-full rounded-full bg-gradient-to-r ${color}`}
@@ -31,7 +31,7 @@ export function PetStatusBar({ stats }: PetStatusBarProps) {
                 style={{ opacity: isLow ? 0.6 : 1 }}
               />
             </div>
-            <span className={`text-[9px] w-6 text-right ${isLow ? warnColor + ' animate-pulse' : 'text-text-muted'}`}>
+            <span className={`text-[11px] w-6 text-right ${isLow ? warnColor + ' animate-pulse' : 'text-text-muted'}`}>
               {value}
             </span>
           </div>

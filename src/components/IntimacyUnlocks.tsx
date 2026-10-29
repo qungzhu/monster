@@ -65,14 +65,14 @@ export function IntimacyUnlocks({ character, level }: IntimacyUnlocksProps) {
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2">
                 <span className="text-xs font-medium text-text-primary">{item.title}</span>
-                <span className="text-[10px] text-text-muted">Lv.{item.level}</span>
+                <span className="text-[11px] text-text-muted">Lv.{item.level}</span>
                 {isUnlocked && (
                   <Unlock size={10} style={{ color }} />
                 )}
               </div>
-              <p className="text-[10px] text-text-muted mt-0.5">{item.description}</p>
+              <p className="text-[11px] text-text-muted mt-0.5">{item.description}</p>
               {isUnlocked && (
-                <p className="text-[10px] mt-0.5" style={{ color: color + 'cc' }}>
+                <p className="text-[11px] mt-0.5" style={{ color: color + 'cc' }}>
                   {item.reward}
                 </p>
               )}

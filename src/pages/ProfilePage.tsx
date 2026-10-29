@@ -103,7 +103,7 @@ export function ProfilePage({ character, intimacyLevel, chatCount }: ProfilePage
                 <MessageCircle size={12} style={{ color }} />
                 <span className="text-sm font-bold">{chatCount}</span>
               </div>
-              <span className="text-[10px] text-text-muted">互动次数</span>
+              <span className="text-[11px] text-text-muted">互动次数</span>
             </div>
             <div className="w-px h-8 bg-white/10" />
             <div className="text-center">
@@ -111,7 +111,7 @@ export function ProfilePage({ character, intimacyLevel, chatCount }: ProfilePage
                 <PawPrint size={12} style={{ color }} fill="currentColor" />
                 <span className="text-sm font-bold">{intimacyLevel}</span>
               </div>
-              <span className="text-[10px] text-text-muted">亲密度</span>
+              <span className="text-[11px] text-text-muted">亲密度</span>
             </div>
           </div>
         </motion.div>
@@ -132,7 +132,7 @@ export function ProfilePage({ character, intimacyLevel, chatCount }: ProfilePage
                 <Icon size={14} style={{ color }} />
               </div>
               <div>
-                <p className="text-[10px] text-text-muted">{label}</p>
+                <p className="text-[11px] text-text-muted">{label}</p>
                 <p className="text-sm font-medium">{value}</p>
               </div>
             </div>

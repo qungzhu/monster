@@ -10,8 +10,8 @@
   --color-surface-light: #2d1f3d;
   --color-surface-lighter: #3d2d52;
   --color-text-primary: #f8f0ff;
-  --color-text-secondary: #c4b5d0;
-  --color-text-muted: #8b7a9e;
+  --color-text-secondary: #e6d8ce;
+  --color-text-muted: #b9a79b;
 
   --font-display: 'Noto Serif SC', serif;
   --font-body: 'Noto Sans SC', system-ui, sans-serif;
@@ -118,6 +118,17 @@ body {
   border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
+/* Warm frosted cream for controls floating over the snow scene: soft,
+   readable, matches the plush pets (instead of dark sci-fi glass). */
+.soft-glass {
+  background: rgba(255, 250, 244, 0.78);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 6px 20px rgba(60, 40, 30, 0.12);
+  color: #4a3a33;
+}
+
 .glass-strong {
   background: rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(20px);
@@ -153,8 +164,9 @@ body {
 }
 
 .game-panel {
-  background: linear-gradient(180deg, rgba(25, 18, 40, 0.96) 0%, rgba(12, 8, 25, 0.98) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  /* Warm cocoa, matching the plush pets and the cream controls. */
+  background: linear-gradient(180deg, rgba(52, 38, 34, 0.97) 0%, rgba(34, 24, 22, 0.98) 100%);
+  border: 1px solid rgba(255, 236, 220, 0.12);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
 }
 

@@ -76,7 +76,7 @@ export function MemoryPanel({
               <label className="flex items-center justify-between rounded-2xl border border-white/10 bg-black/15 px-3 py-2.5">
                 <span>
                   <span className="block text-xs font-semibold text-text-primary">聊天时自动记住</span>
-                  <span className="block text-[10px] text-text-muted">名字、喜好、要发生的事、目标…</span>
+                  <span className="block text-[11px] text-text-muted">名字、喜好、要发生的事、目标…</span>
                 </span>
                 <input
                   type="checkbox"
@@ -97,7 +97,7 @@ export function MemoryPanel({
                       key={c}
                       type="button"
                       onClick={() => setCategory(c)}
-                      className={`rounded-full px-2.5 py-1 text-[10px] ${category === c ? 'bg-violet-500 text-white' : 'bg-white/8 text-text-secondary'}`}
+                      className={`rounded-full px-2.5 py-1 text-[11px] ${category === c ? 'bg-violet-500 text-white' : 'bg-white/8 text-text-secondary'}`}
                     >
                       {memoryCategoryMeta[c].emoji} {memoryCategoryMeta[c].label}
                     </button>
@@ -152,7 +152,7 @@ export function MemoryPanel({
                             <>
                               <div className="min-w-0 flex-1">
                                 <p className="text-sm text-text-primary">{m.text}</p>
-                                <p className="text-[9px] text-text-muted">
+                                <p className="text-[11px] text-text-muted">
                                   {sourceLabel[m.source]} · {new Date(m.updatedAt).toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric' })}
                                   {m.followedUp ? ' · 已经问过你啦' : ''}
                                 </p>
@@ -175,7 +175,7 @@ export function MemoryPanel({
             </div>
 
             <div className="px-5 pb-6 pt-2">
-              <p className="text-[10px] leading-relaxed text-text-muted">
+              <p className="text-[11px] leading-relaxed text-text-muted">
                 🔒 记忆只保存在这台设备上,聊天时作为背景发给 AI。不会记录证件号、密码、银行卡等敏感信息。
                 也可以直接说「忘掉 XX」。
               </p>

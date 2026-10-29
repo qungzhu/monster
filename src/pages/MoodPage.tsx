@@ -224,7 +224,7 @@ export function MoodPage({
                         <span className="text-sm font-medium" style={{ color: moodColors[entry.mood] }}>
                           {moodLabels[entry.mood]}
                         </span>
-                        <span className="text-[10px] text-text-muted">
+                        <span className="text-[11px] text-text-muted">
                           {new Date(entry.date).toLocaleDateString('zh-CN', {
                             month: 'short',
                             day: 'numeric',

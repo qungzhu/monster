@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import type { CSSProperties } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Send, Coins, PawPrint, Sparkles } from 'lucide-react';
+import { Send, Coins, PawPrint } from 'lucide-react';
 import type { Character, ChatMessage, MoodType, MoodEntry } from '../data/characters';
 import type { PetStats, Quest } from '../data/gameConfig';
 import { dailyQuests } from '../data/gameConfig';
@@ -628,39 +628,32 @@ export function LivingWorld(props: LivingWorldProps) {
 
       {/* Ambient status — one line, tappable, no panels */}
       <div className="absolute top-0 left-0 right-0 z-30 px-4 pt-3 flex items-center justify-between">
-        <button onClick={() => setActiveCard('bond')} className="flex items-center gap-2 glass rounded-full px-3 py-1.5">
-          <span className="text-xs font-bold" style={{ color }}>Lv.{levelInfo.level}</span>
-          <div className="w-12 h-1 bg-black/40 rounded-full overflow-hidden">
+        <button onClick={() => setActiveCard('bond')} aria-label="等级与亲密度" className="soft-glass flex h-9 items-center gap-2 rounded-full px-3.5">
+          <span className="text-[13px] font-bold" style={{ color }}>Lv.{levelInfo.level}</span>
+          <div className="h-1.5 w-12 overflow-hidden rounded-full bg-black/10">
             <div className="h-full rounded-full" style={{ width: `${levelInfo.progress * 100}%`, background: color }} />
           </div>
-          <PawPrint size={11} style={{ color }} fill="currentColor" />
-          <span className="text-[11px] text-text-secondary">{intimacyLevel}</span>
+          <PawPrint size={13} style={{ color }} fill="currentColor" />
+          <span className="text-[13px] font-medium">{intimacyLevel}</span>
         </button>
-        <button onClick={() => setActiveCard('shop')} className="flex items-center gap-1.5 glass rounded-full px-3 py-1.5">
-          <Coins size={12} className="text-amber-400" />
-          <span className="text-xs font-bold text-amber-400">{coins}</span>
+        <button onClick={() => setActiveCard('shop')} aria-label="金币与商店" className="soft-glass flex h-9 items-center gap-1.5 rounded-full px-3.5">
+          <Coins size={15} className="text-amber-500" />
+          <span className="text-[13px] font-bold text-amber-600">{coins}</span>
         </button>
       </div>
+      {/* Today, in one line: opens the hub. */}
       <motion.button
         initial={{ opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
         onClick={() => setActiveCard('life')}
-        className="absolute left-3 top-12 z-30 w-[min(55vw,232px)] rounded-2xl p-3 text-left"
-        style={{ background: 'rgba(10, 8, 20, 0.76)', border: `1px solid ${color}45`, backdropFilter: 'blur(18px)', boxShadow: `0 10px 30px ${color}18` }}
+        className="soft-glass absolute left-4 top-[3.6rem] z-30 flex h-9 max-w-[62vw] items-center gap-2 rounded-full pl-3 pr-3.5 text-[13px]"
         aria-label={`打开${displayHubName}`}
       >
-        <span className="flex items-center justify-between gap-2">
-          <span className="flex items-center gap-1.5 text-[9px] font-semibold text-emerald-300">
-            <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_7px_rgba(52,211,153,.8)]" />
-            {displayHubName} · {companionRoles[companionRole].label}在线
-          </span>
-          <span className="text-[9px] text-violet-200">打开中枢 ›</span>
+        <span className="h-2 w-2 shrink-0 rounded-full bg-emerald-400" />
+        <span className="truncate">
+          {pendingLifeItems > 0 ? `今天还有 ${pendingLifeItems} 件事` : '今天想做点什么？'}
         </span>
-        <span className="mt-1.5 block text-[11px] font-medium leading-snug text-text-primary">
-          {pendingLifeItems > 0
-            ? `今天还有 ${pendingLifeItems} 项，我会陪你完成。`
-            : '今天还没安排，要我帮你规划吗？'}
-        </span>
+        <span className="shrink-0 opacity-50">›</span>
       </motion.button>
 
       {/* Low-stat whisper — appears only when the pet needs something */}
@@ -669,7 +662,7 @@ export function LivingWorld(props: LivingWorldProps) {
           <motion.button
             initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
             onClick={() => lowStat === 'hunger' ? setActiveCard('shop') : handleAction(lowStat === 'mood' ? 'play' : 'clean')}
-            className="absolute top-14 left-1/2 -translate-x-1/2 z-30 glass rounded-full px-3 py-1 text-[11px] text-amber-300 animate-pulse"
+            className="soft-glass absolute top-[6.4rem] left-4 z-30 rounded-full px-3.5 py-1.5 text-[13px] font-medium text-amber-700 animate-pulse"
           >
             {lowStat === 'hunger' ? '🍖 它饿了' : lowStat === 'mood' ? '🎾 它想玩' : '🛁 该洗澡了'}
           </motion.button>
@@ -681,57 +674,27 @@ export function LivingWorld(props: LivingWorldProps) {
         <PetScene characterId={character.id} breedId={adoptedBreedId} customBreed={adoptedBreedId === 'custom' ? customPet : generatedModelBreed} size="world" interactive={true} emote={emote} />
       </div>
 
-      {/* Companion controls stay at the right edge so the main Meshy model
-          remains the focus of the world instead of being replaced by UI. */}
-      <aside
-        aria-label="宠物动作栏"
-        className="absolute right-3 top-16 z-30 w-32 overflow-hidden rounded-2xl sm:right-5 sm:w-44"
-        style={{ background: 'rgba(10, 8, 20, 0.72)', border: `1px solid ${color}55`, backdropFilter: 'blur(16px)', boxShadow: `0 12px 32px ${color}22` }}
-      >
-        <div className="flex items-center gap-1.5 px-3 pt-3 text-[10px] font-medium" style={{ color }}>
-          <Sparkles size={12} />
-          3D 陪伴模式
-        </div>
-        <button
-          type="button"
-          onClick={handlePetTap}
-          className="mx-2.5 my-2.5 flex w-[calc(100%_-_1.25rem)] items-center gap-2 rounded-xl px-2.5 py-2.5 text-left transition-colors hover:bg-white/5"
-          style={{ background: `${color}12`, border: `1px solid ${color}24` }}
-        >
-          <motion.span
-            animate={isPetting ? { scale: [1, 1.2, 1] } : { scale: 1 }}
-            transition={{ duration: 0.7, repeat: isPetting ? Infinity : 0 }}
-            className="text-xl"
+      {/* Companion actions: a slim dock at the right edge, so the pet stays
+          the centre of the scene. */}
+      <aside aria-label="宠物动作栏" className="absolute right-3 top-1/2 z-30 flex -translate-y-1/2 flex-col gap-2.5">
+        {([
+          [null, '待机', '🌿'],
+          ['pounce', '扑跳', '⚡'],
+          ['zoomies', '玩耍', '🎾'],
+          ['rub', '撒娇', '💕'],
+        ] as const).map(([name, label, icon]) => (
+          <motion.button
+            key={label}
+            whileTap={{ scale: 0.9 }}
+            onClick={() => playEmote(name)}
+            aria-label={label}
+            className="soft-glass flex h-14 w-14 flex-col items-center justify-center rounded-2xl"
           >
-            💗
-          </motion.span>
-          <span className="min-w-0">
-            <span className="block truncate text-[11px] font-medium text-text-primary">
-              {isPetting ? `${petName || character.name}正贴着你的手` : `摸摸${petName || character.name}`}
-            </span>
-            <span className="block text-[9px] text-text-muted">轻点回应 · 按住撒娇</span>
-          </span>
-        </button>
-        <div className="grid grid-cols-2 gap-1.5 px-2.5 pb-3">
-          {([
-            [null, '待机', '🌿'],
-            ['pounce', '扑跳', '⚡'],
-            ['zoomies', '玩耍', '🎾'],
-            ['rub', '撒娇', '💕'],
-          ] as const).map(([name, label, icon]) => (
-            <button
-              key={label}
-              onClick={() => playEmote(name)}
-              className="rounded-xl px-1 py-2 text-[10px] text-text-secondary transition-colors hover:text-white"
-              style={{ background: `${color}18`, border: `1px solid ${color}30` }}
-            >
-              <span className="block text-base leading-none mb-1">{icon}</span>
-              {label}
-            </button>
-          ))}
-        </div>
+            <span className="text-xl leading-none">{icon}</span>
+            <span className="mt-1 text-[11px] font-medium">{label}</span>
+          </motion.button>
+        ))}
       </aside>
-
 
       {/* Pet tap zone + bubble anchor (over the pet's spot in the scene) */}
       <div className="absolute left-1/2 top-[56%] -translate-x-1/2 -translate-y-1/2 z-10">
@@ -773,15 +736,14 @@ export function LivingWorld(props: LivingWorldProps) {
                 exit={{ opacity: 0, y: -8, scale: 0.9 }}
                 className="absolute -top-4 left-1/2 -translate-x-1/2 z-20 w-max max-w-[260px]"
               >
-                <div className="px-4 py-2.5 rounded-2xl text-sm backdrop-blur-md relative text-text-primary leading-relaxed"
-                  style={{ background: `${color}26`, border: `1px solid ${color}44` }}>
+                <div className="soft-glass relative rounded-2xl px-4 py-2.5 text-[15px] leading-relaxed">
                   {isThinking ? (
                     <motion.span animate={{ opacity: [0.4, 1, 0.4] }} transition={{ duration: 1.2, repeat: Infinity }}>
                       {petName || character.name}正在想...
                     </motion.span>
                   ) : bubble}
-                  <div className="absolute -bottom-1.5 left-1/2 -translate-x-1/2 w-3 h-3 rotate-45"
-                    style={{ background: `${color}26`, borderRight: `1px solid ${color}44`, borderBottom: `1px solid ${color}44` }} />
+                  <div className="absolute -bottom-1.5 left-1/2 h-3 w-3 -translate-x-1/2 rotate-45"
+                    style={{ background: 'rgba(255, 250, 244, 0.95)' }} />
                 </div>
               </motion.div>
             )}
@@ -821,8 +783,7 @@ export function LivingWorld(props: LivingWorldProps) {
 
           <motion.span
             animate={isPetting ? { y: -2, scale: 1.05 } : { y: 0, scale: 1 }}
-            className="pointer-events-none absolute -bottom-7 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full px-3 py-1 text-[10px] text-text-secondary"
-            style={{ background: 'rgba(10, 8, 20, 0.68)', border: `1px solid ${color}35`, backdropFilter: 'blur(12px)' }}
+            className="soft-glass pointer-events-none absolute -bottom-7 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full px-3 py-1 text-[12px]"
           >
             {isPetting ? '再摸一会儿… 💕' : '轻点或按住摸摸'}
           </motion.span>
@@ -853,8 +814,7 @@ export function LivingWorld(props: LivingWorldProps) {
               key={chip}
               whileTap={{ scale: 0.94 }}
               onClick={() => handleSubmit(chip)}
-              className="shrink-0 rounded-full px-3.5 py-1.5 text-xs text-text-secondary hover:text-text-primary transition-colors"
-              style={{ background: 'rgba(10, 8, 20, 0.65)', border: '1px solid rgba(255,255,255,0.14)', backdropFilter: 'blur(12px)' }}
+              className="soft-glass shrink-0 rounded-full px-4 py-2 text-[13px] font-medium"
             >
               {chip}
             </motion.button>
@@ -863,21 +823,20 @@ export function LivingWorld(props: LivingWorldProps) {
 
         <form
           onSubmit={e => { e.preventDefault(); handleSubmit(input); }}
-          className="flex items-center gap-2 rounded-2xl px-3 py-2"
-          style={{ background: 'rgba(10, 8, 20, 0.75)', border: `1px solid ${color}33`, backdropFilter: 'blur(20px)' }}
+          className="soft-glass flex items-center gap-2 rounded-2xl px-3 py-2"
         >
           <input
             type="text" value={input} onChange={e => setInput(e.target.value)}
-            placeholder={`告诉${petName || character.name}：提醒、快递、体重或学习…`}
+            placeholder={`和${petName || character.name}说点什么…`}
             disabled={isThinking}
-            className="flex-1 bg-transparent px-2 py-1.5 text-sm text-text-primary placeholder:text-text-muted outline-none"
+            className="flex-1 bg-transparent px-2 py-2 text-[15px] text-[#4a3a33] placeholder:text-[#9b8a80] outline-none"
           />
           <motion.button
             type="submit" disabled={!input.trim() || isThinking} whileTap={{ scale: 0.9 }}
             className="p-2 rounded-xl disabled:opacity-30 transition-opacity"
             style={{ background: input.trim() ? `${color}33` : 'transparent' }}
           >
-            <Send size={16} style={{ color: input.trim() ? color : undefined }} className={input.trim() ? '' : 'text-text-muted'} />
+            <Send size={18} style={{ color: input.trim() ? color : undefined }} className={input.trim() ? '' : 'text-[#b5a59b]'} />
           </motion.button>
         </form>
       </div>
@@ -1015,15 +974,15 @@ export function LivingWorld(props: LivingWorldProps) {
               <div className="flex items-center justify-around mt-3 py-3 border-y border-white/5 mb-4">
                 <div className="text-center">
                   <p className="text-sm font-bold">{chatCount}</p>
-                  <p className="text-[10px] text-text-muted">互动次数</p>
+                  <p className="text-[11px] text-text-muted">互动次数</p>
                 </div>
                 <div className="text-center">
                   <p className="text-sm font-bold">{checkInStreak}</p>
-                  <p className="text-[10px] text-text-muted">连续签到</p>
+                  <p className="text-[11px] text-text-muted">连续签到</p>
                 </div>
                 <div className="text-center">
                   <p className="text-sm font-bold">{coins}</p>
-                  <p className="text-[10px] text-text-muted">金币</p>
+                  <p className="text-[11px] text-text-muted">金币</p>
                 </div>
               </div>
               <IntimacyUnlocks character={character} level={intimacyLevel} />

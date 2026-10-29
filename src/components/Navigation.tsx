@@ -58,7 +58,7 @@ export function Navigation() {
                   style={isActive ? { color: 'var(--char-primary, #d97706)' } : undefined}
                 />
                 <span
-                  className={`text-[9px] ${isActive ? 'font-bold' : 'text-text-muted'}`}
+                  className={`text-[11px] ${isActive ? 'font-bold' : 'text-text-muted'}`}
                   style={isActive ? { color: 'var(--char-primary, #d97706)' } : undefined}
                 >
                   {label}

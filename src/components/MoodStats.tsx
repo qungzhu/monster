@@ -88,7 +88,7 @@ function StatsCard({ title, icon, stats }: { title: string; icon: React.ReactNod
             return (
               <div key={mood} className="flex items-center gap-2">
                 <span className="text-sm w-6 text-center">{moodEmojis[mood]}</span>
-                <span className="text-[10px] text-text-muted w-8">{moodLabels[mood]}</span>
+                <span className="text-[11px] text-text-muted w-8">{moodLabels[mood]}</span>
                 <div className="flex-1 h-4 bg-surface-lighter rounded-full overflow-hidden">
                   <motion.div
                     className="h-full rounded-full flex items-center justify-end pr-1.5"
@@ -98,18 +98,18 @@ function StatsCard({ title, icon, stats }: { title: string; icon: React.ReactNod
                     transition={{ duration: 0.6, delay: 0.1 }}
                   >
                     {pct > 20 && (
-                      <span className="text-[9px] text-white font-medium">{count}</span>
+                      <span className="text-[11px] text-white font-medium">{count}</span>
                     )}
                   </motion.div>
                 </div>
                 {pct <= 20 && (
-                  <span className="text-[10px] text-text-muted w-4">{count}</span>
+                  <span className="text-[11px] text-text-muted w-4">{count}</span>
                 )}
               </div>
             );
           })}
           <div className="text-right mt-1">
-            <span className="text-[10px] text-text-muted">共 {stats.total} 条记录</span>
+            <span className="text-[11px] text-text-muted">共 {stats.total} 条记录</span>
           </div>
         </div>
       )}

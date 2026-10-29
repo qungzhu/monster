@@ -245,7 +245,7 @@ export function GameHomePage(props: GameHomePageProps) {
         <div className="absolute bottom-24 left-0 right-0 z-20 flex justify-center gap-4 pointer-events-none">
           {characters.map(char => (
             intimacyLevels[char.id] > 0 && (
-              <span key={char.id} className="text-[10px] text-text-muted glass rounded-full px-2.5 py-1">
+              <span key={char.id} className="text-[11px] text-text-muted glass rounded-full px-2.5 py-1">
                 {char.avatar} 亲密度 {intimacyLevels[char.id]}
               </span>
             )
@@ -315,7 +315,7 @@ export function GameHomePage(props: GameHomePageProps) {
             <span className="text-sm">{character.avatar}</span>
             <div>
               <p className="text-xs font-bold text-text-primary">{character.name}</p>
-              <p className="text-[9px] text-text-muted">{character.title}</p>
+              <p className="text-[11px] text-text-muted">{character.title}</p>
             </div>
           </div>
           <PetStatusBar stats={stats} color={color} />

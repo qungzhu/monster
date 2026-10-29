@@ -344,7 +344,7 @@ export function Plaza({ userName, adoptedBreedId, onReward }: PlazaProps) {
                 const pct = hi ? Math.round(((b.total - lo) / (hi - lo)) * 100) : 100;
                 return (
                   <div className="mt-1.5">
-                    <div className="flex justify-between text-[10px] text-slate-400">
+                    <div className="flex justify-between text-[11px] text-slate-400">
                       <span>好感 {b.total} · {BOND_LEVELS[b.level].name}</span>
                       <span>{hi ? `下一级 ${BOND_LEVELS[b.level + 1].name} ${hi}` : '已满级'}</span>
                     </div>

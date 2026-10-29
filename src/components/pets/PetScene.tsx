@@ -303,7 +303,7 @@ export function PetScene({ characterId, breedId, customBreed, size = 'medium', i
       {/* Interaction hint */}
       {isHovered && interactive && !isTiny && !isWorld && !isPicker && (
         <div className="absolute bottom-1 left-0 right-0 text-center">
-          <span className="text-[9px] text-text-muted bg-surface/60 backdrop-blur-sm px-2 py-0.5 rounded-full">
+          <span className="text-[11px] text-text-muted bg-surface/60 backdrop-blur-sm px-2 py-0.5 rounded-full">
             拖动旋转 ✨
           </span>
         </div>

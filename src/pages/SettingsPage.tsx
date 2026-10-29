@@ -94,7 +94,7 @@ export function SettingsPage({ userName, setUserName, clearAllData, apiKey, setA
               <Bot size={16} className="text-violet-400" />
               <h3 className="text-sm font-medium">AI 对话配置</h3>
               {apiKey && (
-                <span className="text-[10px] px-2 py-0.5 rounded-full bg-green-500/20 text-green-400">
+                <span className="text-[11px] px-2 py-0.5 rounded-full bg-green-500/20 text-green-400">
                   已启用
                 </span>
               )}
@@ -130,7 +130,7 @@ export function SettingsPage({ userName, setUserName, clearAllData, apiKey, setA
               </div>
               <div className="flex items-start gap-2 mt-2">
                 <Key size={12} className="text-text-muted shrink-0 mt-0.5" />
-                <p className="text-[10px] text-text-muted leading-relaxed">
+                <p className="text-[11px] text-text-muted leading-relaxed">
                   API Key 保存在本地浏览器中，请求时会通过本地后端发送给 OpenAI。也可改用后端 .env 中的 OPENAI_API_KEY。
                 </p>
               </div>
@@ -243,7 +243,7 @@ export function SettingsPage({ userName, setUserName, clearAllData, apiKey, setA
             className="text-center py-4"
           >
             <p className="text-text-muted text-xs">毛茸伙伴 FurryPal v1.5.0</p>
-            <p className="text-text-muted text-[10px] mt-1">Made with 🐾</p>
+            <p className="text-text-muted text-[11px] mt-1">Made with 🐾</p>
           </motion.div>
         </div>
       </div>

@@ -27,7 +27,7 @@ export function GameHUD({ level, title, xpProgress, currentXP, nextLevelXP, coin
           </div>
           <div className="min-w-0">
             <p className="text-xs font-medium text-text-primary truncate max-w-[100px]">{userName || '旅行者'}</p>
-            <p className="text-[9px] text-amber-400/80">{title}</p>
+            <p className="text-[11px] text-amber-400/80">{title}</p>
             <div className="flex items-center gap-1 mt-0.5">
               <Zap size={8} className="text-cyan-400" />
               <div className="w-16 h-1.5 bg-black/40 rounded-full overflow-hidden border border-white/10">

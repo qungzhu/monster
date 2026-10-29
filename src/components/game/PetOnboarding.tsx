@@ -135,7 +135,7 @@ export function PetOnboarding({ onChoose }: PetOnboardingProps) {
               }}
             >
               <span className="block text-xl">{breed.emoji}</span>
-              <span className="block truncate text-[10px] text-text-primary">{breed.name}</span>
+              <span className="block truncate text-[11px] text-text-primary">{breed.name}</span>
               {breed.glbUrl && <span className="mt-0.5 block text-[8px] text-violet-300">真实 3D</span>}
             </button>
           ))}

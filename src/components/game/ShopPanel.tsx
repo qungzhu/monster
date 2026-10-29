@@ -40,7 +40,7 @@ export function ShopPanel({ show, onClose, coins, inventory, onBuy, onUse }: Sho
             className="relative w-full max-w-lg rounded-t-3xl overflow-hidden"
             onClick={e => e.stopPropagation()}
             style={{
-              background: 'linear-gradient(180deg, rgba(30, 20, 50, 0.98) 0%, rgba(15, 10, 30, 0.98) 100%)',
+              background: 'linear-gradient(180deg, rgba(52, 38, 34, 0.98) 0%, rgba(34, 24, 22, 0.98) 100%)',
               border: '1px solid rgba(255,255,255,0.15)',
               borderBottom: 'none',
               maxHeight: '75vh',
@@ -89,7 +89,7 @@ export function ShopPanel({ show, onClose, coins, inventory, onBuy, onUse }: Sho
                             <span className="text-2xl">{item.icon}</span>
                             <div className="min-w-0">
                               <p className="text-xs font-medium text-text-primary truncate">{item.name}</p>
-                              <p className="text-[9px] text-text-muted">{item.description}</p>
+                              <p className="text-[11px] text-text-muted">{item.description}</p>
                             </div>
                           </div>
                           <div className="flex items-center gap-1.5">
@@ -97,7 +97,7 @@ export function ShopPanel({ show, onClose, coins, inventory, onBuy, onUse }: Sho
                               whileTap={{ scale: 0.9 }}
                               onClick={() => onBuy(item)}
                               disabled={!canBuy}
-                              className={`flex-1 flex items-center justify-center gap-1 rounded-lg py-1.5 text-[10px] font-medium transition-colors ${
+                              className={`flex-1 flex items-center justify-center gap-1 rounded-lg py-1.5 text-[11px] font-medium transition-colors ${
                                 canBuy
                                   ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30 hover:bg-amber-500/30'
                                   : 'bg-white/5 text-text-muted border border-white/5'
@@ -110,7 +110,7 @@ export function ShopPanel({ show, onClose, coins, inventory, onBuy, onUse }: Sho
                               <motion.button
                                 whileTap={{ scale: 0.9 }}
                                 onClick={() => onUse(item)}
-                                className="flex-1 rounded-lg py-1.5 text-[10px] font-medium bg-green-500/20 text-green-400 border border-green-500/30 hover:bg-green-500/30"
+                                className="flex-1 rounded-lg py-1.5 text-[11px] font-medium bg-green-500/20 text-green-400 border border-green-500/30 hover:bg-green-500/30"
                               >
                                 使用 ({owned})
                               </motion.button>

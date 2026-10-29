@@ -20,8 +20,9 @@ const speciesTabs: Species[] = ['dog', 'cat', 'fox', 'hamster'];
  * take your favorite home. Summoned by saying "领养" in the world.
  */
 export function AdoptionGallery({ show, onClose, onAdopt, currentBreedId, onOpenStudio }: AdoptionGalleryProps) {
-  const [species, setSpecies] = useState<Species>('dog');
-  const [previewId, setPreviewId] = useState<string | null>(null);
+  // Open on the owner's current kind of pet (cats for most people).
+  const [species, setSpecies] = useState<Species>(() => breeds.find(b => b.id === currentBreedId)?.species ?? 'cat');
+  const [previewId, setPreviewId] = useState<string | null>(currentBreedId ?? null);
 
   const list = useMemo(() => breeds.filter(b => b.species === species), [species]);
   const preview: Breed = useMemo(() => {
@@ -96,17 +97,17 @@ export function AdoptionGallery({ show, onClose, onAdopt, currentBreedId, onOpen
                   <div className="flex items-center gap-2 flex-wrap">
                     <h3 className="font-bold text-text-primary">{preview.name}</h3>
                     <span
-                      className="text-[9px] px-1.5 py-0.5 rounded-full font-bold"
+                      className="text-[11px] px-1.5 py-0.5 rounded-full font-bold"
                       style={{ color: rarityLabels[preview.rarity].color, border: `1px solid ${rarityLabels[preview.rarity].color}55`, background: `${rarityLabels[preview.rarity].color}18` }}
                     >
                       {rarityLabels[preview.rarity].label}
                     </span>
                   </div>
-                  <p className="text-[10px] text-text-muted mb-1">{preview.englishName} · 小名「{preview.petName}」</p>
+                  <p className="text-[11px] text-text-muted mb-1">{preview.englishName} · 小名「{preview.petName}」</p>
                   <p className="text-[11px] text-text-secondary leading-relaxed mb-2">{preview.description}</p>
                   <div className="flex flex-wrap gap-1 mb-2.5">
                     {preview.personality.map(tag => (
-                      <span key={tag} className="text-[9px] text-text-muted bg-white/8 rounded-full px-2 py-0.5">{tag}</span>
+                      <span key={tag} className="text-[11px] text-text-muted bg-white/8 rounded-full px-2 py-0.5">{tag}</span>
                     ))}
                   </div>
                   {currentBreedId === preview.id ? (
@@ -144,10 +145,10 @@ export function AdoptionGallery({ show, onClose, onAdopt, currentBreedId, onOpen
                       }}
                     >
                       {isCurrent && (
-                        <span className="absolute -top-1 -right-1 text-[10px]">💚</span>
+                        <span className="absolute -top-1 -right-1 text-[11px]">💚</span>
                       )}
                       <span className="text-xl block">{b.emoji}</span>
-                      <span className={`text-[9px] block mt-0.5 leading-tight ${active ? 'text-text-primary' : 'text-text-muted'}`}>
+                      <span className={`text-[11px] block mt-0.5 leading-tight ${active ? 'text-text-primary' : 'text-text-muted'}`}>
                         {b.name}
                       </span>
                       <span className="block mt-0.5 mx-auto w-1 h-1 rounded-full" style={{ background: rarityLabels[b.rarity].color }} />

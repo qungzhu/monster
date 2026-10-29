@@ -98,7 +98,7 @@ export const dailyQuests: Quest[] = [
 export const shopItems: GameItem[] = [
   {
     id: 'kibble',
-    name: '营养狗粮',
+    name: '营养口粮',
     icon: '🥣',
     description: '基础口粮，管饱',
     price: 5,

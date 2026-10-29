@@ -29,7 +29,7 @@ function Toggle({ label, hint, checked, onChange }: { label: string; hint: strin
     <label className="flex items-center justify-between gap-3 py-1.5">
       <span className="min-w-0">
         <span className="block text-xs text-text-primary">{label}</span>
-        <span className="block text-[10px] text-text-muted">{hint}</span>
+        <span className="block text-[11px] text-text-muted">{hint}</span>
       </span>
       <input type="checkbox" checked={checked} onChange={e => onChange(e.target.checked)} aria-label={label} className="h-4 w-4 shrink-0 accent-violet-500" />
     </label>
@@ -47,25 +47,25 @@ export function ProactiveCard({ petName, settings, onSettings, status, upcoming,
             {on ? <Bell size={13} className="text-amber-300" /> : <BellOff size={13} className="text-text-muted" />}
             离线通知
           </p>
-          <p className="mt-0.5 text-[10px] leading-snug text-text-muted">{statusText[status]}</p>
+          <p className="mt-0.5 text-[11px] leading-snug text-text-muted">{statusText[status]}</p>
         </div>
         {on ? (
           <div className="flex shrink-0 gap-1.5">
-            <button type="button" onClick={onTest} className="rounded-lg bg-white/8 px-2.5 py-1.5 text-[10px] text-text-secondary">测试</button>
-            <button type="button" onClick={onDisable} className="rounded-lg bg-white/8 px-2.5 py-1.5 text-[10px] text-text-secondary">关闭</button>
+            <button type="button" onClick={onTest} className="rounded-lg bg-white/8 px-2.5 py-1.5 text-[11px] text-text-secondary">测试</button>
+            <button type="button" onClick={onDisable} className="rounded-lg bg-white/8 px-2.5 py-1.5 text-[11px] text-text-secondary">关闭</button>
           </div>
         ) : (status === 'off' || status === 'unavailable') && (
-          <button type="button" onClick={onEnable} className="shrink-0 rounded-lg bg-amber-500 px-3 py-1.5 text-[10px] font-semibold text-white">开启通知</button>
+          <button type="button" onClick={onEnable} className="shrink-0 rounded-lg bg-amber-500 px-3 py-1.5 text-[11px] font-semibold text-white">开启通知</button>
         )}
       </div>
-      {error && <p className="mt-1.5 text-[10px] text-rose-300">{error}</p>}
+      {error && <p className="mt-1.5 text-[11px] text-rose-300">{error}</p>}
 
       <div className="mt-2 border-t border-white/8 pt-1.5">
-        <p className="text-[10px] font-semibold text-text-secondary">{petName}会主动…</p>
+        <p className="text-[11px] font-semibold text-text-secondary">{petName}会主动…</p>
         <label className="flex items-center justify-between gap-3 py-1.5">
           <span className="min-w-0">
             <span className="block text-xs text-text-primary">早安问候</span>
-            <span className="block text-[10px] text-text-muted">每天这个时间跟你说早安</span>
+            <span className="block text-[11px] text-text-muted">每天这个时间跟你说早安</span>
           </span>
           <span className="flex shrink-0 items-center gap-2">
             <input
@@ -85,9 +85,9 @@ export function ProactiveCard({ petName, settings, onSettings, status, upcoming,
 
       {upcoming.length > 0 && (
         <div className="mt-1.5 border-t border-white/8 pt-2">
-          <p className="mb-1 text-[10px] font-semibold text-text-secondary">接下来</p>
+          <p className="mb-1 text-[11px] font-semibold text-text-secondary">接下来</p>
           {upcoming.slice(0, 4).map(j => (
-            <div key={j.id} className="flex items-center gap-2 py-0.5 text-[10px]">
+            <div key={j.id} className="flex items-center gap-2 py-0.5 text-[11px]">
               <span className="w-[74px] shrink-0 text-text-muted">{formatDue(new Date(j.at).toISOString())}</span>
               <span className="min-w-0 flex-1 truncate text-text-secondary">{j.body}</span>
               {j.repeat && <span className="shrink-0 text-text-muted">↻</span>}
@@ -96,7 +96,7 @@ export function ProactiveCard({ petName, settings, onSettings, status, upcoming,
         </div>
       )}
 
-      <p className="mt-2 text-[9px] leading-relaxed text-text-muted">
+      <p className="mt-2 text-[11px] leading-relaxed text-text-muted">
         🔒 开启通知后，要提醒的内容会存到提醒服务器，只用于按时发给你;关闭通知即全部删除。
       </p>
     </div>

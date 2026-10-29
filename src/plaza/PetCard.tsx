@@ -42,7 +42,7 @@ export function PetCard({ peer, isSelf, action, distance, bond, friendCount, bus
             <h3 className="truncate text-base font-bold">{peer.petName}</h3>
             {!isSelf && lvl.badge && <span>{lvl.badge}</span>}
             {rarity && (
-              <span className="rounded px-1.5 py-0.5 text-[10px] font-medium text-white" style={{ background: rarity.color }}>
+              <span className="rounded px-1.5 py-0.5 text-[11px] font-medium text-white" style={{ background: rarity.color }}>
                 {rarity.label}
               </span>
             )}
@@ -64,7 +64,7 @@ export function PetCard({ peer, isSelf, action, distance, bond, friendCount, bus
           <p className="mt-2.5 text-xs leading-relaxed text-slate-600">{breed.description}</p>
           <div className="mt-2 flex flex-wrap gap-1">
             {breed.personality.map(tag => (
-              <span key={tag} className="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] text-slate-600">{tag}</span>
+              <span key={tag} className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] text-slate-600">{tag}</span>
             ))}
           </div>
         </>

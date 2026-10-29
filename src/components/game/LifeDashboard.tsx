@@ -151,9 +151,9 @@ export function LifeDashboard({
           >
             <div className="flex items-center justify-between px-5 pb-2 pt-4">
               <div>
-                <div className="mb-0.5 flex items-center gap-1.5 text-[10px] font-medium text-emerald-300">
+                <div className="mb-0.5 flex items-center gap-1.5 text-[11px] font-medium text-emerald-300">
                   <span className="h-1.5 w-1.5 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,.8)]" />
-                  Agent 在线 · 本机体验
+                  {petName}在线陪着你
                 </div>
                 {isEditingHubName ? (
                   <div className="flex items-center gap-1.5">
@@ -205,7 +205,7 @@ export function LifeDashboard({
               <div className="rounded-2xl border border-violet-400/25 bg-gradient-to-br from-violet-500/20 via-fuchsia-500/10 to-transparent p-4">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <div className="flex items-center gap-1.5 text-[10px] font-semibold text-violet-200">
+                    <div className="flex items-center gap-1.5 text-[11px] font-semibold text-violet-200">
                       <Sparkles size={12} /> 主动简报
                     </div>
                     <p className="mt-1.5 text-sm font-semibold leading-snug text-text-primary">
@@ -213,7 +213,7 @@ export function LifeDashboard({
                         ? `${userName}，今天还有 ${pending} 项，我会陪你一件件完成。`
                         : `${userName}，今天还没有安排。要我先帮你搭一个轻量计划吗？`}
                     </p>
-                    <p className="mt-1 text-[10px] text-text-muted">
+                    <p className="mt-1 text-[11px] text-text-muted">
                       已完成 {completed} 项 · 已记住 {items.length} 条生活事项
                     </p>
                   </div>
@@ -221,20 +221,20 @@ export function LifeDashboard({
                     type="button"
                     onClick={generatePlan}
                     disabled={agentState === 'working'}
-                    className="shrink-0 rounded-xl bg-violet-500 px-3 py-2 text-[10px] font-semibold text-white disabled:opacity-70"
+                    className="shrink-0 rounded-xl bg-violet-500 px-3 py-2 text-[11px] font-semibold text-white disabled:opacity-70"
                   >
                     {agentState === 'working' ? (
                       <span className="flex items-center gap-1"><LoaderCircle size={12} className="animate-spin" />规划中</span>
                     ) : agentState === 'done' ? '计划已就绪' : '安排今天'}
                   </button>
                 </div>
-                <div className="mt-3 flex items-center gap-2 rounded-xl bg-black/15 px-3 py-2 text-[10px] text-text-secondary">
+                <div className="mt-3 flex items-center gap-2 rounded-xl bg-black/15 px-3 py-2 text-[11px] text-text-secondary">
                   <span className={`h-1.5 w-1.5 rounded-full ${agentState === 'working' ? 'animate-pulse bg-amber-300' : agentState === 'done' ? 'bg-emerald-400' : 'bg-violet-300'}`} />
                   {agentState === 'working'
-                    ? 'Agent 正在整理优先级…'
+                    ? '正在帮你理一理…'
                     : agentState === 'done'
-                      ? '执行完成：今日建议已加入下方清单'
-                      : '执行状态：等待你的指令'}
+                      ? '好啦，今天的小计划放在下面了'
+                      : '有事随时吩咐我~'}
                 </div>
               </div>
             </div>
@@ -248,7 +248,7 @@ export function LifeDashboard({
                 <Brain size={18} className="shrink-0 text-violet-300" />
                 <span className="min-w-0 flex-1">
                   <span className="block text-xs font-bold text-text-primary">{petName}记得你的事</span>
-                  <span className="block text-[10px] text-text-muted">
+                  <span className="block text-[11px] text-text-muted">
                     {memoryCount ? `已记住 ${memoryCount} 条 · 聊天时会用上` : '聊着聊着就会记住你'}
                   </span>
                 </span>
@@ -261,8 +261,8 @@ export function LifeDashboard({
             <div className="px-5 py-2">
               <div className="rounded-2xl border border-white/10 bg-black/15 p-3">
                 <div className="mb-2 flex items-center justify-between">
-                  <p className="flex items-center gap-1.5 text-xs font-bold text-text-primary"><Play size={12} className="text-emerald-300" />Agent 指令台</p>
-                  <span className="text-[9px] text-text-muted">分析 → 确认 → 执行</span>
+                  <p className="flex items-center gap-1.5 text-xs font-bold text-text-primary"><Play size={12} className="text-emerald-300" />交给我办</p>
+                  <span className="text-[11px] text-text-muted">我先说怎么做，你点头再办</span>
                 </div>
                 <div className="flex gap-2">
                   <input
@@ -270,14 +270,14 @@ export function LifeDashboard({
                     onChange={event => setAgentCommand(event.target.value)}
                     onKeyDown={event => { if (event.key === 'Enter') sendCommand(); }}
                     placeholder="例如：明天下午3点提醒我取快递，再记一下体重"
-                    aria-label="Agent 指令"
+                    aria-label="交给我办"
                     className="min-w-0 flex-1 rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-xs text-text-primary outline-none focus:border-violet-400/50"
                   />
                   <button
                     type="button"
                     onClick={sendCommand}
                     disabled={!agentCommand.trim()}
-                    className="rounded-xl bg-white/10 px-3 text-[10px] font-semibold text-text-primary disabled:opacity-40"
+                    className="rounded-xl bg-white/10 px-3 text-[11px] font-semibold text-text-primary disabled:opacity-40"
                   >
                     分析
                   </button>
@@ -285,9 +285,9 @@ export function LifeDashboard({
 
                 {agentRuns.length > 0 && (
                   <div className="mt-2 border-t border-white/6 pt-2">
-                    <p className="mb-1 text-[9px] text-text-muted">最近执行</p>
+                    <p className="mb-1 text-[11px] text-text-muted">最近执行</p>
                     {agentRuns.slice(0, 2).map(run => (
-                      <div key={run.id} className="flex items-center gap-2 py-1 text-[9px]">
+                      <div key={run.id} className="flex items-center gap-2 py-1 text-[11px]">
                         <Check size={10} className="shrink-0 text-emerald-300" />
                         <span className="min-w-0 flex-1 truncate text-text-secondary">{run.summary}</span>
                         <span className="shrink-0 text-text-muted">{new Date(run.createdAt).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}</span>
@@ -305,7 +305,7 @@ export function LifeDashboard({
                     <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-white text-sm font-bold text-blue-600">G</span>
                     <div className="min-w-0">
                       <p className="flex items-center gap-1.5 text-xs font-bold text-text-primary"><CalendarDays size={12} />Google Calendar</p>
-                      <p className="mt-0.5 text-[9px] leading-snug text-text-muted">
+                      <p className="mt-0.5 text-[11px] leading-snug text-text-muted">
                         {calendarError
                           ? calendarError
                           : calendarLoading
@@ -335,7 +335,7 @@ export function LifeDashboard({
                         type="button"
                         onClick={() => void disconnectCalendar()}
                         disabled={calendarLoading}
-                        className="rounded-lg bg-white/8 px-2.5 py-1.5 text-[9px] text-text-secondary disabled:opacity-40"
+                        className="rounded-lg bg-white/8 px-2.5 py-1.5 text-[11px] text-text-secondary disabled:opacity-40"
                       >
                         断开
                       </button>
@@ -345,7 +345,7 @@ export function LifeDashboard({
                       type="button"
                       onClick={() => window.location.assign('/api/connectors/google/start?returnTo=/')}
                       disabled={calendarLoading || !calendarStatus?.configured || calendarStatus.identityRequired}
-                      className="shrink-0 rounded-lg bg-blue-500 px-3 py-1.5 text-[9px] font-semibold text-white disabled:bg-white/10 disabled:text-text-muted"
+                      className="shrink-0 rounded-lg bg-blue-500 px-3 py-1.5 text-[11px] font-semibold text-white disabled:bg-white/10 disabled:text-text-muted"
                     >
                       {calendarStatus?.configured ? '连接' : '待配置'}
                     </button>
@@ -353,9 +353,9 @@ export function LifeDashboard({
                 </div>
                 {calendarStatus?.connected && calendarEvents.length > 0 && (
                   <div className="mt-2 border-t border-white/6 pt-2">
-                    <p className="mb-1 text-[9px] text-text-muted">接下来</p>
+                    <p className="mb-1 text-[11px] text-text-muted">接下来</p>
                     {calendarEvents.slice(0, 2).map(event => (
-                      <div key={event.id} className="flex items-center gap-2 py-1 text-[9px]">
+                      <div key={event.id} className="flex items-center gap-2 py-1 text-[11px]">
                         <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-blue-300" />
                         <span className="min-w-0 flex-1 truncate text-text-secondary">{event.summary}</span>
                         <span className="shrink-0 text-text-muted">
@@ -371,7 +371,7 @@ export function LifeDashboard({
             <div className="px-5 py-2">
               <div className="mb-2 flex items-center justify-between">
                 <p className="text-xs font-bold text-text-primary">技能</p>
-                <p className="text-[9px] text-text-muted">点一下，直接开始记录</p>
+                <p className="text-[11px] text-text-muted">点一下，直接开始记录</p>
               </div>
               <div className="grid grid-cols-5 gap-1.5">
                 {addTypes.map(key => (
@@ -382,15 +382,15 @@ export function LifeDashboard({
                     className="rounded-xl border border-white/8 bg-white/5 px-1 py-2 text-center transition-colors hover:bg-white/10"
                   >
                     <span className="block text-base leading-none">{lifeItemMeta[key].emoji}</span>
-                    <span className="mt-1 block text-[9px] text-text-secondary">{lifeItemMeta[key].label}</span>
+                    <span className="mt-1 block text-[11px] text-text-secondary">{lifeItemMeta[key].label}</span>
                   </button>
                 ))}
               </div>
               <div className="mt-2 flex items-center justify-between rounded-xl border border-white/6 bg-white/[.03] px-3 py-2">
-                <span className="flex items-center gap-1.5 text-[10px] text-text-secondary"><Brain size={12} className="text-fuchsia-300" />我记得：你希望我做你的{companionRoles[role].label}</span>
-                <span className="text-[9px] text-text-muted">{chatCount} 次对话 · {moodCount} 条心情</span>
+                <span className="flex items-center gap-1.5 text-[11px] text-text-secondary"><Brain size={12} className="text-fuchsia-300" />我记得：你希望我做你的{companionRoles[role].label}</span>
+                <span className="text-[11px] text-text-muted">{chatCount} 次对话 · {moodCount} 条心情</span>
               </div>
-              <p className="mt-1.5 text-center text-[9px] text-text-muted">Google 日历已支持连接 · 物流和其他 App 持续接入中</p>
+              <p className="mt-1.5 text-center text-[11px] text-text-muted">Google 日历已支持连接 · 物流和其他 App 持续接入中</p>
             </div>
 
             <div className="flex gap-2 overflow-x-auto px-5 py-2">
@@ -408,7 +408,7 @@ export function LifeDashboard({
                   >
                     <span className="text-xl">{item.emoji}</span>
                     <span className="mt-1 block text-xs font-bold text-text-primary">{item.label}</span>
-                    <span className="mt-0.5 block text-[9px] leading-snug text-text-muted">{item.description}</span>
+                    <span className="mt-0.5 block text-[11px] leading-snug text-text-muted">{item.description}</span>
                   </button>
                 );
               })}
@@ -420,7 +420,7 @@ export function LifeDashboard({
                   <button
                     key={key}
                     onClick={() => setType(key)}
-                    className="shrink-0 rounded-full px-2.5 py-1 text-[10px]"
+                    className="shrink-0 rounded-full px-2.5 py-1 text-[11px]"
                     style={{ background: type === key ? 'rgba(255,255,255,.18)' : 'rgba(255,255,255,.06)' }}
                   >
                     {lifeItemMeta[key].emoji} {lifeItemMeta[key].label}
@@ -456,7 +456,7 @@ export function LifeDashboard({
                     <p className={`truncate text-xs ${item.completed ? 'text-text-muted line-through' : 'text-text-primary'}`}>
                       {lifeItemMeta[item.type].emoji} {item.title}
                     </p>
-                    <p className="mt-0.5 text-[9px] text-text-muted">
+                    <p className="mt-0.5 text-[11px] text-text-muted">
                       {item.due
                         ? `⏰ ${item.repeat ? `${formatRepeat(item.due, item.repeat)} · 下次 ${formatDue(item.due)}` : formatDue(item.due)}${!item.repeat && item.remindedAt ? ' · 已提醒' : ''}`
                         : new Date(item.createdAt).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' })}

@@ -199,12 +199,12 @@ export function ChatPage({
           <span className="text-sm">{character.avatar}</span>
           <span className="text-sm font-bold text-text-primary">{character.name}</span>
           {isAIMode && (
-            <span className="flex items-center gap-1 text-[9px] px-1.5 py-0.5 rounded-full" style={{ background: `${themeColor}22`, color: themeColor }}>
+            <span className="flex items-center gap-1 text-[11px] px-1.5 py-0.5 rounded-full" style={{ background: `${themeColor}22`, color: themeColor }}>
               <Bot size={9} /> AI
             </span>
           )}
         </div>
-        <div className="flex items-center gap-1 text-[10px] text-text-muted">
+        <div className="flex items-center gap-1 text-[11px] text-text-muted">
           <span className="w-1.5 h-1.5 rounded-full bg-green-400" /> 在线
         </div>
       </div>
@@ -224,7 +224,7 @@ export function ChatPage({
         <motion.button
           whileTap={{ scale: 0.9 }}
           onClick={() => setShowHistory(!showHistory)}
-          className="absolute top-2 right-3 glass rounded-full px-3 py-1 text-[10px] text-text-muted flex items-center gap-1"
+          className="absolute top-2 right-3 glass rounded-full px-3 py-1 text-[11px] text-text-muted flex items-center gap-1"
         >
           <ChevronUp size={12} className={`transition-transform ${showHistory ? 'rotate-180' : ''}`} />
           对话记录
@@ -257,9 +257,9 @@ export function ChatPage({
                     >
                       <p className="text-xs leading-relaxed text-text-primary">{message.content}</p>
                       {message.emotion && (
-                        <span className="text-[10px] text-text-muted">{moodEmojis[message.emotion]} {moodLabels[message.emotion]}</span>
+                        <span className="text-[11px] text-text-muted">{moodEmojis[message.emotion]} {moodLabels[message.emotion]}</span>
                       )}
-                      <span className="text-[9px] text-text-muted block text-right mt-0.5">
+                      <span className="text-[11px] text-text-muted block text-right mt-0.5">
                         {new Date(message.timestamp).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })}
                       </span>
                     </div>
@@ -277,7 +277,7 @@ export function ChatPage({
         {/* Last user message label */}
         {lastUserMessage && (
           <div className="px-5 mb-1 flex justify-end">
-            <span className="text-[10px] text-text-muted bg-white/5 rounded-full px-2 py-0.5">
+            <span className="text-[11px] text-text-muted bg-white/5 rounded-full px-2 py-0.5">
               {lastUserMessage.content.length > 30 ? lastUserMessage.content.slice(0, 30) + '...' : lastUserMessage.content}
             </span>
           </div>
@@ -368,7 +368,7 @@ export function ChatPage({
               style={{ background: 'rgba(20, 15, 35, 0.95)', borderLeft: '1px solid rgba(255,255,255,0.12)', borderRight: '1px solid rgba(255,255,255,0.12)' }}
             >
               <div className="px-4 py-3">
-                <p className="text-[10px] text-text-muted mb-2">选择当前心情...</p>
+                <p className="text-[11px] text-text-muted mb-2">选择当前心情...</p>
                 <div className="flex gap-2 justify-center">
                   {moodOptions.map(mood => (
                     <button
@@ -377,7 +377,7 @@ export function ChatPage({
                       className="flex flex-col items-center gap-1 p-2 rounded-xl hover:bg-white/10 transition-colors"
                     >
                       <span className="text-xl">{moodEmojis[mood]}</span>
-                      <span className="text-[9px] text-text-muted">{moodLabels[mood]}</span>
+                      <span className="text-[11px] text-text-muted">{moodLabels[mood]}</span>
                     </button>
                   ))}
                 </div>

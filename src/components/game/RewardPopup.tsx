@@ -95,7 +95,7 @@ export function RewardPopup({ show, message, rewards, onDone }: RewardPopupProps
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 0.6 }}
-                className="text-[10px] text-text-muted mt-3"
+                className="text-[11px] text-text-muted mt-3"
               >
                 点击任意处关闭
               </motion.p>

@@ -88,7 +88,7 @@ export function QuestPanel({ show, onClose, getProgress, onClaimReward, claimedQ
                       <span className="text-xl">{quest.icon}</span>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm font-medium text-text-primary">{quest.title}</p>
-                        <p className="text-[10px] text-text-muted">{quest.description}</p>
+                        <p className="text-[11px] text-text-muted">{quest.description}</p>
                         <div className="flex items-center gap-2 mt-1.5">
                           <div className="flex-1 h-1 bg-black/30 rounded-full overflow-hidden">
                             <div
@@ -101,7 +101,7 @@ export function QuestPanel({ show, onClose, getProgress, onClaimReward, claimedQ
                               }}
                             />
                           </div>
-                          <span className="text-[10px] text-text-muted shrink-0">
+                          <span className="text-[11px] text-text-muted shrink-0">
                             {Math.min(progress, quest.target)}/{quest.target}
                           </span>
                         </div>
@@ -123,10 +123,10 @@ export function QuestPanel({ show, onClose, getProgress, onClaimReward, claimedQ
                     </div>
                     {!isClaimed && (
                       <div className="flex items-center gap-2 mt-2 pt-2 border-t border-white/5">
-                        <span className="text-[9px] text-amber-400">🪙 {quest.reward.coins}</span>
-                        <span className="text-[9px] text-cyan-400">⚡ {quest.reward.xp}XP</span>
+                        <span className="text-[11px] text-amber-400">🪙 {quest.reward.coins}</span>
+                        <span className="text-[11px] text-cyan-400">⚡ {quest.reward.xp}XP</span>
                         {quest.reward.intimacy && (
-                          <span className="text-[9px] text-pink-400">💕 亲密+{quest.reward.intimacy}</span>
+                          <span className="text-[11px] text-pink-400">💕 亲密+{quest.reward.intimacy}</span>
                         )}
                       </div>
                     )}

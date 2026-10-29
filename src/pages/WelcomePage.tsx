@@ -236,7 +236,7 @@ export function WelcomePage({
                       <div className="flex items-center gap-2 mb-1">
                         <h3 className="font-bold text-text-primary">{char.name}</h3>
                         <span
-                          className="text-[10px] px-2 py-0.5 rounded-full"
+                          className="text-[11px] px-2 py-0.5 rounded-full"
                           style={{
                             background: `${themeColors[char.id]}22`,
                             color: themeColors[char.id],
@@ -249,7 +249,7 @@ export function WelcomePage({
                       <p className="text-text-secondary text-xs mb-2 line-clamp-2">{char.description}</p>
                       <div className="flex items-center gap-2">
                         {char.personality.map(p => (
-                          <span key={p} className="text-[10px] text-text-muted bg-surface-lighter rounded-full px-2 py-0.5">
+                          <span key={p} className="text-[11px] text-text-muted bg-surface-lighter rounded-full px-2 py-0.5">
                             {p}
                           </span>
                         ))}
@@ -266,7 +266,7 @@ export function WelcomePage({
                             }}
                           />
                         </div>
-                        <span className="text-[10px] text-text-muted">{intimacyLevels[char.id] || 0}</span>
+                        <span className="text-[11px] text-text-muted">{intimacyLevels[char.id] || 0}</span>
                       </div>
                     </div>
                   </div>

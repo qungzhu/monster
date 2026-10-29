@@ -196,14 +196,14 @@ export function CustomPetStudio({ show, onClose, onSave, apiKey }: CustomPetStud
                   >
                     <span className="text-4xl">📸</span>
                     <span className="text-sm text-text-secondary">点击选择照片或视频</span>
-                    <span className="text-[10px] text-text-muted">支持 JPG / PNG / MP4，正脸清晰效果最好</span>
+                    <span className="text-[11px] text-text-muted">支持 JPG / PNG / MP4，正脸清晰效果最好</span>
                   </button>
                   <input
                     ref={fileRef} type="file" accept="image/*,video/*" className="hidden"
                     onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f); e.target.value = ''; }}
                   />
                   {error && <p className="text-xs text-red-400 mt-3 text-center">{error}</p>}
-                  <p className="text-[10px] text-text-muted mt-4 text-center leading-relaxed">
+                  <p className="text-[11px] text-text-muted mt-4 text-center leading-relaxed">
                     🔒 照片只在你的设备上处理{apiKey ? '，AI识别时仅发送给Claude用于分析' : ''}，不会被存储或上传到其他地方
                   </p>
                 </div>
@@ -241,14 +241,14 @@ export function CustomPetStudio({ show, onClose, onSave, apiKey }: CustomPetStud
                         <img src={photo} alt="original" className="w-14 h-14 object-cover rounded-xl border border-white/15 mb-2" />
                       )}
                       {analysis.breedGuess && (
-                        <p className="text-[10px] text-text-muted mb-1">AI识别：{analysis.breedGuess}</p>
+                        <p className="text-[11px] text-text-muted mb-1">AI识别：{analysis.breedGuess}</p>
                       )}
                       <div className="flex flex-wrap gap-1 mb-2">
                         {analysis.personality.map(tag => (
-                          <span key={tag} className="text-[9px] text-text-muted bg-white/8 rounded-full px-2 py-0.5">{tag}</span>
+                          <span key={tag} className="text-[11px] text-text-muted bg-white/8 rounded-full px-2 py-0.5">{tag}</span>
                         ))}
                       </div>
-                      <label className="text-[10px] text-text-muted block mb-1">给它起个名字</label>
+                      <label className="text-[11px] text-text-muted block mb-1">给它起个名字</label>
                       <input
                         type="text" value={name} onChange={e => setName(e.target.value)} maxLength={12}
                         className="w-full bg-surface-light rounded-lg px-3 py-2 text-sm text-text-primary outline-none border border-transparent focus:border-pink-400/40"
@@ -306,7 +306,7 @@ export function CustomPetStudio({ show, onClose, onSave, apiKey }: CustomPetStud
                             onChange={e => patchAnalysis({ [key]: e.target.value } as Partial<PetAnalysis>)}
                             className="w-8 h-8 rounded-lg border border-white/20 bg-transparent cursor-pointer"
                           />
-                          <span className="text-[9px] text-text-muted">{label}</span>
+                          <span className="text-[11px] text-text-muted">{label}</span>
                         </label>
                       ))}
                     </div>
@@ -318,7 +318,7 @@ export function CustomPetStudio({ show, onClose, onSave, apiKey }: CustomPetStud
                       <div>
                         <button onClick={startHD} className="w-full text-left">
                           <p className="text-xs font-medium text-violet-300">✨ 1:1 高清复刻（Meshy）</p>
-                          <p className="text-[10px] text-text-muted mt-0.5">左侧是Q版风格化预览。点这里用真实3D网格重建，约2-5分钟 · 消耗Meshy额度</p>
+                          <p className="text-[11px] text-text-muted mt-0.5">左侧是Q版风格化预览。点这里用真实3D网格重建，约2-5分钟 · 消耗Meshy额度</p>
                         </button>
                         <div className="flex items-center gap-2 mt-2 flex-wrap">
                           {anglePhotos.map((p2, i) => (
@@ -330,7 +330,7 @@ export function CustomPetStudio({ show, onClose, onSave, apiKey }: CustomPetStud
                               className="w-9 h-9 rounded-lg border border-dashed border-violet-400/50 text-violet-300 text-lg leading-none"
                             >+</button>
                           )}
-                          <span className="text-[9px] text-text-muted">加侧面/背面照，几何还原度大幅提升（可选）</span>
+                          <span className="text-[11px] text-text-muted">加侧面/背面照，几何还原度大幅提升（可选）</span>
                           <input ref={angleRef} type="file" accept="image/*,video/*" className="hidden"
                             onChange={e => { const f = e.target.files?.[0]; if (f) addAnglePhoto(f); e.target.value = ''; }} />
                         </div>
@@ -342,7 +342,7 @@ export function CustomPetStudio({ show, onClose, onSave, apiKey }: CustomPetStud
                         <div className="h-1.5 bg-black/40 rounded-full overflow-hidden">
                           <div className="h-full rounded-full bg-gradient-to-r from-violet-400 to-pink-400 transition-all duration-700" style={{ width: `${hdProgress}%` }} />
                         </div>
-                        <p className="text-[10px] text-text-muted mt-1.5">可以先关掉面板去陪它玩，回来再看</p>
+                        <p className="text-[11px] text-text-muted mt-1.5">可以先关掉面板去陪它玩，回来再看</p>
                       </div>
                     )}
                     {hdState === 'done' && (
@@ -351,7 +351,7 @@ export function CustomPetStudio({ show, onClose, onSave, apiKey }: CustomPetStud
                     {hdState === 'failed' && (
                       <button onClick={() => { setHdState('idle'); setError(null); }} className="w-full text-left">
                         <p className="text-xs text-red-400">{error || '复刻失败'}</p>
-                        <p className="text-[10px] text-text-muted mt-0.5">点击重试</p>
+                        <p className="text-[11px] text-text-muted mt-0.5">点击重试</p>
                       </button>
                     )}
                   </div>

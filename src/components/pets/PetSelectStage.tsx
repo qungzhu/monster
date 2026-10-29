@@ -120,7 +120,7 @@ function StagePet({
             {character.avatar} {character.name}
           </span>
           <span
-            className="text-[10px] whitespace-nowrap px-2 py-0.5 rounded-full"
+            className="text-[11px] whitespace-nowrap px-2 py-0.5 rounded-full"
             style={{
               color: slot.color,
               background: 'rgba(0,0,0,0.4)',
