@@ -19,7 +19,7 @@ const BASE = 'https://api.meshy.ai/openapi/v1/multi-image-to-3d';
 const REFS = new URL('../assets/plush-refs/', import.meta.url);
 const TASKS = new URL('tasks.json', REFS);
 const OUT = new URL('../public/models/custom/', import.meta.url);
-const ALL = ['himalayan', 'mainecoon', 'norwegian', 'birman', 'angora'];
+const ALL = ['himalayan', 'mainecoon', 'norwegian', 'birman', 'angora', 'ragdoll', 'silvertabby', 'siamese', 'lihua', 'persian'];
 const VIEWS = (process.env.MESHY_VIEWS || 'front,q34,side,back34').split(',');
 
 if (!KEY) {
