@@ -51,6 +51,8 @@ export function LifeDashboard({
   const [type, setType] = useState<LifeItemType>('todo');
   const [title, setTitle] = useState('');
   const [isEditingHubName, setIsEditingHubName] = useState(false);
+  // Rarely used settings stay folded so the hub opens on what matters today.
+  const [showMore, setShowMore] = useState(false);
   const [hubNameDraft, setHubNameDraft] = useState('');
   const [agentState, setAgentState] = useState<'idle' | 'working' | 'done'>('idle');
   const [agentCommand, setAgentCommand] = useState('');
@@ -256,8 +258,6 @@ export function LifeDashboard({
               </button>
             </div>
 
-            {extra && <div className="px-5 py-2">{extra}</div>}
-
             <div className="px-5 py-2">
               <div className="rounded-2xl border border-white/10 bg-black/15 p-3">
                 <div className="mb-2 flex items-center justify-between">
@@ -299,120 +299,142 @@ export function LifeDashboard({
             </div>
 
             <div className="px-5 py-2">
-              <div className="rounded-2xl border border-blue-400/20 bg-blue-500/[.07] p-3">
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex min-w-0 items-start gap-2.5">
-                    <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-white text-sm font-bold text-blue-600">G</span>
-                    <div className="min-w-0">
-                      <p className="flex items-center gap-1.5 text-xs font-bold text-text-primary"><CalendarDays size={12} />Google Calendar</p>
-                      <p className="mt-0.5 text-[11px] leading-snug text-text-muted">
-                        {calendarError
-                          ? calendarError
-                          : calendarLoading
-                            ? '正在检查连接状态…'
-                            : calendarStatus?.connected
-                              ? '已授权，可读取和创建日程'
-                              : calendarStatus?.identityRequired
-                                ? '请先登录 FurryPal 账户'
-                                : calendarStatus?.configured
-                                  ? '等待你的 Google 授权'
-                                  : '等待服务器端 OAuth 配置'}
-                      </p>
+              <button
+                type="button"
+                onClick={() => setShowMore(v => !v)}
+                aria-expanded={showMore}
+                className="flex w-full items-center justify-between rounded-2xl border border-white/10 bg-black/15 px-3 py-2.5 text-left"
+              >
+                <span>
+                  <span className="block text-xs font-bold text-text-primary">更多设置</span>
+                  <span className="block text-[11px] text-text-muted">提醒与主动关心 · 日历 · 技能 · 陪伴角色（{companionRoles[role].label}）</span>
+                </span>
+                <span className="text-xs text-text-muted">{showMore ? '收起' : '展开'}</span>
+              </button>
+            </div>
+
+            {showMore && (
+              <>
+              {extra && <div className="px-5 py-2">{extra}</div>}
+
+              <div className="px-5 py-2">
+                <div className="rounded-2xl border border-blue-400/20 bg-blue-500/[.07] p-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex min-w-0 items-start gap-2.5">
+                      <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-white text-sm font-bold text-blue-600">G</span>
+                      <div className="min-w-0">
+                        <p className="flex items-center gap-1.5 text-xs font-bold text-text-primary"><CalendarDays size={12} />Google Calendar</p>
+                        <p className="mt-0.5 text-[11px] leading-snug text-text-muted">
+                          {calendarError
+                            ? calendarError
+                            : calendarLoading
+                              ? '正在检查连接状态…'
+                              : calendarStatus?.connected
+                                ? '已授权，可读取和创建日程'
+                                : calendarStatus?.identityRequired
+                                  ? '请先登录 FurryPal 账户'
+                                  : calendarStatus?.configured
+                                    ? '等待你的 Google 授权'
+                                    : '等待服务器端 OAuth 配置'}
+                        </p>
+                      </div>
                     </div>
+                    {calendarStatus?.connected ? (
+                      <div className="flex shrink-0 items-center gap-1.5">
+                        <button
+                          type="button"
+                          aria-label="刷新 Google 日历"
+                          onClick={() => void loadCalendarConnection()}
+                          disabled={calendarLoading}
+                          className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/8 text-text-secondary disabled:opacity-40"
+                        >
+                          <RefreshCw size={12} className={calendarLoading ? 'animate-spin' : ''} />
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void disconnectCalendar()}
+                          disabled={calendarLoading}
+                          className="rounded-lg bg-white/8 px-2.5 py-1.5 text-[11px] text-text-secondary disabled:opacity-40"
+                        >
+                          断开
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => window.location.assign('/api/connectors/google/start?returnTo=/')}
+                        disabled={calendarLoading || !calendarStatus?.configured || calendarStatus.identityRequired}
+                        className="shrink-0 rounded-lg bg-blue-500 px-3 py-1.5 text-[11px] font-semibold text-white disabled:bg-white/10 disabled:text-text-muted"
+                      >
+                        {calendarStatus?.configured ? '连接' : '待配置'}
+                      </button>
+                    )}
                   </div>
-                  {calendarStatus?.connected ? (
-                    <div className="flex shrink-0 items-center gap-1.5">
-                      <button
-                        type="button"
-                        aria-label="刷新 Google 日历"
-                        onClick={() => void loadCalendarConnection()}
-                        disabled={calendarLoading}
-                        className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/8 text-text-secondary disabled:opacity-40"
-                      >
-                        <RefreshCw size={12} className={calendarLoading ? 'animate-spin' : ''} />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => void disconnectCalendar()}
-                        disabled={calendarLoading}
-                        className="rounded-lg bg-white/8 px-2.5 py-1.5 text-[11px] text-text-secondary disabled:opacity-40"
-                      >
-                        断开
-                      </button>
+                  {calendarStatus?.connected && calendarEvents.length > 0 && (
+                    <div className="mt-2 border-t border-white/6 pt-2">
+                      <p className="mb-1 text-[11px] text-text-muted">接下来</p>
+                      {calendarEvents.slice(0, 2).map(event => (
+                        <div key={event.id} className="flex items-center gap-2 py-1 text-[11px]">
+                          <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-blue-300" />
+                          <span className="min-w-0 flex-1 truncate text-text-secondary">{event.summary}</span>
+                          <span className="shrink-0 text-text-muted">
+                            {event.start ? new Date(event.start).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''}
+                          </span>
+                        </div>
+                      ))}
                     </div>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => window.location.assign('/api/connectors/google/start?returnTo=/')}
-                      disabled={calendarLoading || !calendarStatus?.configured || calendarStatus.identityRequired}
-                      className="shrink-0 rounded-lg bg-blue-500 px-3 py-1.5 text-[11px] font-semibold text-white disabled:bg-white/10 disabled:text-text-muted"
-                    >
-                      {calendarStatus?.configured ? '连接' : '待配置'}
-                    </button>
                   )}
                 </div>
-                {calendarStatus?.connected && calendarEvents.length > 0 && (
-                  <div className="mt-2 border-t border-white/6 pt-2">
-                    <p className="mb-1 text-[11px] text-text-muted">接下来</p>
-                    {calendarEvents.slice(0, 2).map(event => (
-                      <div key={event.id} className="flex items-center gap-2 py-1 text-[11px]">
-                        <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-blue-300" />
-                        <span className="min-w-0 flex-1 truncate text-text-secondary">{event.summary}</span>
-                        <span className="shrink-0 text-text-muted">
-                          {event.start ? new Date(event.start).toLocaleString('zh-CN', { month: 'numeric', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : ''}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                )}
               </div>
-            </div>
 
-            <div className="px-5 py-2">
-              <div className="mb-2 flex items-center justify-between">
-                <p className="text-xs font-bold text-text-primary">技能</p>
-                <p className="text-[11px] text-text-muted">点一下，直接开始记录</p>
+              <div className="px-5 py-2">
+                <div className="mb-2 flex items-center justify-between">
+                  <p className="text-xs font-bold text-text-primary">技能</p>
+                  <p className="text-[11px] text-text-muted">点一下，直接开始记录</p>
+                </div>
+                <div className="grid grid-cols-5 gap-1.5">
+                  {addTypes.map(key => (
+                    <button
+                      key={key}
+                      type="button"
+                      onClick={() => chooseSkill(key)}
+                      className="rounded-xl border border-white/8 bg-white/5 px-1 py-2 text-center transition-colors hover:bg-white/10"
+                    >
+                      <span className="block text-base leading-none">{lifeItemMeta[key].emoji}</span>
+                      <span className="mt-1 block text-[11px] text-text-secondary">{lifeItemMeta[key].label}</span>
+                    </button>
+                  ))}
+                </div>
+                <div className="mt-2 flex items-center justify-between rounded-xl border border-white/6 bg-white/[.03] px-3 py-2">
+                  <span className="flex items-center gap-1.5 text-[11px] text-text-secondary"><Brain size={12} className="text-fuchsia-300" />我记得：你希望我做你的{companionRoles[role].label}</span>
+                  <span className="text-[11px] text-text-muted">{chatCount} 次对话 · {moodCount} 条心情</span>
+                </div>
+                <p className="mt-1.5 text-center text-[11px] text-text-muted">Google 日历已支持连接 · 物流和其他 App 持续接入中</p>
               </div>
-              <div className="grid grid-cols-5 gap-1.5">
-                {addTypes.map(key => (
-                  <button
-                    key={key}
-                    type="button"
-                    onClick={() => chooseSkill(key)}
-                    className="rounded-xl border border-white/8 bg-white/5 px-1 py-2 text-center transition-colors hover:bg-white/10"
-                  >
-                    <span className="block text-base leading-none">{lifeItemMeta[key].emoji}</span>
-                    <span className="mt-1 block text-[11px] text-text-secondary">{lifeItemMeta[key].label}</span>
-                  </button>
-                ))}
-              </div>
-              <div className="mt-2 flex items-center justify-between rounded-xl border border-white/6 bg-white/[.03] px-3 py-2">
-                <span className="flex items-center gap-1.5 text-[11px] text-text-secondary"><Brain size={12} className="text-fuchsia-300" />我记得：你希望我做你的{companionRoles[role].label}</span>
-                <span className="text-[11px] text-text-muted">{chatCount} 次对话 · {moodCount} 条心情</span>
-              </div>
-              <p className="mt-1.5 text-center text-[11px] text-text-muted">Google 日历已支持连接 · 物流和其他 App 持续接入中</p>
-            </div>
 
-            <div className="flex gap-2 overflow-x-auto px-5 py-2">
-              {(Object.keys(companionRoles) as CompanionRole[]).map(key => {
-                const item = companionRoles[key];
-                return (
-                  <button
-                    key={key}
-                    onClick={() => onRoleChange(key)}
-                    className="min-w-[112px] rounded-2xl p-3 text-left transition-colors"
-                    style={{
-                      background: role === key ? 'rgba(139,92,246,.24)' : 'rgba(255,255,255,.05)',
-                      border: `1px solid ${role === key ? 'rgba(167,139,250,.55)' : 'rgba(255,255,255,.08)'}`,
-                    }}
-                  >
-                    <span className="text-xl">{item.emoji}</span>
-                    <span className="mt-1 block text-xs font-bold text-text-primary">{item.label}</span>
-                    <span className="mt-0.5 block text-[11px] leading-snug text-text-muted">{item.description}</span>
-                  </button>
-                );
-              })}
-            </div>
+              <div className="flex gap-2 overflow-x-auto px-5 py-2">
+                {(Object.keys(companionRoles) as CompanionRole[]).map(key => {
+                  const item = companionRoles[key];
+                  return (
+                    <button
+                      key={key}
+                      onClick={() => onRoleChange(key)}
+                      className="min-w-[112px] rounded-2xl p-3 text-left transition-colors"
+                      style={{
+                        background: role === key ? 'rgba(139,92,246,.24)' : 'rgba(255,255,255,.05)',
+                        border: `1px solid ${role === key ? 'rgba(167,139,250,.55)' : 'rgba(255,255,255,.08)'}`,
+                      }}
+                    >
+                      <span className="text-xl">{item.emoji}</span>
+                      <span className="mt-1 block text-xs font-bold text-text-primary">{item.label}</span>
+                      <span className="mt-0.5 block text-[11px] leading-snug text-text-muted">{item.description}</span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              </>
+            )}
 
             <div className="px-5 py-3">
               <div className="mb-2 flex gap-1.5 overflow-x-auto">
