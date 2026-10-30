@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { plushTuning } from './plushMaterial';
 
 /**
  * Real-time plush fur by shell texturing, the standard game technique for
@@ -9,8 +10,9 @@ import * as THREE from 'three';
  * Fibres are placed in the mesh's bind-pose space (not UVs), so there are
  * no seams and they stay put when the cat moves. Works for skinned meshes:
  * shells share the skeleton and are pushed out along the skinned normal.
- * Meant for the light Blender plush cats (~7k faces), not the 100k Meshy
- * meshes.
+ * Blender plush cats get it on their `fur` mesh; Meshy cats (eyes baked
+ * into the same mesh) get a short pile masked by their roughness map, see
+ * `meshyFur`.
  */
 export interface FurOptions {
   /** Number of shells (layers above the base surface). */
@@ -25,6 +27,9 @@ export interface FurOptions {
 
 const defaults: Required<FurOptions> = { shells: 14, length: 0.045, density: 150, droop: 0.25 };
 
+/** Short velvet pile for the (heavy, ~50k-triangle) Meshy cats. */
+export const meshyFur: FurOptions = { shells: 8, length: 0.022, density: 170, droop: 0.1 };
+
 const FUR_HEAD = `
 varying vec3 vFurPos;
 varying float vFurLength;
@@ -38,7 +43,11 @@ float furHash(vec3 p) {
 function shellMaterial(base: THREE.MeshPhysicalMaterial, h: number, perRadius: number, opts: Required<FurOptions>) {
   const m = base.clone();
   m.name = `${base.name}-fur-${h.toFixed(2)}`;
+  const mask = (base.userData.furMask as THREE.Texture | null | undefined) ?? null;
   const uniforms = {
+    uFurMask: { value: mask },
+    uPlushInflate: plushTuning.inflate,
+    uPlushRadius: { value: 1 / perRadius },
     uFurH: { value: h },
     uFurOffset: { value: h * opts.length / perRadius },
     uFurDroop: { value: opts.droop * opts.length / perRadius },
@@ -46,13 +55,21 @@ function shellMaterial(base: THREE.MeshPhysicalMaterial, h: number, perRadius: n
   };
   m.onBeforeCompile = shader => {
     Object.assign(shader.uniforms, uniforms);
-    shader.vertexShader = `attribute float furLength;\nvarying vec3 vFurPos;\nvarying float vFurLength;\nuniform float uFurH, uFurOffset, uFurDroop;\n${shader.vertexShader}`
+    shader.vertexShader = `attribute float furLength;\nattribute vec3 plushInflateNormal;\nvarying vec3 vFurPos;\nvarying float vFurLength;\nuniform float uFurH, uFurOffset, uFurDroop, uPlushInflate, uPlushRadius;\n${shader.vertexShader}`
       .replace('#include <begin_vertex>', '#include <begin_vertex>\n  vFurPos = position;\n  vFurLength = furLength;')
       .replace('#include <skinning_vertex>', `#include <skinning_vertex>
+  // Start from the stuffed (inflated) surface the base mesh is drawn at.
+  if (dot(plushInflateNormal, plushInflateNormal) > 0.0) transformed += normalize(plushInflateNormal) * uPlushInflate * uPlushRadius;
   transformed += normalize(objectNormal) * uFurOffset * furLength;
   transformed.y -= uFurDroop * uFurH * uFurH * furLength;`);
-    shader.fragmentShader = FUR_HEAD + shader.fragmentShader
+    shader.fragmentShader = (mask ? '#define FUR_MASK\nuniform sampler2D uFurMask;\n' : '') + FUR_HEAD + shader.fragmentShader
       .replace('#include <map_fragment>', `#include <map_fragment>
+  float furLen = vFurLength;
+  #if defined(FUR_MASK) && defined(USE_MAP)
+    // Sharp mask, plus a blurred one (coarser mip) so a bare margin rings
+    // the eyes and the fibres never hang over them.
+    furLen *= smoothstep(0.22, 0.4, min(texture2D(uFurMask, vMapUv).g, texture2D(uFurMask, vMapUv, 3.0).g + 0.12));
+  #endif
   // Fibre cells: one jittered fibre per cell, thinner toward the tip.
   vec3 fp = vFurPos * uFurDensity;
   // The nearest fibre lives in one of the 2x2x2 cells around this point.
@@ -64,13 +81,13 @@ function shellMaterial(base: THREE.MeshPhysicalMaterial, h: number, perRadius: n
     best = min(best, length(fp - (c + jitter)));
   }
   // Short-fur areas (around the eyes and nose) simply have fewer layers.
-  if (uFurH > vFurLength + 0.02) discard;
+  if (uFurH > furLen + 0.02) discard;
   float radius = 0.55 * (1.0 - uFurH * 0.8);
   if (best > radius) discard;
   // Self-shadowing: deeper layers a little darker, tips catch the light.
   diffuseColor.rgb *= mix(0.82, 1.06, uFurH);`);
   };
-  m.customProgramCacheKey = () => `plush-fur-${h.toFixed(3)}`;
+  m.customProgramCacheKey = () => `plush-fur-${mask ? 'm' : ''}${h.toFixed(3)}`;
   return m;
 }
 
@@ -110,14 +127,16 @@ function furLengths(mesh: THREE.Mesh, features: THREE.Mesh[]) {
 }
 
 /** Add fur shells to every mesh in `root` whose material is named `materialName`. */
-export function addFurShells(root: THREE.Object3D, options: FurOptions = {}, materialName = 'fur') {
+export function addFurShells(root: THREE.Object3D, options: FurOptions = {}, materialName: string | null = 'fur') {
   const opts = { ...defaults, ...options };
   const targets: THREE.Mesh[] = [];
   const features: THREE.Mesh[] = [];
   root.traverse(o => {
     const mesh = o as THREE.Mesh;
     if (!mesh.isMesh || mesh.userData.furShell) return;
-    if ((mesh.material as THREE.Material)?.name?.startsWith(materialName)) targets.push(mesh);
+    const name = (mesh.material as THREE.Material)?.name ?? '';
+    // materialName null: every fabric mesh that carries a fur mask (Meshy).
+    if (materialName === null ? !!(mesh.material as THREE.Material).userData?.furMask : name.startsWith(materialName)) targets.push(mesh);
     else features.push(mesh);
   });
   for (const mesh of targets) {

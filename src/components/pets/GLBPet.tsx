@@ -1,7 +1,10 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { toPlushMaterial } from './plushMaterial';
-import { addFurShells } from './plushFur';
+import { addFurShells, meshyFur } from './plushFur';
+
+// A/B switch while tuning: ?meshyfur=0 turns the Meshy velvet pile off.
+const MESHY_FUR = typeof window === 'undefined' || !/[?&]meshyfur=0/.test(window.location.search);
 import { useGLTF, useAnimations } from '@react-three/drei';
 import { SkeletonUtils } from 'three-stdlib';
 import type { Group } from 'three';
@@ -222,6 +225,7 @@ export function GLBPet({ config, isHovered, tint, normalize, emote }: GLBPetProp
       }
     });
     if (config.plushFur) addFurShells(clonedScene);
+    else if (MESHY_FUR) addFurShells(clonedScene, meshyFur, null);
   }, [clonedScene, tint, config.plushFur]);
 
   useEffect(() => {

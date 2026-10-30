@@ -33,6 +33,9 @@ export function toPlushMaterial(std: THREE.MeshStandardMaterial, mesh?: THREE.Me
   mat.vertexColors = std.vertexColors; // euro tail COLOR_0 tint
   mat.roughness = 1;
   mat.metalness = 0;
+  // Meshy bakes the eyes and nose as the only glossy texels of the
+  // roughness map: shell fur uses it as a mask so they stay bare.
+  mat.userData.furMask = std.roughnessMap ?? null;
   // Fabric has no hard spec highlight; the physical default white
   // specular blows out the lit side under the bright scene lights.
   mat.specularIntensity = 0;
