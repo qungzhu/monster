@@ -19,7 +19,7 @@ const BASE = 'https://api.meshy.ai/openapi/v1/multi-image-to-3d';
 const REFS = new URL('../assets/plush-refs/', import.meta.url);
 const TASKS = new URL('tasks.json', REFS);
 const OUT = new URL('../public/models/custom/', import.meta.url);
-const ALL = ['himalayan', 'mainecoon', 'norwegian', 'birman', 'angora', 'ragdoll', 'silvertabby', 'siamese', 'lihua', 'persian', 'van', 'ginger', 'balinese', 'fold', 'bluelonghair', 'chinchilla', 'exotic', 'thai', 'russianblue', 'bengal', 'britishspotted', 'mau', 'oriental', 'bombay', 'burmese', 'havana', 'korat', 'chartreux', 'ocicat', 'singapura'];
+const ALL = ['himalayan', 'mainecoon', 'norwegian', 'birman', 'angora', 'ragdoll', 'silvertabby', 'siamese', 'lihua', 'persian', 'van', 'ginger', 'balinese', 'fold', 'bluelonghair', 'chinchilla', 'exotic', 'thai', 'russianblue', 'bengal', 'britishspotted', 'mau', 'oriental', 'bombay', 'burmese', 'havana', 'korat', 'chartreux', 'ocicat', 'singapura', 'browntabby', 'greytabby', 'snowshoe', 'tonkinese', 'toyger'];
 const VIEWS = (process.env.MESHY_VIEWS || 'front,q34,side,back34').split(',');
 
 if (!KEY) {
