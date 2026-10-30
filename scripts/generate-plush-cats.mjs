@@ -19,7 +19,7 @@ const BASE = 'https://api.meshy.ai/openapi/v1/multi-image-to-3d';
 const REFS = new URL('../assets/plush-refs/', import.meta.url);
 const TASKS = new URL('tasks.json', REFS);
 const OUT = new URL('../public/models/custom/', import.meta.url);
-const ALL = ['himalayan', 'mainecoon', 'norwegian', 'birman', 'angora', 'ragdoll', 'silvertabby', 'siamese', 'lihua', 'persian', 'van', 'ginger', 'balinese', 'fold', 'bluelonghair'];
+const ALL = ['himalayan', 'mainecoon', 'norwegian', 'birman', 'angora', 'ragdoll', 'silvertabby', 'siamese', 'lihua', 'persian', 'van', 'ginger', 'balinese', 'fold', 'bluelonghair', 'chinchilla', 'exotic', 'thai', 'russianblue', 'bengal'];
 const VIEWS = (process.env.MESHY_VIEWS || 'front,q34,side,back34').split(',');
 
 if (!KEY) {
@@ -58,17 +58,22 @@ async function create(name) {
 }
 
 async function waitFor(name, id) {
+  let last = '';
   for (;;) {
     const res = await fetch(`${BASE}/${id}`, { headers: auth });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(`status failed (${res.status}): ${JSON.stringify(data).slice(0, 300)}`);
-    process.stdout.write(`\r${name}: ${data.status} ${data.progress ?? 0}%   `);
-    if (data.status === 'SUCCEEDED') { process.stdout.write('\n'); return data.model_urls?.glb; }
+    const line = `${name}: ${data.status} ${data.progress ?? 0}%`;
+    if (line !== last) console.log((last = line));
+    if (data.status === 'SUCCEEDED') return data.model_urls?.glb;
     if (data.status === 'FAILED' || data.status === 'CANCELED') throw new Error(`${name} ${data.status}: ${data.task_error?.message ?? ''}`);
     await sleep(10_000);
   }
 }
 
+// Create every missing task first (tasks.json is written after each), then
+// poll them all at once so a batch takes as long as its slowest cat.
+const todo = [];
 for (const name of names) {
   const out = new URL(`plush-${name}.glb`, OUT);
   if (FORCE) delete tasks[name];
@@ -81,13 +86,22 @@ for (const name of names) {
     } else {
       console.log(`${name}: resuming task ${tasks[name]}`);
     }
+    todo.push({ name, out });
+  } catch (e) {
+    console.error(`${name}: ${e.message}`);
+    process.exitCode = 1;
+  }
+}
+
+await Promise.all(todo.map(async ({ name, out }) => {
+  try {
     const glbUrl = await waitFor(name, tasks[name]);
     const glb = await fetch(glbUrl);
     if (!glb.ok) throw new Error(`download failed (${glb.status})`);
     writeFileSync(out, Buffer.from(await glb.arrayBuffer()));
     console.log(`${name}: saved ${out.pathname}`);
   } catch (e) {
-    console.error(`\n${name}: ${e.message}`);
+    console.error(`${name}: ${e.message}`);
     process.exitCode = 1;
   }
-}
+}));
