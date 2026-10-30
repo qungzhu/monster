@@ -501,6 +501,47 @@ export const breeds: Breed[] = [
     glbDisableSkeletalAnimation: true,
   },
 
+  {
+    id: 'plush-sokoke', species: 'cat', name: '索科克猫', englishName: 'Sokoke',
+    petName: '木纹', emoji: '🪵', rarity: 'legendary', characterId: 'xiaoxue',
+    description: '来自肯尼亚森林，琥珀色底上旋涡状的大理石纹，像一块会走路的树木年轮',
+    personality: ['敏捷', '独立', '爱探险'],
+    glbUrl: '/models/plush/meshy-sokoke.glb',
+    glbDisableSkeletalAnimation: true,
+  },
+  {
+    id: 'plush-silvershaded', species: 'cat', name: '英短银渐层', englishName: 'British Silver Shaded',
+    petName: '银宝', emoji: '🤍', rarity: 'legendary', characterId: 'xiaoxue',
+    description: '雪白的圆脸大团子，背和尾巴渐渐染上银灰，翡翠绿眼睛，乖巧又爱撒娇',
+    personality: ['乖巧', '温柔', '爱撒娇'],
+    glbUrl: '/models/plush/meshy-silvershaded.glb',
+    glbDisableSkeletalAnimation: true,
+  },
+  {
+    id: 'plush-australianmist', species: 'cat', name: '澳大利亚雾猫', englishName: 'Australian Mist',
+    petName: '雾雾', emoji: '🌫️', rarity: 'legendary', characterId: 'xiaoxue',
+    description: '沙金色底上若隐若现的雾状斑点，绿眼睛温柔，最喜欢窝在你怀里',
+    personality: ['温和', '亲人', '安静'],
+    glbUrl: '/models/plush/meshy-australianmist.glb',
+    glbDisableSkeletalAnimation: true,
+  },
+  {
+    id: 'plush-savannah', species: 'cat', name: '萨凡纳猫', englishName: 'Savannah',
+    petName: '草原', emoji: '🌾', rarity: 'legendary', characterId: 'xiaoxue',
+    description: '大长腿配一对超大耳朵，金黄色皮毛撒满黑色斑点，像草原上的小猎豹',
+    personality: ['好动', '聪明', '爱跳高'],
+    glbUrl: '/models/plush/meshy-savannah.glb',
+    glbDisableSkeletalAnimation: true,
+  },
+  {
+    id: 'plush-serval', species: 'cat', name: '薮猫', englishName: 'Serval',
+    petName: '耳朵', emoji: '👂', rarity: 'legendary', characterId: 'xiaoxue',
+    description: '非洲草原的长腿猎手，大耳朵背后有黑白“假眼”斑，环纹尾巴配黑尾尖',
+    personality: ['机警', '敏捷', '神气'],
+    glbUrl: '/models/plush/meshy-serval.glb',
+    glbDisableSkeletalAnimation: true,
+  },
+
   // ————— 多角度三视图重建（front/side/back/quarter 四视角，颜色高保真）—————
   {
     id: 'meshy-eurotabby', species: 'cat', name: '欧洲短毛虎斑', englishName: 'European Tabby',
