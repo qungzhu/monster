@@ -343,6 +343,46 @@ export const breeds: Breed[] = [
     glbUrl: '/models/plush/meshy-bluelonghair.glb',
     glbDisableSkeletalAnimation: true,
   },
+  {
+    id: 'plush-exotic', species: 'cat', name: '加菲猫', englishName: 'Exotic Shorthair',
+    petName: '团团', emoji: '🍮', rarity: 'legendary', characterId: 'xiaoxue',
+    description: '奶油色短毛大圆脸，扁扁的小鼻子配琥珀色圆眼睛，永远一副没睡醒的样子',
+    personality: ['慵懒', '憨厚', '贪吃'],
+    glbUrl: '/models/plush/meshy-exotic.glb',
+    glbDisableSkeletalAnimation: true,
+  },
+  {
+    id: 'plush-russianblue', species: 'cat', name: '俄罗斯蓝猫', englishName: 'Russian Blue',
+    petName: '银灰', emoji: '💚', rarity: 'legendary', characterId: 'xiaoxue',
+    description: '一身银蓝色丝绒短毛，翠绿大眼睛，嘴角天生微微上扬，安静又害羞',
+    personality: ['害羞', '安静', '忠诚'],
+    glbUrl: '/models/plush/meshy-russianblue.glb',
+    glbDisableSkeletalAnimation: true,
+  },
+  {
+    id: 'plush-bengal', species: 'cat', name: '孟加拉豹猫', englishName: 'Bengal',
+    petName: '豹豹', emoji: '🐆', rarity: 'legendary', characterId: 'xiaoxue',
+    description: '金棕色皮毛上布满豹纹玫瑰斑，大耳朵高高竖起，精力充沛的小探险家',
+    personality: ['好动', '聪明', '爱冒险'],
+    glbUrl: '/models/plush/meshy-bengal.glb',
+    glbDisableSkeletalAnimation: true,
+  },
+  {
+    id: 'plush-chinchilla', species: 'cat', name: '银色金吉拉', englishName: 'Silver Chinchilla',
+    petName: '银霜', emoji: '🤍', rarity: 'legendary', characterId: 'xiaoxue',
+    description: '雪白长毛带一层银灰毛尖，翡翠绿大眼睛，抱着像一团蓬松的棉花糖',
+    personality: ['高贵', '温柔', '爱干净'],
+    glbUrl: '/models/plush/meshy-chinchilla.glb',
+    glbDisableSkeletalAnimation: true,
+  },
+  {
+    id: 'plush-thai', species: 'cat', name: '泰国猫', englishName: 'Thai',
+    petName: '可可', emoji: '🥥', rarity: 'legendary', characterId: 'xiaoxue',
+    description: '传统的“老式暹罗”，圆圆的苹果脸配巧克力色面罩和小脚，蓝眼睛，爱吐小舌头',
+    personality: ['话痨', '热情', '黏人'],
+    glbUrl: '/models/plush/meshy-thai.glb',
+    glbDisableSkeletalAnimation: true,
+  },
 
   // ————— 多角度三视图重建（front/side/back/quarter 四视角，颜色高保真）—————
   {

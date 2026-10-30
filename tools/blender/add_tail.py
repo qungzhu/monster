@@ -34,6 +34,13 @@ PRESETS = {
         stripes=dict(count=4, depth=0.18), band=dict(start=0.45, end=0.78, colour=(0.33, 0.31, 0.30)),
         tip=dict(start=0.82, colour=(0.90, 0.86, 0.80)),
     ),
+    # Exotic sheet: thick plush tail hanging back and down, tip lifting a little.
+    'exotic': dict(
+        # Starts high and thick so Meshy's little hooked stub ends up inside it.
+        path=[(0, -0.05, 0.10), (0, 0.05, 0.08), (0, 0.16, 0.01), (0, 0.27, -0.05), (0, 0.36, -0.07), (0, 0.42, -0.03)],
+        radius=[0.10, 0.115, 0.12, 0.125, 0.115, 0.075],
+        stripes=dict(count=4, depth=0.08),
+    ),
 }
 P = PRESETS[preset]
 
