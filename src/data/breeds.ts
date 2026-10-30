@@ -315,6 +315,23 @@ export const breeds: Breed[] = [
     glbDisableSkeletalAnimation: true,
   },
 
+  {
+    id: 'plush-van', species: 'cat', name: '土耳其梵猫', englishName: 'Turkish Van',
+    petName: '橘点', emoji: '🧡', rarity: 'legendary', characterId: 'xiaoxue',
+    description: '一身雪白，只有头顶两块橘斑和一条橘色大尾巴，爱玩水的小怪猫',
+    personality: ['活泼', '爱玩水', '好奇'],
+    glbUrl: '/models/plush/meshy-van.glb',
+    glbDisableSkeletalAnimation: true,
+  },
+  {
+    id: 'plush-bluelonghair', species: 'cat', name: '英国长毛猫', englishName: 'British Longhair',
+    petName: '蓝莓', emoji: '🩶', rarity: 'legendary', characterId: 'xiaoxue',
+    description: '一身蓝灰色长毛，圆脸配翠绿眼睛，蓬松得像一朵乌云',
+    personality: ['温和', '安静', '蓬松'],
+    glbUrl: '/models/plush/meshy-bluelonghair.glb',
+    glbDisableSkeletalAnimation: true,
+  },
+
   // ————— 多角度三视图重建（front/side/back/quarter 四视角，颜色高保真）—————
   {
     id: 'meshy-eurotabby', species: 'cat', name: '欧洲短毛虎斑', englishName: 'European Tabby',
