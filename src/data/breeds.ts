@@ -460,6 +460,47 @@ export const breeds: Breed[] = [
     glbDisableSkeletalAnimation: true,
   },
 
+  {
+    id: 'plush-browntabby', species: 'cat', name: '棕虎斑', englishName: 'Brown Tabby',
+    petName: '栗子', emoji: '🌰', rarity: 'legendary', characterId: 'xiaoxue',
+    description: '暖棕色毛衣上一圈圈深色条纹，尾巴高高翘起、尾尖深棕，像只小老虎',
+    personality: ['活泼', '好奇', '贪玩'],
+    glbUrl: '/models/plush/meshy-browntabby.glb',
+    glbDisableSkeletalAnimation: true,
+  },
+  {
+    id: 'plush-greytabby', species: 'cat', name: '灰虎斑', englishName: 'Grey Tabby',
+    petName: '石头', emoji: '🪨', rarity: 'legendary', characterId: 'xiaoxue',
+    description: '灰褐色短毛配深色虎纹和米色小爪，额头一个小小的“M”，老实又可靠',
+    personality: ['憨厚', '可靠', '亲人'],
+    glbUrl: '/models/plush/meshy-greytabby.glb',
+    glbDisableSkeletalAnimation: true,
+  },
+  {
+    id: 'plush-snowshoe', species: 'cat', name: '雪鞋猫', englishName: 'Snowshoe',
+    petName: '雪靴', emoji: '🥾', rarity: 'legendary', characterId: 'xiaoxue',
+    description: '重点色面罩中间一道白色倒“V”，四只脚穿着雪白小靴子，蓝眼睛',
+    personality: ['友善', '爱说话', '黏人'],
+    glbUrl: '/models/plush/meshy-snowshoe.glb',
+    glbDisableSkeletalAnimation: true,
+  },
+  {
+    id: 'plush-tonkinese', species: 'cat', name: '东奇尼猫', englishName: 'Tonkinese',
+    petName: '奶糖', emoji: '🍬', rarity: 'legendary', characterId: 'xiaoxue',
+    description: '奶茶色身子配深棕色脸、耳朵和尾巴，一双碧蓝色眼睛，热情的社交小达人',
+    personality: ['热情', '聪明', '爱社交'],
+    glbUrl: '/models/plush/meshy-tonkinese.glb',
+    glbDisableSkeletalAnimation: true,
+  },
+  {
+    id: 'plush-toyger', species: 'cat', name: '玩具虎猫', englishName: 'Toyger',
+    petName: '虎妞', emoji: '🐯', rarity: 'legendary', characterId: 'xiaoxue',
+    description: '亮橙色皮毛上清晰的黑色竖纹，活脱脱一只口袋里的小老虎',
+    personality: ['勇敢', '活泼', '温顺'],
+    glbUrl: '/models/plush/meshy-toyger.glb',
+    glbDisableSkeletalAnimation: true,
+  },
+
   // ————— 多角度三视图重建（front/side/back/quarter 四视角，颜色高保真）—————
   {
     id: 'meshy-eurotabby', species: 'cat', name: '欧洲短毛虎斑', englishName: 'European Tabby',

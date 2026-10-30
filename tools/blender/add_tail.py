@@ -48,6 +48,19 @@ PRESETS = {
         radius=[0.10, 0.09, 0.085, 0.08, 0.075, 0.06],
         stripes=dict(count=7, depth=0.75), tip=dict(start=0.86, colour=(0.03, 0.03, 0.03)),
     ),
+    # Grey tabby sheet: long striped tail hanging back, tip lifting a little.
+    'greytabby': dict(
+        path=[(0, -0.04, 0.07), (0, 0.08, 0.04), (0, 0.22, -0.02), (0, 0.36, -0.06), (0, 0.48, -0.05), (0, 0.56, 0.0)],
+        radius=[0.10, 0.09, 0.085, 0.08, 0.075, 0.06],
+        stripes=dict(count=7, depth=0.6),
+    ),
+    # Snowshoe sheet: thick dark-brown point tail sweeping back and down.
+    # Meshy left a white stub, so the colour is given, not sampled.
+    'snowshoe': dict(
+        path=[(0, -0.04, 0.08), (0, 0.08, 0.05), (0, 0.22, -0.01), (0, 0.35, -0.05), (0, 0.47, -0.04), (0, 0.55, 0.01)],
+        radius=[0.11, 0.105, 0.10, 0.095, 0.085, 0.065],
+        colour=(0.075, 0.052, 0.04),
+    ),
 }
 P = PRESETS[preset]
 
@@ -85,6 +98,8 @@ for poly in me.polygons:
             i = (min(h - 1, int(u.y % 1 * h)) * w + min(w - 1, int(u.x % 1 * w))) * 4
             acc += Vector(px[i:i + 3]); n += 1
 base = Vector([c ** 2.2 for c in acc / max(n, 1)])  # texture values are sRGB; paint is linear
+if 'colour' in P:
+    base = Vector(P['colour'])  # linear; for stubs whose texture has the wrong colour
 print(f'base colour {tuple(round(c, 3) for c in base)} from {n} samples')
 
 # ---- tail shape: metaballs along a smooth curve
