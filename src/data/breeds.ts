@@ -168,6 +168,8 @@ export const breeds: Breed[] = [
     description: '十只橘猫九只胖，还有一只压塌炕，干饭第一名',
     personality: ['贪吃', '大橘为重', '亲人'],
     params: { bodyColor: '#E8923E', pointColor: '#D07828', bellyColor: '#FCE8CE', eyeColor: '#E8B030', earStyle: 'point' } as CatParams,
+    glbUrl: '/models/plush/meshy-ginger.glb',
+    glbDisableSkeletalAnimation: true,
   },
   {
     id: 'dragonli', species: 'cat', name: '中华狸花猫', englishName: 'Dragon Li',
@@ -193,6 +195,8 @@ export const breeds: Breed[] = [
     description: '折耳圆脸像颗汤圆，安静地陪在你身边',
     personality: ['安静', '折耳', '软萌'],
     params: { bodyColor: '#D8CCC0', pointColor: '#B8A898', bellyColor: '#F0E8E0', eyeColor: '#E8A030', earStyle: 'fold' } as CatParams,
+    glbUrl: '/models/plush/meshy-fold.glb',
+    glbDisableSkeletalAnimation: true,
   },
   {
     id: 'bombay', species: 'cat', name: '孟买猫', englishName: 'Bombay',
@@ -321,6 +325,14 @@ export const breeds: Breed[] = [
     description: '一身雪白，只有头顶两块橘斑和一条橘色大尾巴，爱玩水的小怪猫',
     personality: ['活泼', '爱玩水', '好奇'],
     glbUrl: '/models/plush/meshy-van.glb',
+    glbDisableSkeletalAnimation: true,
+  },
+  {
+    id: 'plush-balinese', species: 'cat', name: '巴厘猫', englishName: 'Balinese',
+    petName: '奶咖', emoji: '☕', rarity: 'legendary', characterId: 'xiaoxue',
+    description: '长毛版的暹罗猫，奶油色身子配深色耳朵和小脚，蓝眼睛，尾巴像一支羽毛',
+    personality: ['话多', '黏人', '优雅'],
+    glbUrl: '/models/plush/meshy-balinese.glb',
     glbDisableSkeletalAnimation: true,
   },
   {
