@@ -542,6 +542,47 @@ export const breeds: Breed[] = [
     glbDisableSkeletalAnimation: true,
   },
 
+  {
+    id: 'plush-cornishrex', species: 'cat', name: '柯尼斯卷毛猫', englishName: 'Cornish Rex',
+    petName: '波浪', emoji: '〰️', rarity: 'legendary', characterId: 'xiaoxue',
+    description: '一身细细的波浪卷毛，修长的身体和大耳朵，重点色脸配蓝绿色眼睛，像只小灵缇',
+    personality: ['活泼', '黏人', '爱跑跳'],
+    glbUrl: '/models/plush/meshy-cornishrex.glb',
+    glbDisableSkeletalAnimation: true,
+  },
+  {
+    id: 'plush-spangled', species: 'cat', name: '加州闪亮猫', englishName: 'California Spangled',
+    petName: '亮亮', emoji: '✨', rarity: 'legendary', characterId: 'xiaoxue',
+    description: '金棕色皮毛上布满圆圆的黑斑，环纹尾巴配黑尾尖，像一只家养小猎豹',
+    personality: ['好动', '机灵', '爱玩'],
+    glbUrl: '/models/plush/meshy-spangled.glb',
+    glbDisableSkeletalAnimation: true,
+  },
+  {
+    id: 'plush-laperm', species: 'cat', name: '拉邦猫', englishName: 'LaPerm',
+    petName: '卷卷', emoji: '🌀', rarity: 'legendary', characterId: 'xiaoxue',
+    description: '一身蓬松的橘色小卷毛，像刚烫过头发，尾巴是一把卷卷的羽毛掸子',
+    personality: ['温柔', '亲人', '好奇'],
+    glbUrl: '/models/plush/meshy-laperm.glb',
+    glbDisableSkeletalAnimation: true,
+  },
+  {
+    id: 'plush-selkirk', species: 'cat', name: '塞尔凯克卷毛猫', englishName: 'Selkirk Rex',
+    petName: '羊羊', emoji: '🐑', rarity: 'legendary', characterId: 'xiaoxue',
+    description: '灰白相间的厚厚卷毛像一只小绵羊，圆脸大眼睛，抱起来软乎乎的',
+    personality: ['憨厚', '温顺', '爱抱抱'],
+    glbUrl: '/models/plush/meshy-selkirk.glb',
+    glbDisableSkeletalAnimation: true,
+  },
+  {
+    id: 'plush-devonrex', species: 'cat', name: '德文卷毛猫', englishName: 'Devon Rex',
+    petName: '精灵', emoji: '🧝', rarity: 'legendary', characterId: 'xiaoxue',
+    description: '超大的蝙蝠耳朵配圆溜溜的大眼睛，一身短短的波浪卷毛，像个调皮的小精灵',
+    personality: ['调皮', '黏人', '鬼点子多'],
+    glbUrl: '/models/plush/meshy-devonrex.glb',
+    glbDisableSkeletalAnimation: true,
+  },
+
   // ————— 多角度三视图重建（front/side/back/quarter 四视角，颜色高保真）—————
   {
     id: 'meshy-eurotabby', species: 'cat', name: '欧洲短毛虎斑', englishName: 'European Tabby',

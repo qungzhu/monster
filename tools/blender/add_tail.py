@@ -61,6 +61,13 @@ PRESETS = {
         radius=[0.11, 0.105, 0.10, 0.095, 0.085, 0.065],
         colour=(0.075, 0.052, 0.04),
     ),
+    # Selkirk Rex sheet: thick curly tabby tail hanging back and down
+    # (Meshy gave it none at all, so the root sits on the bare rump).
+    'selkirk': dict(
+        path=[(0, -0.06, 0.10), (0, 0.06, 0.07), (0, 0.18, 0.0), (0, 0.29, -0.07), (0, 0.38, -0.12), (0, 0.45, -0.13)],
+        radius=[0.10, 0.11, 0.115, 0.11, 0.10, 0.075],
+        stripes=dict(count=6, depth=0.5),
+    ),
 }
 P = PRESETS[preset]
 
