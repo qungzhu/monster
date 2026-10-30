@@ -204,6 +204,8 @@ export const breeds: Breed[] = [
     description: '迷你小黑豹，铜色眼睛在夜里发光',
     personality: ['神秘', '小黑豹', '深邃'],
     params: { bodyColor: '#1E1E22', pointColor: '#0F0F12', bellyColor: '#2E2E34', eyeColor: '#E8A030', earStyle: 'point' } as CatParams,
+    glbUrl: '/models/plush/meshy-bombay.glb',
+    glbDisableSkeletalAnimation: true,
   },
 
   // ————— 狐狸 —————
@@ -381,6 +383,39 @@ export const breeds: Breed[] = [
     description: '传统的“老式暹罗”，圆圆的苹果脸配巧克力色面罩和小脚，蓝眼睛，爱吐小舌头',
     personality: ['话痨', '热情', '黏人'],
     glbUrl: '/models/plush/meshy-thai.glb',
+    glbDisableSkeletalAnimation: true,
+  },
+
+  {
+    id: 'plush-britishspotted', species: 'cat', name: '英短蓝斑点', englishName: 'British Spotted',
+    petName: '芝麻', emoji: '🩶', rarity: 'legendary', characterId: 'xiaoxue',
+    description: '蓝灰色圆脸大胖子，身上撒满深灰色小圆点，金铜色眼睛圆溜溜的',
+    personality: ['憨厚', '稳重', '爱睡觉'],
+    glbUrl: '/models/plush/meshy-britishspotted.glb',
+    glbDisableSkeletalAnimation: true,
+  },
+  {
+    id: 'plush-mau', species: 'cat', name: '埃及猫', englishName: 'Egyptian Mau',
+    petName: '法老', emoji: '🔱', rarity: 'legendary', characterId: 'xiaoxue',
+    description: '银灰底色配天然黑色斑点，环纹尾巴，眼线像画了眼妆的翠绿大眼睛',
+    personality: ['敏捷', '忠诚', '好奇'],
+    glbUrl: '/models/plush/meshy-mau.glb',
+    glbDisableSkeletalAnimation: true,
+  },
+  {
+    id: 'plush-oriental', species: 'cat', name: '东方短毛猫', englishName: 'Oriental Shorthair',
+    petName: '墨墨', emoji: '🖤', rarity: 'legendary', characterId: 'xiaoxue',
+    description: '一身乌黑丝绒，修长的身子配一对超大耳朵，琥珀色眼睛机灵又话多',
+    personality: ['话痨', '机灵', '黏人'],
+    glbUrl: '/models/plush/meshy-oriental.glb',
+    glbDisableSkeletalAnimation: true,
+  },
+  {
+    id: 'plush-burmese', species: 'cat', name: '缅甸猫', englishName: 'Burmese',
+    petName: '可乐', emoji: '🟤', rarity: 'legendary', characterId: 'xiaoxue',
+    description: '浓郁的深棕色缎面短毛，圆脸配金色大眼睛，尾巴总是高高翘起',
+    personality: ['热情', '黏人', '爱撒娇'],
+    glbUrl: '/models/plush/meshy-burmese.glb',
     glbDisableSkeletalAnimation: true,
   },
 

@@ -41,6 +41,13 @@ PRESETS = {
         radius=[0.10, 0.115, 0.12, 0.125, 0.115, 0.075],
         stripes=dict(count=4, depth=0.08),
     ),
+    # Egyptian Mau sheet: long tail sweeping back, low, tip lifting; black
+    # rings and a black tip.
+    'mau': dict(
+        path=[(0, -0.04, 0.07), (0, 0.08, 0.04), (0, 0.22, -0.02), (0, 0.36, -0.05), (0, 0.48, -0.03), (0, 0.56, 0.03)],
+        radius=[0.10, 0.09, 0.085, 0.08, 0.075, 0.06],
+        stripes=dict(count=7, depth=0.75), tip=dict(start=0.86, colour=(0.03, 0.03, 0.03)),
+    ),
 }
 P = PRESETS[preset]
 
