@@ -419,6 +419,47 @@ export const breeds: Breed[] = [
     glbDisableSkeletalAnimation: true,
   },
 
+  {
+    id: 'plush-havana', species: 'cat', name: '哈瓦那棕猫', englishName: 'Havana Brown',
+    petName: '雪茄', emoji: '🍫', rarity: 'legendary', characterId: 'xiaoxue',
+    description: '一身巧克力色丝绒短毛，大耳朵配翠绿色圆眼睛，温柔又爱跟着你转',
+    personality: ['温柔', '好奇', '跟屁虫'],
+    glbUrl: '/models/plush/meshy-havana.glb',
+    glbDisableSkeletalAnimation: true,
+  },
+  {
+    id: 'plush-korat', species: 'cat', name: '科拉特猫', englishName: 'Korat',
+    petName: '福银', emoji: '🍀', rarity: 'legendary', characterId: 'xiaoxue',
+    description: '泰国的幸运猫，银蓝色短毛，修长身段配高高翘起的尾巴和绿宝石眼睛',
+    personality: ['机灵', '活泼', '幸运'],
+    glbUrl: '/models/plush/meshy-korat.glb',
+    glbDisableSkeletalAnimation: true,
+  },
+  {
+    id: 'plush-chartreux', species: 'cat', name: '沙特尔猫', englishName: 'Chartreux',
+    petName: '灰灰', emoji: '🫐', rarity: 'legendary', characterId: 'xiaoxue',
+    description: '来自法国的蓝灰色圆滚滚，厚实的绒毛，嘴角像在微笑，安静又贴心',
+    personality: ['安静', '贴心', '稳重'],
+    glbUrl: '/models/plush/meshy-chartreux.glb',
+    glbDisableSkeletalAnimation: true,
+  },
+  {
+    id: 'plush-ocicat', species: 'cat', name: '欧西猫', englishName: 'Ocicat',
+    petName: '点点', emoji: '🟠', rarity: 'legendary', characterId: 'xiaoxue',
+    description: '金黄色皮毛上整齐排列着深棕色圆斑，环纹尾巴，像一只迷你小豹子',
+    personality: ['外向', '聪明', '爱玩'],
+    glbUrl: '/models/plush/meshy-ocicat.glb',
+    glbDisableSkeletalAnimation: true,
+  },
+  {
+    id: 'plush-singapura', species: 'cat', name: '新加坡猫', englishName: 'Singapura',
+    petName: '小豆', emoji: '🫘', rarity: 'legendary', characterId: 'xiaoxue',
+    description: '世界上最小的猫之一，象牙色带细细的棕色毛尖，大耳朵大眼睛，尾尖深色',
+    personality: ['好奇', '黏人', '调皮'],
+    glbUrl: '/models/plush/meshy-singapura.glb',
+    glbDisableSkeletalAnimation: true,
+  },
+
   // ————— 多角度三视图重建（front/side/back/quarter 四视角，颜色高保真）—————
   {
     id: 'meshy-eurotabby', species: 'cat', name: '欧洲短毛虎斑', englishName: 'European Tabby',
