@@ -715,7 +715,7 @@ export function LivingWorld(props: LivingWorldProps) {
         initial={reduceMotion ? false : { opacity: 0, y: -24 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ type: 'spring', stiffness: 260, damping: 20, delay: 0.1 }}
-        className="absolute top-0 left-0 right-0 z-30 px-4 pt-3 flex items-center justify-between"
+        className="absolute top-0 left-0 right-0 z-30 px-4 pt-[calc(env(safe-area-inset-top)+0.75rem)] flex items-center justify-between"
       >
         <button onClick={() => setActiveCard('bond')} aria-label="等级与亲密度" className="soft-glass flex h-9 items-center gap-2 rounded-full px-3.5">
           <span className="text-[13px] font-bold" style={{ color }}>Lv.{levelInfo.level}</span>
@@ -737,7 +737,7 @@ export function LivingWorld(props: LivingWorldProps) {
         transition={{ type: 'spring', stiffness: 240, damping: 18, delay: 0.25 }}
         whileTap={{ scale: 0.95 }}
         onClick={() => setActiveCard('life')}
-        className="soft-glass fp-shimmer absolute left-4 top-[3.6rem] z-30 flex h-9 max-w-[62vw] items-center gap-2 rounded-full pl-3 pr-3.5 text-[13px]"
+        className="soft-glass fp-shimmer absolute left-4 top-[calc(env(safe-area-inset-top)+3.6rem)] z-30 flex h-9 max-w-[62vw] items-center gap-2 rounded-full pl-3 pr-3.5 text-[13px]"
         aria-label={`打开${displayHubName}`}
       >
         <span className="relative flex h-2 w-2 shrink-0">
@@ -756,7 +756,7 @@ export function LivingWorld(props: LivingWorldProps) {
           <motion.button
             initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
             onClick={() => lowStat === 'hunger' ? setActiveCard('shop') : handleAction(lowStat === 'mood' ? 'play' : 'clean')}
-            className="soft-glass absolute top-[6.4rem] left-4 z-30 rounded-full px-3.5 py-1.5 text-[13px] font-medium text-amber-700 animate-pulse"
+            className="soft-glass absolute top-[calc(env(safe-area-inset-top)+6.4rem)] left-4 z-30 rounded-full px-3.5 py-1.5 text-[13px] font-medium text-amber-700 animate-pulse"
           >
             {lowStat === 'hunger' ? '🍖 它饿了' : lowStat === 'mood' ? '🎾 它想玩' : '🛁 该洗澡了'}
           </motion.button>
