@@ -583,6 +583,47 @@ export const breeds: Breed[] = [
     glbDisableSkeletalAnimation: true,
   },
 
+  {
+    id: 'plush-sphynx', species: 'cat', name: '加拿大无毛猫', englishName: 'Sphynx',
+    petName: '红宝石', emoji: '💎', rarity: 'legendary', characterId: 'xiaoxue',
+    description: '丝绒般的肉粉色皮肤和一身褶皱，超大尖耳朵，戴着红宝石项链和耳钉的优雅小贵族',
+    personality: ['黏人', '优雅', '怕冷'],
+    glbUrl: '/models/plush/meshy-sphynx.glb',
+    glbDisableSkeletalAnimation: true,
+  },
+  {
+    id: 'plush-peterbald', species: 'cat', name: '彼得秃猫', englishName: 'Peterbald',
+    petName: '珍珠', emoji: '🦪', rarity: 'legendary', characterId: 'xiaoxue',
+    description: '烟灰色丝绒皮肤配修长身段，翡翠绿眼睛，珍珠项链衬得格外高贵',
+    personality: ['高贵', '聪明', '爱撒娇'],
+    glbUrl: '/models/plush/meshy-peterbald.glb',
+    glbDisableSkeletalAnimation: true,
+  },
+  {
+    id: 'plush-donskoy', species: 'cat', name: '顿斯科伊无毛猫', englishName: 'Donskoy',
+    petName: '樱花', emoji: '🌸', rarity: 'legendary', characterId: 'xiaoxue',
+    description: '樱花粉的皮肤配灰色小耳朵和尾巴，额头一道道褶皱，戴着小珍珠项链',
+    personality: ['温柔', '亲人', '安静'],
+    glbUrl: '/models/plush/meshy-donskoy.glb',
+    glbDisableSkeletalAnimation: true,
+  },
+  {
+    id: 'plush-lykoi', species: 'cat', name: '狼猫', englishName: 'Lykoi',
+    petName: '小狼', emoji: '🐺', rarity: 'legendary', characterId: 'xiaoxue',
+    description: '黑灰斑驳的蓬乱毛发，眼周和腿上露出粉色皮肤，看着像只小狼人，其实很亲人',
+    personality: ['好奇', '忠诚', '有点酷'],
+    glbUrl: '/models/plush/meshy-lykoi.glb',
+    glbDisableSkeletalAnimation: true,
+  },
+  {
+    id: 'plush-americanshort', species: 'cat', name: '美国短毛猫', englishName: 'American Shorthair',
+    petName: '银条', emoji: '🇺🇸', rarity: 'legendary', characterId: 'xiaoxue',
+    description: '银白底色上的黑色经典旋涡虎纹，琥珀色圆眼睛和白色小爪，健壮又随和',
+    personality: ['随和', '健壮', '爱玩'],
+    glbUrl: '/models/plush/meshy-americanshort.glb',
+    glbDisableSkeletalAnimation: true,
+  },
+
   // ————— 多角度三视图重建（front/side/back/quarter 四视角，颜色高保真）—————
   {
     id: 'meshy-eurotabby', species: 'cat', name: '欧洲短毛虎斑', englishName: 'European Tabby',
