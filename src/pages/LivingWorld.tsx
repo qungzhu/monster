@@ -664,10 +664,10 @@ export function LivingWorld(props: LivingWorldProps) {
                 type="text" value={nameInput} onChange={e => setNameInput(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && nameInput.trim() && setUserName(nameInput.trim())}
                 placeholder="你的名字..." maxLength={20}
-                className="flex-1 bg-surface-light rounded-xl px-4 py-3 text-text-primary placeholder:text-text-muted outline-none border border-transparent focus:border-amber-500/30 transition-colors text-sm"
+                className="min-w-0 flex-1 bg-surface-light rounded-xl px-4 py-3 text-text-primary placeholder:text-text-muted outline-none border border-transparent focus:border-amber-500/30 transition-colors text-sm"
               />
               <motion.button whileTap={{ scale: 0.95 }} onClick={() => nameInput.trim() && setUserName(nameInput.trim())}
-                className="bg-gradient-to-r from-amber-600 to-orange-600 rounded-xl px-5 py-3 text-white font-medium">
+                className="shrink-0 bg-gradient-to-r from-amber-600 to-orange-600 rounded-xl px-5 py-3 text-white font-medium">
                 进入
               </motion.button>
             </div>
