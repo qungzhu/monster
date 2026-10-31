@@ -1,0 +1,185 @@
+# Runs the iOS app in the iPhone simulator on a Mac runner:
+#  1. the normal app: launch and screenshot;
+#  2. a self-test build (VITE_LOCKSCREEN_SELFTEST=1) that renders the widget
+#     picture and makes + saves the Live Photo, then checks Photos really
+#     filed it as a Live Photo and the widget data reached the App Group.
+# Results (screenshots, the Live Photo, logs, report.md) are uploaded as the
+# artifact ios-simulator-results and pushed to the branch
+# ci/ios-simulator-results (overwritten each run).
+name: iOS simulator
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [claude/ai-emotional-companion-app-efh3G]
+    paths:
+      - 'src/native/**'
+      - 'ios/**'
+      - '.github/workflows/ios-simulator.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  simulator:
+    runs-on: macos-15
+    timeout-minutes: 75
+    env:
+      BUNDLE: com.furrypal.app
+      OUT: ${{ github.workspace }}/sim-results
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: |
+          npm ci
+          mkdir -p "$OUT/shots"
+
+      - name: Boot simulator
+        run: |
+          UDID=$(xcrun simctl list devices available -j | python3 -c '
+          import json, sys
+          d = json.load(sys.stdin)["devices"]
+          ios = sorted((k for k in d if "iOS" in k), key=lambda k: [int(x) for x in k.split("iOS-")[1].split("-")])
+          for rt in reversed(ios):
+              phones = [x for x in d[rt] if x["name"].startswith("iPhone") and "Pro" in x["name"]] or [x for x in d[rt] if x["name"].startswith("iPhone")]
+              if phones:
+                  print(phones[0]["udid"]); break')
+          echo "UDID=$UDID" >> "$GITHUB_ENV"
+          xcrun simctl list devices | grep "$UDID" | tee "$OUT/device.txt"
+          xcrun simctl boot "$UDID"
+          xcrun simctl bootstatus "$UDID" -b
+
+      - name: Build web app and sync (normal)
+        run: npm run build:ios
+        env:
+          VITE_API_BASE: ${{ vars.FURRYPAL_API_BASE }}
+
+      - name: Build for simulator (normal)
+        run: |
+          set -o pipefail
+          xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Debug \
+            -destination 'generic/platform=iOS Simulator' -derivedDataPath build \
+            CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY=- DEVELOPMENT_TEAM= \
+            build > "$OUT/xcodebuild-normal.log" 2>&1 || { grep -E "error:" "$OUT/xcodebuild-normal.log" | head -30; exit 1; }
+          tail -1 "$OUT/xcodebuild-normal.log"
+
+      - name: Run the app and screenshot
+        run: |
+          APP=build/Build/Products/Debug-iphonesimulator/App.app
+          codesign -d --entitlements - "$APP" > "$OUT/entitlements.txt" 2>&1 || true
+          xcrun simctl install "$UDID" "$APP"
+          xcrun simctl launch "$UDID" "$BUNDLE"
+          sleep 45
+          xcrun simctl io "$UDID" screenshot "$OUT/shots/01-app.png"
+          xcrun simctl terminate "$UDID" "$BUNDLE" || true
+
+      - name: Build self-test
+        run: |
+          set -o pipefail
+          npm run build:ios
+          xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Debug \
+            -destination 'generic/platform=iOS Simulator' -derivedDataPath build \
+            CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY=- DEVELOPMENT_TEAM= \
+            build > "$OUT/xcodebuild-selftest.log" 2>&1 || { grep -E "error:" "$OUT/xcodebuild-selftest.log" | head -30; exit 1; }
+        env:
+          VITE_LOCKSCREEN_SELFTEST: '1'
+
+      - name: Run self-test
+        run: |
+          APP=build/Build/Products/Debug-iphonesimulator/App.app
+          xcrun simctl uninstall "$UDID" "$BUNDLE" || true
+          xcrun simctl install "$UDID" "$APP"
+          xcrun simctl privacy "$UDID" grant photos-add "$BUNDLE" || true
+          xcrun simctl privacy "$UDID" grant photos "$BUNDLE" || true
+          xcrun simctl launch --console-pty "$UDID" "$BUNDLE" > "$OUT/selftest-console.log" 2>&1 &
+          start=$(date +%s); n=0
+          while true; do
+            sleep 20; n=$((n+1))
+            xcrun simctl io "$UDID" screenshot "$OUT/shots/selftest-$(printf %02d $n).png" >/dev/null 2>&1 || true
+            grep -a "lockscreen-selftest" "$OUT/selftest-console.log" | tail -1 || true
+            if grep -aqE "lockscreen-selftest\] (live-saved|live-error)" "$OUT/selftest-console.log"; then break; fi
+            if [ $(( $(date +%s) - start )) -gt 1800 ]; then echo "timed out"; break; fi
+          done
+          sleep 5
+          xcrun simctl io "$UDID" screenshot "$OUT/shots/selftest-final.png"
+
+      - name: Check Photos and widget data
+        if: always()
+        run: |
+          DATA="$HOME/Library/Developer/CoreSimulator/Devices/$UDID/data"
+          R="$OUT/report.md"
+          {
+            echo "# iOS simulator run"
+            echo; echo "Device: $(cat "$OUT/device.txt" 2>/dev/null)"
+            echo; echo "## Self-test log"; echo '```'
+            grep -a "lockscreen-selftest" "$OUT/selftest-console.log" 2>/dev/null || echo "(none)"
+            echo '```'
+            echo; echo "## Console errors"; echo '```'
+            grep -aiE "error|exception|failed" "$OUT/selftest-console.log" 2>/dev/null | grep -v "lockscreen-selftest\] live-frame" | head -40 || true
+            echo '```'
+            echo; echo "## Photos library"; echo '```'
+            find "$DATA/Media/DCIM" -type f -exec ls -l {} \; 2>/dev/null || echo "(no DCIM)"
+            echo '```'
+            DB="$DATA/Media/PhotoData/Photos.sqlite"
+            if [ -f "$DB" ]; then
+              echo "ZKINDSUBTYPE 2 = Live Photo:"; echo '```'
+              sqlite3 "$DB" "SELECT ZFILENAME, ZKIND, ZKINDSUBTYPE, ZWIDTH, ZHEIGHT, ZDURATION FROM ZASSET;" 2>&1
+              echo '```'
+            fi
+            echo; echo "## Widget data (App Group)"; echo '```'
+            GROUP=$(xcrun simctl get_app_container "$UDID" "$BUNDLE" groups 2>&1)
+            echo "$GROUP"
+            GDIR=$(echo "$GROUP" | awk -F'\t' '/group.com.furrypal.app/ {print $2}')
+            if [ -n "$GDIR" ]; then
+              ls -l "$GDIR" 2>&1
+              find "$GDIR" -name "*.plist" -exec plutil -p {} \; 2>&1
+              cp "$GDIR/pet.png" "$OUT/widget-pet.png" 2>/dev/null || true
+            fi
+            echo '```'
+            echo; echo "## App entitlements (simulator signature)"; echo '```'
+            cat "$OUT/entitlements.txt" 2>/dev/null
+            echo '```'
+          } > "$R"
+          mkdir -p "$OUT/photos"
+          find "$DATA/Media/DCIM" -type f -exec cp {} "$OUT/photos/" \; 2>/dev/null || true
+          brew install exiftool >/dev/null 2>&1 || true
+          if command -v exiftool >/dev/null && ls "$OUT/photos"/* >/dev/null 2>&1; then
+            { echo; echo "## Live Photo metadata"; echo '```'
+              exiftool -a -G1 -s -ContentIdentifier -MediaGroupUUID -LivePhoto* -StillImageTime -ImageWidth -ImageHeight -Duration -CompressorID -VideoFrameRate "$OUT/photos"/*
+              echo '```'; } >> "$R"
+          fi
+          # Small frames of the clip for a quick look.
+          MOV=$(ls "$OUT/photos"/*.MOV "$OUT/photos"/*.mov 2>/dev/null | head -1)
+          if [ -n "$MOV" ]; then
+            command -v ffmpeg >/dev/null || brew install ffmpeg >/dev/null 2>&1 || true
+            for t in 0 1.5 2.9; do
+              ffmpeg -loglevel error -y -ss $t -i "$MOV" -frames:v 1 -vf scale=360:-2 "$OUT/shots/clip-$t.png" 2>/dev/null || true
+            done
+          fi
+          cat "$R"
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: ios-simulator-results
+          path: sim-results
+          retention-days: 14
+
+      - name: Push results branch
+        if: always()
+        run: |
+          cd "$OUT"
+          # keep the branch small: no full build logs, cap the clip
+          for f in xcodebuild-*.log; do tail -200 "$f" > "$f.tail" && mv "$f.tail" "$f"; done
+          find photos -size +20M -delete 2>/dev/null || true
+          git init -q -b results
+          git add -A
+          git -c user.name="github-actions" -c user.email="github-actions@users.noreply.github.com" \
+            commit -qm "iOS simulator results for ${GITHUB_SHA::7}"
+          git push -qf "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" results:ci/ios-simulator-results

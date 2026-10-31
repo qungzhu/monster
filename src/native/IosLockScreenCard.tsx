@@ -8,6 +8,10 @@ interface IosLockScreenCardProps {
   petName: string;
   pet: PetVisual;
   intimacy: number;
+  /** Start making the Live Photo right away (simulator self-test). */
+  autoStart?: boolean;
+  /** Progress reports (simulator self-test logs them). */
+  onReport?: (event: string) => void;
 }
 
 const FPS = 30;
@@ -31,7 +35,7 @@ const petKey = (p: PetVisual) => `${p.characterId}|${p.breedId ?? ''}|${p.custom
  *    (it moves when the screen wakes or is pressed);
  *  - the lock-screen / home-screen widget shows the pet, kept in sync here.
  */
-export function IosLockScreenCard({ petName, pet, intimacy }: IosLockScreenCardProps) {
+export function IosLockScreenCard({ petName, pet, intimacy, autoStart, onReport }: IosLockScreenCardProps) {
   const [phase, setPhase] = useState<'idle' | 'rendering' | 'saving' | 'saved'>('idle');
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState('');
@@ -52,7 +56,10 @@ export function IosLockScreenCard({ petName, pet, intimacy }: IosLockScreenCardP
     const image = await canvasBase64(canvas, 'image/png');
     await PetLockScreen.setWidgetPet({ image, petName, intimacy });
   }, [petName, intimacy]);
-  const widgetDone = useCallback(() => setWidgetJob(null), []);
+  const report = useRef(onReport);
+  report.current = onReport;
+  const widgetDone = useCallback(() => { setWidgetJob(null); report.current?.('widget-done'); }, []);
+  const widgetFailed = useCallback((e: unknown) => { setWidgetJob(null); report.current?.(`widget-error ${String(e)}`); }, []);
 
   const onLiveFrame = useCallback(async (canvas: HTMLCanvasElement, i: number) => {
     const jpeg = await canvasBase64(canvas, 'image/jpeg', 0.9);
@@ -64,6 +71,7 @@ export function IosLockScreenCard({ petName, pet, intimacy }: IosLockScreenCardP
       await PetLockScreen.addFrames({ frames });
     }
     setProgress((i + 1) / FRAMES);
+    if (i % 15 === 0 || i === FRAMES - 1) report.current?.(`live-frame ${i + 1}/${FRAMES}`);
   }, []);
 
   const liveDone = useCallback(async () => {
@@ -72,13 +80,16 @@ export function IosLockScreenCard({ petName, pet, intimacy }: IosLockScreenCardP
       const { saved } = await PetLockScreen.finishLivePhoto({ still: still.current });
       if (!saved) throw new Error('没有保存到相册');
       setPhase('saved');
+      report.current?.('live-saved');
     } catch (e) {
+      report.current?.(`live-error ${String(e)}`);
       setError(e instanceof Error ? e.message : '保存失败');
       setPhase('idle');
     }
   }, []);
 
   const liveFailed = useCallback((e: unknown) => {
+    report.current?.(`live-error ${String(e)}`);
     void PetLockScreen.cancelLivePhoto().catch(() => {});
     setError(e instanceof Error ? e.message : '生成失败');
     setPhase('idle');
@@ -93,10 +104,21 @@ export function IosLockScreenCard({ petName, pet, intimacy }: IosLockScreenCardP
     try {
       await PetLockScreen.beginLivePhoto({ ...size.current, fps: FPS, stillIndex: STILL });
       setPhase('rendering');
+      report.current?.('live-begin');
     } catch (e) {
+      report.current?.(`live-error ${String(e)}`);
       setError(e instanceof Error ? e.message : '无法开始生成');
     }
   };
+  const makeRef = useRef(make);
+  makeRef.current = make;
+  // Self-test: once the widget picture is done, make the Live Photo.
+  const autoStarted = useRef(false);
+  useEffect(() => {
+    if (!autoStart || autoStarted.current || widgetJob) return;
+    autoStarted.current = true;
+    void makeRef.current();
+  }, [autoStart, widgetJob]);
 
   const busy = phase === 'rendering' || phase === 'saving';
   return (
@@ -152,7 +174,7 @@ export function IosLockScreenCard({ petName, pet, intimacy }: IosLockScreenCardP
         <LockScreenCapture
           key={widgetJob}
           pet={pet} mode="widget" width={512} height={512} fps={FPS} frameCount={1}
-          onFrame={onWidgetFrame} onDone={widgetDone} onError={widgetDone}
+          onFrame={onWidgetFrame} onDone={widgetDone} onError={widgetFailed}
         />
       )}
     </div>
