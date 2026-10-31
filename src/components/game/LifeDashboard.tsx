@@ -5,6 +5,7 @@ import { Brain, CalendarDays, Check, LoaderCircle, Pencil, Play, Plus, RefreshCw
 import { companionRoles, lifeItemMeta } from '../../data/companion';
 import { formatDue, formatRepeat } from '../../data/agent';
 import type { AgentRun, CompanionRole, LifeItem, LifeItemType } from '../../data/companion';
+import { apiUrl } from '../../utils/apiBase';
 import {
   disconnectGoogleCalendar,
   getGoogleCalendarEvents,
@@ -30,6 +31,8 @@ interface LifeDashboardProps {
   onCommand: (command: string) => void;
   /** Extra section under the memory entry (proactive settings). */
   extra?: ReactNode;
+  /** Shown above "交给我办" (the lock-screen pet in the native app). */
+  featured?: ReactNode;
   items: LifeItem[];
   onAdd: (item: Omit<LifeItem, 'id' | 'createdAt' | 'completed'>) => void;
   onToggle: (id: string) => void;
@@ -46,7 +49,7 @@ const starterPlan: Array<Omit<LifeItem, 'id' | 'createdAt' | 'completed'>> = [
 
 export function LifeDashboard({
   show, onClose, userName, petName, hubName, onHubNameChange, agentRuns, chatCount, moodCount,
-  role, onRoleChange, memoryCount, onOpenMemories, onCommand, extra, items, onAdd, onToggle, onRemove,
+  role, onRoleChange, memoryCount, onOpenMemories, onCommand, extra, featured, items, onAdd, onToggle, onRemove,
 }: LifeDashboardProps) {
   const [type, setType] = useState<LifeItemType>('todo');
   const [title, setTitle] = useState('');
@@ -258,6 +261,8 @@ export function LifeDashboard({
               </button>
             </div>
 
+            {featured && <div className="px-5 py-2">{featured}</div>}
+
             <div className="px-5 py-2">
               <div className="rounded-2xl border border-white/10 bg-black/15 p-3">
                 <div className="mb-2 flex items-center justify-between">
@@ -362,7 +367,7 @@ export function LifeDashboard({
                     ) : (
                       <button
                         type="button"
-                        onClick={() => window.location.assign('/api/connectors/google/start?returnTo=/')}
+                        onClick={() => window.location.assign(apiUrl('/api/connectors/google/start?returnTo=/'))}
                         disabled={calendarLoading || !calendarStatus?.configured || calendarStatus.identityRequired}
                         className="shrink-0 rounded-lg bg-blue-500 px-3 py-1.5 text-[11px] font-semibold text-white disabled:bg-white/10 disabled:text-text-muted"
                       >

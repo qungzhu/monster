@@ -2,10 +2,9 @@ import type { Character, ChatMessage, MoodType } from '../data/characters';
 import { detectEmotion } from './emotion';
 import type { Memory, MemoryOp } from '../data/memory';
 import type { CompanionRole, LifeItem } from '../data/companion';
-
-// Same-origin: Vite proxies /api to the Express server in dev, so the
-// server's own OPENAI_API_KEY works without the user pasting a key.
-const API_BASE = '';
+// Same-origin on the web (Vite proxies /api to the Express server in dev),
+// so the server's own OPENAI_API_KEY works without the user pasting a key.
+import { API_BASE } from './apiBase';
 
 /** Extra context that makes the pet "know" its owner. */
 export interface ChatContext {

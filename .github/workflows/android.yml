@@ -1,0 +1,57 @@
+# Builds the Android app (Capacitor shell + 3D pet live wallpaper) and
+# uploads a debug APK you can install on a phone: Actions -> this run ->
+# Artifacts -> furrypal-android.
+#
+# Set the repository variable FURRYPAL_API_BASE (Settings -> Secrets and
+# variables -> Actions -> Variables) to the deployed server, e.g.
+# https://furrypal.example.com, so chat / memory / reminders work in the app.
+name: Android APK
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [claude/ai-emotional-companion-app-efh3G, main]
+    paths:
+      - 'src/**'
+      - 'public/**'
+      - 'android/**'
+      - 'scripts/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'capacitor.config.ts'
+      - '.github/workflows/android.yml'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Install
+        run: npm ci
+
+      - name: Build web app, wallpaper models and sync Capacitor
+        run: npm run build:native
+        env:
+          VITE_API_BASE: ${{ vars.FURRYPAL_API_BASE }}
+
+      - name: Build APK
+        working-directory: android
+        run: ./gradlew assembleDebug --no-daemon --stacktrace
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: furrypal-android
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 14

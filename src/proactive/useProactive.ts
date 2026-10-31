@@ -4,6 +4,7 @@ import type { Memory } from '../data/memory';
 import { localTimeZone } from '../data/time';
 import { buildJobs, defaultProactive } from './jobs';
 import type { Job, ProactiveSettings } from './jobs';
+import { apiUrl } from '../utils/apiBase';
 
 export type PushStatus =
   | 'checking'
@@ -46,7 +47,7 @@ function b64urlToBytes(b64: string): Uint8Array<ArrayBuffer> {
 const supported = () => typeof window !== 'undefined' && 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window;
 
 async function post(path: string, body: object) {
-  const res = await fetch(path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+  const res = await fetch(apiUrl(path), { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
   if (!res.ok) throw new Error(String(res.status));
   return res.json();
 }
@@ -125,7 +126,7 @@ export function useProactive(opts: {
     try {
       const perm = await Notification.requestPermission();
       if (perm !== 'granted') { setStatus(perm === 'denied' ? 'denied' : 'off'); return; }
-      const keyRes = await fetch('/api/schedule/vapid').catch(() => null);
+      const keyRes = await fetch(apiUrl('/api/schedule/vapid')).catch(() => null);
       if (!keyRes?.ok) { setStatus('unavailable'); return; }
       const { publicKey } = await keyRes.json();
       const reg = await navigator.serviceWorker.register('/sw.js');

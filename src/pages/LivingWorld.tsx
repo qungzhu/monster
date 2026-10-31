@@ -35,6 +35,8 @@ import { CANCEL_RE, CONFIRM_RE, describeAction, looksLikeTask, normalizePlan, pl
 import type { AgentPlan } from '../data/agent';
 import { useProactive } from '../proactive/useProactive';
 import { ProactiveCard } from '../proactive/ProactiveCard';
+import { LockScreenPetCard } from '../native/LockScreenPetCard';
+import { setWallpaperPet } from '../native/petWallpaper';
 import type { Job } from '../proactive/jobs';
 import { localTimeZone } from '../data/time';
 import { rollForward } from '../../shared/recurrence';
@@ -150,6 +152,10 @@ export function LivingWorld(props: LivingWorldProps) {
   const color = character ? themeColors[character.id] : '#d97706';
   const generatedPet = getGeneratedPet(selectedGeneratedPetKey);
   const baseBreed = getBreed(adoptedBreedId);
+  // Android app: the 3D lock-screen wallpaper follows the adopted pet.
+  useEffect(() => {
+    if (adoptedBreedId) void setWallpaperPet(adoptedBreedId).catch(() => {});
+  }, [adoptedBreedId]);
   const generatedModelBreed = generatedPet?.modelUrl && baseBreed
     ? { ...baseBreed, glbUrl: generatedPet.modelUrl }
     : null;
@@ -904,6 +910,7 @@ export function LivingWorld(props: LivingWorldProps) {
         hubName={hubName}
         onHubNameChange={setHubName}
         agentRuns={agentRuns}
+        featured={<LockScreenPetCard petName={petName || character.name} breedId={adoptedBreedId} />}
         extra={(
           <ProactiveCard
             petName={petName || character.name}

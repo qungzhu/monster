@@ -1,0 +1,9 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">毛茸伙伴</string>
+    <string name="title_activity_main">毛茸伙伴</string>
+    <string name="package_name">com.furrypal.app</string>
+    <string name="custom_url_scheme">com.furrypal.app</string>
+    <string name="wallpaper_name">毛茸伙伴 · 3D 宠物</string>
+    <string name="wallpaper_description">你的毛绒伙伴住在锁屏和桌面上，会呼吸、会张望，点一下它会跳起来</string>
+</resources>

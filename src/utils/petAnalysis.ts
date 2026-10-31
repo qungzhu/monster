@@ -1,3 +1,5 @@
+import { API_BASE } from './apiBase';
+
 /**
  * Pet photo analysis: turns a photo/video of the user's real pet
  * into parametric 3D model params.
@@ -23,7 +25,6 @@ export interface PetAnalysis {
   breedGuess: string;
 }
 
-const API_BASE = 'http://localhost:3001';
 
 /** Grab a representative frame from a video file as a data URL. */
 export function extractVideoFrame(file: File): Promise<string> {

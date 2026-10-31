@@ -1,3 +1,5 @@
+import { apiUrl } from './apiBase';
+
 export interface GoogleCalendarStatus {
   configured: boolean;
   connected: boolean;
@@ -26,16 +28,16 @@ async function readJson(response: Response) {
 }
 
 export async function getGoogleCalendarStatus(): Promise<GoogleCalendarStatus> {
-  return readJson(await fetch('/api/connectors/google/status'));
+  return readJson(await fetch(apiUrl('/api/connectors/google/status')));
 }
 
 export async function getGoogleCalendarEvents(): Promise<GoogleCalendarEvent[]> {
-  const data = await readJson(await fetch('/api/connectors/google/events'));
+  const data = await readJson(await fetch(apiUrl('/api/connectors/google/events')));
   return data.events || [];
 }
 
 export async function addGoogleCalendarEvent(event: GoogleCalendarEventDraft): Promise<GoogleCalendarEvent> {
-  const data = await readJson(await fetch('/api/connectors/google/events', {
+  const data = await readJson(await fetch(apiUrl('/api/connectors/google/events'), {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(event),
@@ -44,5 +46,5 @@ export async function addGoogleCalendarEvent(event: GoogleCalendarEventDraft): P
 }
 
 export async function disconnectGoogleCalendar(): Promise<void> {
-  await readJson(await fetch('/api/connectors/google/disconnect', { method: 'POST' }));
+  await readJson(await fetch(apiUrl('/api/connectors/google/disconnect'), { method: 'POST' }));
 }
