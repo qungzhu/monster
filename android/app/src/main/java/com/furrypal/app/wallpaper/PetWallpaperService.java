@@ -17,6 +17,7 @@ import com.google.android.filament.IndirectLight;
 import com.google.android.filament.LightManager;
 import com.google.android.filament.Renderer;
 import com.google.android.filament.Scene;
+import com.google.android.filament.Skybox;
 import com.google.android.filament.SwapChain;
 import com.google.android.filament.TransformManager;
 import com.google.android.filament.View;
@@ -57,11 +58,12 @@ public class PetWallpaperService extends WallpaperService {
         private static final String TAG = "PetWallpaper";
         private static final long FRAME_NANOS = 1_000_000_000L / 30;
         // Night sky of the app's snow scene.
-        private static final double[] BACKGROUND = {0.043, 0.082, 0.188, 1.0};
+        private static final float[] BACKGROUND = {0.043f, 0.082f, 0.188f, 1f};
 
         private com.google.android.filament.Engine engine;
         private Renderer renderer;
         private Scene scene;
+        private Skybox skybox;
         private View view;
         private Camera camera;
         private int cameraEntity;
@@ -89,11 +91,9 @@ public class PetWallpaperService extends WallpaperService {
             setTouchEventsEnabled(true);
             engine = com.google.android.filament.Engine.create();
             renderer = engine.createRenderer();
-            Renderer.ClearOptions clear = new Renderer.ClearOptions();
-            clear.setClearColor(BACKGROUND);
-            clear.setClear(true);
-            renderer.setClearOptions(clear);
             scene = engine.createScene();
+            skybox = new Skybox.Builder().color(BACKGROUND[0], BACKGROUND[1], BACKGROUND[2], BACKGROUND[3]).build(engine);
+            scene.setSkybox(skybox);
             view = engine.createView();
             cameraEntity = EntityManager.get().create();
             camera = engine.createCamera(cameraEntity);
@@ -275,6 +275,7 @@ public class PetWallpaperService extends WallpaperService {
             materials.destroyMaterials();
             materials.destroy();
             engine.destroyIndirectLight(indirectLight);
+            engine.destroySkybox(skybox);
             engine.destroyEntity(sun);
             engine.destroyCameraComponent(cameraEntity);
             EntityManager.get().destroy(cameraEntity);
