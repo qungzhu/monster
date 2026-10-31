@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
-import type { CSSProperties } from 'react';
+import type { PointerEvent as ReactPointerEvent } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { Send, Coins, PawPrint } from 'lucide-react';
 import type { Character, ChatMessage, MoodType, MoodEntry } from '../data/characters';
@@ -564,14 +564,14 @@ export function LivingWorld(props: LivingWorldProps) {
     handleAction('pet');
   };
 
-  const startPetting = (pointerId: number, target: HTMLDivElement) => {
-    target.setPointerCapture(pointerId);
+  const startPetting = () => {
     if (pettingTimer.current) clearTimeout(pettingTimer.current);
     pettingHandled.current = false;
     setIsPetting(true);
     pettingTimer.current = setTimeout(() => {
       pettingHandled.current = true;
       setIsPetting(false);
+      setPetYaw(0);
       handlePetTap();
     }, 650);
   };
@@ -584,6 +584,61 @@ export function LivingWorld(props: LivingWorldProps) {
       pettingHandled.current = true;
       handlePetTap();
     }
+  };
+
+  // ————— Scene gestures: tap = 贴贴, one-finger drag turns the pet, pinch zooms.
+  // The camera and the snow ground stay still.
+  const [sceneZoom, setSceneZoom] = useState(1);
+  const [petYaw, setPetYaw] = useState(0);
+  const pointers = useRef(new Map<number, { x: number; y: number }>());
+  const gesture = useRef({ x: 0, y: 0, yaw: 0, moved: false, pinch: 0, zoom: 1 });
+  const pinchDistance = () => {
+    const [a, b] = [...pointers.current.values()];
+    return Math.hypot(a.x - b.x, a.y - b.y) || 1;
+  };
+  const onScenePointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
+    try { event.currentTarget.setPointerCapture(event.pointerId); } catch { /* pointer already gone */ }
+    pointers.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    const g = gesture.current;
+    if (pointers.current.size === 1) {
+      Object.assign(g, { x: event.clientX, y: event.clientY, yaw: petYaw, moved: false, pinch: 0 });
+      startPetting();
+    } else if (pointers.current.size === 2) {
+      cancelPetting();
+      g.moved = true;
+      g.pinch = pinchDistance();
+      g.zoom = sceneZoom;
+    }
+  };
+  const onScenePointerMove = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (!pointers.current.has(event.pointerId)) return;
+    pointers.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    const g = gesture.current;
+    if (pointers.current.size >= 2 && g.pinch) {
+      setSceneZoom(Math.min(1.8, Math.max(0.75, g.zoom * pinchDistance() / g.pinch)));
+    } else if (pointers.current.size === 1) {
+      const dx = event.clientX - g.x;
+      if (!g.moved && Math.hypot(dx, event.clientY - g.y) > 10) {
+        g.moved = true;
+        cancelPetting();
+      }
+      if (g.moved && !g.pinch) setPetYaw(g.yaw + dx * 0.012);
+    }
+  };
+  const onScenePointerUp = (event: ReactPointerEvent<HTMLDivElement>) => {
+    pointers.current.delete(event.pointerId);
+    if (pointers.current.size === 0) {
+      if (!gesture.current.moved) {
+        // A touch is a stroke: the pet turns to you, comes over and cuddles.
+        setPetYaw(0);
+        finishPetting();
+      }
+      gesture.current.pinch = 0;
+    }
+  };
+  const onScenePointerCancel = (event: ReactPointerEvent<HTMLDivElement>) => {
+    pointers.current.delete(event.pointerId);
+    if (pointers.current.size === 0) cancelPetting();
   };
 
   const cancelPetting = () => {
@@ -689,8 +744,28 @@ export function LivingWorld(props: LivingWorldProps) {
 
       {/* The world — full-screen winter scene with the pet at center */}
       <div className="absolute inset-0">
-        <PetScene characterId={character.id} breedId={adoptedBreedId} customBreed={adoptedBreedId === 'custom' ? customPet : generatedModelBreed} size="world" interactive={true} emote={emote} />
+        <PetScene characterId={character.id} breedId={adoptedBreedId} customBreed={adoptedBreedId === 'custom' ? customPet : generatedModelBreed} size="world" interactive={true} emote={emote} zoom={sceneZoom} petYaw={petYaw} />
       </div>
+
+      {/* Gesture layer over the scene (under the UI): tap or hold to pet,
+          drag to turn the pet, pinch to zoom. */}
+      <div
+        className="absolute inset-0 z-[5] touch-none select-none outline-none"
+        role="button"
+        tabIndex={0}
+        aria-label={`轻点或长按抚摸${petName || character.name}，拖动转身，双指缩放`}
+        onPointerDown={onScenePointerDown}
+        onPointerMove={onScenePointerMove}
+        onPointerUp={onScenePointerUp}
+        onPointerCancel={onScenePointerCancel}
+        onKeyDown={event => {
+          if ((event.key === 'Enter' || event.key === ' ') && !event.repeat) {
+            event.preventDefault();
+            handlePetTap();
+          }
+        }}
+        style={{ WebkitTapHighlightColor: 'transparent' }}
+      />
 
       {/* Companion actions: a slim dock at the right edge, so the pet stays
           the centre of the scene. */}
@@ -738,24 +813,9 @@ export function LivingWorld(props: LivingWorldProps) {
         ))}
       </motion.aside>
 
-      {/* Pet tap zone + bubble anchor (over the pet's spot in the scene) */}
-      <div className="absolute left-1/2 top-[56%] -translate-x-1/2 -translate-y-1/2 z-10">
-        <div
-          className="relative h-48 w-48 cursor-pointer touch-none select-none rounded-full outline-none focus-visible:ring-2"
-          role="button"
-          tabIndex={0}
-          aria-label={`轻点或长按抚摸${petName || character.name}`}
-          onPointerDown={event => startPetting(event.pointerId, event.currentTarget)}
-          onPointerUp={finishPetting}
-          onPointerCancel={cancelPetting}
-          onKeyDown={event => {
-            if ((event.key === 'Enter' || event.key === ' ') && !event.repeat) {
-              event.preventDefault();
-              handlePetTap();
-            }
-          }}
-          style={{ WebkitTapHighlightColor: 'transparent', '--tw-ring-color': color } as CSSProperties}
-        >
+      {/* Bubble / petting-ring anchor over the pet's spot (input: gesture layer) */}
+      <div className="pointer-events-none absolute left-1/2 top-[56%] -translate-x-1/2 -translate-y-1/2 z-10">
+        <div className="relative h-48 w-48 rounded-full">
           <AnimatePresence>
             {isPetting && (
               <motion.div
@@ -834,7 +894,7 @@ export function LivingWorld(props: LivingWorldProps) {
             animate={isPetting ? { y: -2, scale: 1.05 } : { y: 0, scale: 1 }}
             className="soft-glass pointer-events-none absolute -bottom-7 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full px-3 py-1 text-[12px]"
           >
-            {isPetting ? '再摸一会儿… 💕' : '轻点或按住摸摸'}
+            {isPetting ? '再摸一会儿… 💕' : '轻点贴贴 · 拖动转身 · 双指缩放'}
           </motion.span>
         </div>
       </div>

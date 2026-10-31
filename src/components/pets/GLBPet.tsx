@@ -406,13 +406,32 @@ export function GLBPet({ config, isHovered, tint, normalize, emote }: GLBPetProp
         g.rotation.z = 0.05 * Math.sin(e * 7);
       }
     } else if (emote === 'rub') {
-      // 蹭蹭你: sidle up close and rub a cheek side to side
-      const s = Math.min(1, e / 0.8);
-      g.position.z = 0.45 * s;
-      g.rotation.z = Math.sin(e * 2.4) * 0.22 * s;
-      g.rotation.y = Math.sin(e * 2.4) * 0.3 * s;
-      g.position.x = Math.sin(e * 2.4) * 0.08 * s;
-      g.rotation.x = 0.08 * s;
+      // 贴贴: trot up to the camera (to "your hand"), then lean in and rub
+      // a cheek side to side, pressing a little into the glass.
+      const come = Math.min(1, e / 1.1);
+      const ease = come * come * (3 - 2 * come);
+      g.position.z = 1.5 * ease;
+      g.position.x = 0;
+      if (come < 1) {
+        // little trotting steps on the way in
+        g.position.y = Math.abs(Math.sin(e * 11)) * 0.06;
+        g.rotation.z = 0.06 * Math.sin(e * 11);
+        g.rotation.x = -0.05;
+        g.rotation.y = 0;
+        g.scale.set(1, 1, 1);
+      } else {
+        const r = e - 1.1;
+        const s = Math.min(1, r / 0.4);
+        const rub = Math.sin(r * 3.2);
+        g.position.y = 0;
+        g.position.x = rub * 0.09 * s;
+        g.rotation.z = rub * 0.24 * s;
+        g.rotation.y = rub * 0.35 * s;
+        g.rotation.x = 0.12 * s;
+        // soft squish as it presses its cheek into you
+        const press = 0.5 + 0.5 * Math.sin(r * 6.4);
+        g.scale.set(1 + 0.03 * press * s, 1 - 0.04 * press * s, 1 + 0.03 * press * s);
+      }
     } else if (emote === 'knead') {
       // 踩奶: contented kneading — weight shifts left-right on the front paws
       const s = Math.min(1, e / 0.6);

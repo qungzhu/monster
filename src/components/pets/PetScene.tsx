@@ -1,7 +1,7 @@
-import { useState, Suspense, useMemo, Component } from 'react';
+import { useState, Suspense, useMemo, useRef, Component } from 'react';
 import { plushTuning } from './plushMaterial';
 import type { ReactNode } from 'react';
-import { Canvas } from '@react-three/fiber';
+import { Canvas, useFrame, useThree } from '@react-three/fiber';
 import { OrbitControls, ContactShadows, Environment, Lightformer } from '@react-three/drei';
 import { EffectComposer, Bloom, Vignette } from '@react-three/postprocessing';
 import { DogModel } from './DogModel';
@@ -27,6 +27,33 @@ interface PetSceneProps {
   interactive?: boolean;
   /** Procedural emote for GLB pets. */
   emote?: EmoteKind | null;
+  /** World view: how close the camera is (pinch zoom), 1 = default. */
+  zoom?: number;
+  /** World view: the pet's own turn in radians (drag); the ground stays put. */
+  petYaw?: number;
+}
+
+const WORLD_CAMERA = new THREE.Vector3(0, 0.75, 5.6);
+
+/** World view camera: fixed angle, eased dolly for pinch zoom. */
+function WorldCamera({ zoom }: { zoom: number }) {
+  const camera = useThree(state => state.camera);
+  const target = useMemo(() => new THREE.Vector3(), []);
+  useFrame((_, delta) => {
+    target.copy(WORLD_CAMERA).multiplyScalar(1 / zoom);
+    camera.position.lerp(target, 1 - Math.exp(-8 * delta));
+    camera.lookAt(0, 0, 0);
+  });
+  return null;
+}
+
+/** Turns only the pet (not the snow world) toward the dragged angle. */
+function Turntable({ yaw, children }: { yaw: number; children: ReactNode }) {
+  const ref = useRef<THREE.Group>(null);
+  useFrame((_, delta) => {
+    if (ref.current) ref.current.rotation.y = THREE.MathUtils.damp(ref.current.rotation.y, yaw, 8, delta);
+  });
+  return <group ref={ref}>{children}</group>;
 }
 
 const sceneConfig: Record<string, { camera: [number, number, number]; color: string }> = {
@@ -223,7 +250,7 @@ function GroundPlane({ color }: { color: string }) {
   );
 }
 
-export function PetScene({ characterId, breedId, customBreed, size = 'medium', interactive = true, emote }: PetSceneProps) {
+export function PetScene({ characterId, breedId, customBreed, size = 'medium', interactive = true, emote, zoom = 1, petYaw = 0 }: PetSceneProps) {
   const [isHovered, setIsHovered] = useState(false);
   const config = sceneConfig[characterId] || sceneConfig.tuantuan;
   const sizeClass = sizeMap[size];
@@ -262,7 +289,9 @@ export function PetScene({ characterId, breedId, customBreed, size = 'medium', i
         <Suspense fallback={null}>
           <PlushLighting color={config.color} />
 
-          <PetModel characterId={characterId} breedId={breedId} customBreed={customBreed} isHovered={isHovered} emote={emote} />
+          <Turntable yaw={isWorld ? petYaw : 0}>
+            <PetModel characterId={characterId} breedId={breedId} customBreed={customBreed} isHovered={isHovered} emote={emote} />
+          </Turntable>
 
           {/* Large view = the Living World: full Frozen winter set.
               Smaller views keep the lightweight color disc. */}
@@ -275,7 +304,10 @@ export function PetScene({ characterId, breedId, customBreed, size = 'medium', i
 
           {isLarge && <PetParticles color={isWorld ? '#cfe6ff' : config.color} count={12} />}
 
-          {interactive && !isTiny && (
+          {/* The Living World keeps its camera and ground still: drag turns
+              the pet, pinch zooms (gestures handled by the page). */}
+          {isWorld && <WorldCamera zoom={zoom} />}
+          {interactive && !isTiny && !isWorld && (
             <OrbitControls
               enableZoom={false}
               enablePan={false}
