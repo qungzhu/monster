@@ -408,6 +408,29 @@ if FIT == 'box':
     else:
         print('tail: none found')
 
+if FIT == 'box':
+    # ---- ambient occlusion, baked per vertex (exported as COLOR_0): creases,
+    # the chin, under the belly and between the legs get darker, which is
+    # most of what makes a soft toy read as round and full. The app applies
+    # it as AO (plushMaterial.ts), not as paint. Meshes that already carry
+    # vertex colours (a grown tail's paint) are left alone.
+    sc = bpy.context.scene
+    sc.render.engine = 'CYCLES'
+    sc.cycles.device = 'CPU'
+    sc.cycles.samples = 32
+    arm.data.pose_position = 'REST'
+    for o in new:
+        if o.data.color_attributes:
+            continue
+        ao = o.data.color_attributes.new('AO', 'FLOAT_COLOR', 'POINT')
+        o.data.color_attributes.active_color = ao
+        bpy.ops.object.select_all(action='DESELECT')
+        o.select_set(True)
+        bpy.context.view_layer.objects.active = o
+        bpy.ops.object.bake(type='AO', target='VERTEX_COLORS')
+        print('ao baked:', o.name)
+    arm.data.pose_position = 'POSE'
+
 bpy.ops.object.select_all(action='SELECT')
 bpy.ops.export_scene.gltf(filepath=out_path, export_format='GLB', export_skins=True,
                           export_animations=True, export_animation_mode='ACTIONS',

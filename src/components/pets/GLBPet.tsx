@@ -212,6 +212,8 @@ export function GLBPet({ config, isHovered, tint, normalize, emote }: GLBPetProp
     clonedScene.traverse(obj => {
       if ((obj as THREE.Mesh).isMesh && !obj.userData.furShell) {
         obj.castShadow = true;
+        // Self-shadowing (chin over chest, body over legs) gives the volume.
+        obj.receiveShadow = true;
         const mesh = obj as THREE.Mesh;
         const currentMaterial = mesh.material as THREE.Material | THREE.Material[];
         const hasMaterialArray = Array.isArray(currentMaterial);

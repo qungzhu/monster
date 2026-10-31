@@ -28,19 +28,23 @@ export interface FurOptions {
 const defaults: Required<FurOptions> = { shells: 14, length: 0.045, density: 150, droop: 0.25 };
 
 /** Short velvet pile for the (heavy, ~50k-triangle) Meshy cats. */
-export const meshyFur: FurOptions = { shells: 8, length: 0.022, density: 170, droop: 0.1 };
+export const meshyFur: FurOptions = { shells: 12, length: 0.03, density: 190, droop: 0.15 };
 
 const FUR_HEAD = `
 varying vec3 vFurPos;
 varying float vFurLength;
 uniform float uFurH, uFurDensity;
+#ifdef PLUSH_AO
+varying float vPlushAO;
+uniform float uPlushAO;
+#endif
 float furHash(vec3 p) {
   p = fract(p * 0.3183099 + 0.1) * 17.0;
   return fract(p.x * p.y * p.z * (p.x + p.y + p.z));
 }
 `;
 
-function shellMaterial(base: THREE.MeshPhysicalMaterial, h: number, perRadius: number, opts: Required<FurOptions>) {
+function shellMaterial(base: THREE.MeshPhysicalMaterial, h: number, perRadius: number, opts: Required<FurOptions>, ao: boolean) {
   const m = base.clone();
   m.name = `${base.name}-fur-${h.toFixed(2)}`;
   const mask = (base.userData.furMask as THREE.Texture | null | undefined) ?? null;
@@ -48,6 +52,7 @@ function shellMaterial(base: THREE.MeshPhysicalMaterial, h: number, perRadius: n
     uFurMask: { value: mask },
     uPlushInflate: plushTuning.inflate,
     uPlushRadius: { value: 1 / perRadius },
+    uPlushAO: plushTuning.ao,
     uFurH: { value: h },
     uFurOffset: { value: h * opts.length / perRadius },
     uFurDroop: { value: opts.droop * opts.length / perRadius },
@@ -55,8 +60,9 @@ function shellMaterial(base: THREE.MeshPhysicalMaterial, h: number, perRadius: n
   };
   m.onBeforeCompile = shader => {
     Object.assign(shader.uniforms, uniforms);
-    shader.vertexShader = `attribute float furLength;\nattribute vec3 plushInflateNormal;\nvarying vec3 vFurPos;\nvarying float vFurLength;\nuniform float uFurH, uFurOffset, uFurDroop, uPlushInflate, uPlushRadius;\n${shader.vertexShader}`
-      .replace('#include <begin_vertex>', '#include <begin_vertex>\n  vFurPos = position;\n  vFurLength = furLength;')
+    if (ao) shader.defines = { ...shader.defines, PLUSH_AO: '' };
+    shader.vertexShader = `attribute float furLength;\nattribute vec3 plushInflateNormal;\nvarying vec3 vFurPos;\nvarying float vFurLength;\n#ifdef PLUSH_AO\nattribute vec4 plushAO;\nvarying float vPlushAO;\n#endif\nuniform float uFurH, uFurOffset, uFurDroop, uPlushInflate, uPlushRadius;\n${shader.vertexShader}`
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\n  vFurPos = position;\n  vFurLength = furLength;\n  #ifdef PLUSH_AO\n  vPlushAO = plushAO.r;\n  #endif')
       .replace('#include <skinning_vertex>', `#include <skinning_vertex>
   // Start from the stuffed (inflated) surface the base mesh is drawn at.
   if (dot(plushInflateNormal, plushInflateNormal) > 0.0) transformed += normalize(plushInflateNormal) * uPlushInflate * uPlushRadius;
@@ -84,10 +90,13 @@ function shellMaterial(base: THREE.MeshPhysicalMaterial, h: number, perRadius: n
   if (uFurH > furLen + 0.02) discard;
   float radius = 0.55 * (1.0 - uFurH * 0.8);
   if (best > radius) discard;
-  // Self-shadowing: deeper layers a little darker, tips catch the light.
-  diffuseColor.rgb *= mix(0.82, 1.06, uFurH);`);
+  // Self-shadowing: deeper layers darker, tips catch the light.
+  diffuseColor.rgb *= mix(0.72, 1.08, uFurH);
+  #ifdef PLUSH_AO
+  diffuseColor.rgb *= mix(1.0, smoothstep(0.0, 1.0, vPlushAO), uPlushAO);
+  #endif`);
   };
-  m.customProgramCacheKey = () => `plush-fur-${mask ? 'm' : ''}${h.toFixed(3)}`;
+  m.customProgramCacheKey = () => `plush-fur-${mask ? 'm' : ''}${ao ? 'a' : ''}${h.toFixed(3)}`;
   return m;
 }
 
@@ -153,7 +162,7 @@ export function addFurShells(root: THREE.Object3D, options: FurOptions = {}, mat
     mesh.geometry.computeBoundingSphere();
     const perRadius = 1 / Math.max(mesh.geometry.boundingSphere?.radius ?? 1, 1e-4);
     for (let i = 1; i <= opts.shells; i++) {
-      const mat = shellMaterial(base, i / opts.shells, perRadius, opts);
+      const mat = shellMaterial(base, i / opts.shells, perRadius, opts, !!mesh.geometry.attributes.plushAO);
       let shell: THREE.Mesh;
       if ((mesh as THREE.SkinnedMesh).isSkinnedMesh) {
         const sm = mesh as THREE.SkinnedMesh;

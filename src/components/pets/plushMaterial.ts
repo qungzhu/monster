@@ -39,6 +39,16 @@ export function toPlushMaterial(
   mat.opacity = std.opacity;
   mat.side = std.side;
   mat.vertexColors = std.vertexColors; // euro tail COLOR_0 tint
+  // Rigged plush cats carry baked ambient occlusion in COLOR_0 on the body
+  // (tools/blender/lite_rig.py); grown tails use COLOR_0 as their paint.
+  // Move the AO to its own attribute so it shades instead of tinting.
+  const geo = mesh?.geometry;
+  if (geo?.attributes.color && !std.name.startsWith('tail_fur') && std.map) {
+    geo.setAttribute('plushAO', geo.attributes.color);
+    geo.deleteAttribute('color');
+  }
+  const hasAO = !!geo?.attributes.plushAO;
+  if (hasAO) mat.vertexColors = false;
   mat.roughness = 1;
   mat.metalness = 0;
   // Meshy bakes the eyes and nose as the only glossy texels of the
@@ -47,9 +57,11 @@ export function toPlushMaterial(
   // Fabric has no hard spec highlight; the physical default white
   // specular blows out the lit side under the bright scene lights.
   mat.specularIntensity = 0;
-  mat.sheen = 0.55;
-  mat.sheenRoughness = 0.8; // broad, soft fabric lobe
-  mat.sheenColor = new THREE.Color('#b8a898');
+  mat.sheen = 0.8;
+  mat.sheenRoughness = 0.65; // broad, soft fabric lobe
+  // Velvet sheen takes the colour of its own fibres, not a grey film.
+  mat.sheenColor = new THREE.Color('#ffffff');
+  mat.sheenColorMap = std.map;
   // Let the studio softbox environment wrap the fabric (plush toys are
   // lit from everywhere, that's what makes them look soft). The scene-wide
   // environment is kept dim so the snow doesn't blow out; the pet boosts
@@ -83,6 +95,10 @@ export function toPlushMaterial(
       shader.uniforms.uEyeMask = { value: std.roughnessMap };
       shader.uniforms.uSquint = squint;
     }
+    if (hasAO) {
+      shader.defines = { ...shader.defines, PLUSH_AO: '' };
+      shader.uniforms.uPlushAO = plushTuning.ao;
+    }
     shader.uniforms.uPlushPerRadius = perRadius;
     shader.uniforms.uPlushFibres = plushTuning.fibresPerRadius;
     shader.uniforms.uPlushNoise = plushTuning.noise;
@@ -96,13 +112,13 @@ export function toPlushMaterial(
     // so it follows every pose.
     // Uses a spatially smoothed normal (plushInflateNormal), so seam copies
     // and separate fur pieces move together and the surface doesn't crack.
-    shader.vertexShader = 'varying vec3 vPlushPos;\nuniform float uPlushInflate, uPlushRadius;\nattribute vec3 plushInflateNormal;\n' + shader.vertexShader
+    shader.vertexShader = 'varying vec3 vPlushPos;\nuniform float uPlushInflate, uPlushRadius;\nattribute vec3 plushInflateNormal;\n#ifdef PLUSH_AO\nattribute vec4 plushAO;\nvarying float vPlushAO;\n#endif\n' + shader.vertexShader
       .replace('#include <skinnormal_vertex>', `#include <skinnormal_vertex>
   vec3 plushN = plushInflateNormal;
   #ifdef USE_SKINNING
     plushN = vec4( skinMatrix * vec4( plushN, 0.0 ) ).xyz;
   #endif`)
-      .replace('#include <begin_vertex>', '#include <begin_vertex>\n  vPlushPos = position;')
+      .replace('#include <begin_vertex>', '#include <begin_vertex>\n  vPlushPos = position;\n  #ifdef PLUSH_AO\n  vPlushAO = plushAO.r;\n  #endif')
       .replace('#include <skinning_vertex>', '#include <skinning_vertex>\n  transformed += normalize(plushN + 1e-6) * uPlushInflate * uPlushRadius;');
     shader.fragmentShader = PLUSH_FRAGMENT_HEAD + shader.fragmentShader
       .replace('#include <map_fragment>', `#include <map_fragment>
@@ -117,6 +133,10 @@ export function toPlushMaterial(
   float plushDetail = 1.0 - smoothstep(0.35, 1.1, length(fwidth(plushP)));
   float plushPile = mix(0.5, plushNoise(plushP) * 0.6 + plushNoise(plushP * 2.7 + 13.1) * 0.4, plushDetail);
   diffuseColor.rgb *= 1.0 + (plushPile - 0.5) * 2.0 * uPlushNoise;
+  #ifdef PLUSH_AO
+  // baked occlusion: creases, chin, belly and between the legs go darker
+  diffuseColor.rgb *= mix(1.0, smoothstep(0.0, 1.0, vPlushAO), uPlushAO);
+  #endif
 ${EYE_FRAGMENT}`)
       .replace('float dotNL = saturate( dot( geometryNormal, directLight.direction ) );',
         'float dotNL = saturate( ( dot( geometryNormal, directLight.direction ) + uPlushWrap ) / ( 1.0 + uPlushWrap ) );')
@@ -124,7 +144,7 @@ ${EYE_FRAGMENT}`)
   totalEmissiveRadiance *= 1.0 - plushLid;
   totalEmissiveRadiance += diffuseColor.rgb * pow(1.0 - plushNdV, 2.4) * uPlushRim;`);
   };
-  mat.customProgramCacheKey = () => (eyes && squint ? `plush-v5-eyes${eyes.marked ? '-marked' : ''}` : 'plush-v5');
+  mat.customProgramCacheKey = () => (`plush-v6${eyes && squint ? `-eyes${eyes.marked ? '-marked' : ''}` : ''}${hasAO ? '-ao' : ''}`);
   return mat;
 }
 
@@ -171,6 +191,10 @@ function smoothOutward(geo: THREE.BufferGeometry, radius: number): THREE.BufferA
 }
 
 const PLUSH_FRAGMENT_HEAD = EYE_UNIFORMS + `
+#ifdef PLUSH_AO
+varying float vPlushAO;
+uniform float uPlushAO;
+#endif
 varying vec3 vPlushPos;
 uniform float uPlushPerRadius, uPlushFibres, uPlushNoise, uPlushWrap, uPlushRim;
 float plushHash(vec3 p) {
@@ -200,6 +224,8 @@ export const plushTuning = {
   wrap: { value: 0.25 },
   /** Backlit rim glow strength. */
   rim: { value: 0.3 },
+  /** Strength of the baked ambient occlusion, 0–1. */
+  ao: { value: 0.75 },
   /** Stuffing: how far the surface is pushed out, as a fraction of the mesh's radius. */
   inflate: { value: 0.035 },
 };
