@@ -301,8 +301,10 @@ export const breeds: Breed[] = [
     petName: '雪糕', emoji: '🧸', rarity: 'legendary', characterId: 'xiaoxue',
     description: '奶油色长毛配海豹色脸罩、耳朵和小脚，一双蓝宝石大眼睛，抱起来像毛绒玩具',
     personality: ['温柔', '黏人', '软萌'],
-    glbUrl: '/models/plush/meshy-himalayan.glb',
-    glbDisableSkeletalAnimation: true,
+    // Rigged (tools/blender/lite_rig.py): legs walk and run, 8 clips.
+    glbUrl: '/models/plush/rigged/himalayan.glb',
+    glbIdleAnimation: 'Idle',
+    glbWalkAnimation: 'Walk',
   },
   {
     id: 'plush-birman', species: 'cat', name: '伯曼猫', englishName: 'Birman',
