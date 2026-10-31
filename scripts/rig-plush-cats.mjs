@@ -4,8 +4,9 @@
 //
 // For each public/models/plush/meshy-<name>.glb: decode it to a plain GLB
 // Blender can read (no meshopt / quantization), fit the plaza rig onto it
-// with tools/blender/lite_rig.py (25 bones, 8 clips: Idle Walk Run Scratch
-// Sleep Happy Eat Meow; weights copied from the rig's mesh), then compress
+// with tools/blender/lite_rig.py (25 bones; clips Idle Walk Run Scratch
+// Sleep Happy Eat Meow, plus TailWag and BellyUp made for each cat's own
+// tail), then compress
 // it again into public/models/plush/rigged/<name>.glb. Check every result
 // from the side mid-walk and mid-run before switching the breed to it.
 import { execFileSync } from 'node:child_process';
@@ -55,11 +56,12 @@ for (const name of names) {
   const rigged = path.join(work, `${name}-rigged.glb`);
   try {
     await decode(src, plain);
-    execFileSync(blender, [path.join(root, 'tools/blender/lite_rig.py'), rigPlain, plain, rigged, TRIANGLES, 'box'], { stdio: 'pipe' });
+    const log = execFileSync(blender, [path.join(root, 'tools/blender/lite_rig.py'), rigPlain, plain, rigged, TRIANGLES, 'box'], { stdio: 'pipe' }).toString();
+    const tail = log.split('\n').find(l => l.startsWith('tail:'));
     const opt = path.join(work, `${name}-opt.glb`);
     execFileSync(gltfTransform, ['optimize', rigged, opt, '--texture-compress', 'webp', '--texture-size', '1024', '--simplify', 'false'], { stdio: 'pipe' });
     execFileSync(gltfTransform, ['quantize', opt, path.join(out, `${name}.glb`)], { stdio: 'pipe' });
-    console.log(`${name}: rigged`);
+    console.log(`${name}: rigged (${tail ?? 'tail: ?'})`);
   } catch (e) {
     console.error(`${name}: ${String(e.stderr ?? e.message).split('\n').filter(Boolean).slice(-3).join(' | ')}`);
     process.exitCode = 1;

@@ -37,6 +37,7 @@ import { useProactive } from '../proactive/useProactive';
 import { ProactiveCard } from '../proactive/ProactiveCard';
 import { LockScreenPetCard } from '../native/LockScreenPetCard';
 import { setWallpaperPet } from '../native/petWallpaper';
+import { meow, purr } from '../utils/catSounds';
 import type { Job } from '../proactive/jobs';
 import { localTimeZone } from '../data/time';
 import { rollForward } from '../../shared/recurrence';
@@ -131,6 +132,7 @@ export function LivingWorld(props: LivingWorldProps) {
   const [claimedQuests, setClaimedQuests] = useState<Set<string>>(new Set());
   const [floatingRewards, setFloatingRewards] = useState<Array<{ id: number; text: string }>>([]);
   const [petTapCount, setPetTapCount] = useState(0);
+  const petStrokes = useRef(0);
   const [isPetting, setIsPetting] = useState(false);
   const [emote, setEmote] = useState<EmoteKind | null>(null);
   const bubbleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -182,6 +184,13 @@ export function LivingWorld(props: LivingWorldProps) {
     setEmote(kind);
     if (kind) emoteTimer.current = setTimeout(() => setEmote(null), durationMs);
   }, []);
+
+  // Idle life: when left alone it wags its tail now and then.
+  useEffect(() => {
+    if (emote) return;
+    const t = setTimeout(() => playEmote('wag', 3200), 9000 + Math.random() * 9000);
+    return () => clearTimeout(t);
+  }, [emote, playEmote]);
 
   // The pet greets you when you arrive — it starts the conversation.
   useEffect(() => {
@@ -332,7 +341,18 @@ export function LivingWorld(props: LivingWorldProps) {
     addXP(3);
     floatReward(action === 'pet' ? '💕 +1' : '⚡ +3');
     say(getReaction(character.id, action), 3500);
-    if (action === 'pet') playEmote('rub');
+    if (action === 'pet') {
+      // Every few strokes it flops over and shows its belly (with a meow);
+      // otherwise it comes over to cuddle, purring.
+      petStrokes.current += 1;
+      if (petStrokes.current % 4 === 0) {
+        playEmote('roll', 5000);
+        meow(1.3);
+      } else {
+        playEmote('rub');
+        purr(3);
+      }
+    }
     if (action === 'play') playEmote('zoomies', 8000);
   };
 
@@ -781,6 +801,8 @@ export function LivingWorld(props: LivingWorldProps) {
           ['pounce', '扑跳', '⚡'],
           ['zoomies', '玩耍', '🎾'],
           ['rub', '撒娇', '💕'],
+          ['roll', '翻肚皮', '🙃'],
+          ['meow', '喵喵', '🎵'],
         ] as const).map(([name, label, icon], i) => (
           <motion.div
             key={label}
@@ -789,7 +811,13 @@ export function LivingWorld(props: LivingWorldProps) {
             <motion.button
               whileHover={{ scale: 1.08, rotate: -4 }}
               whileTap={{ scale: 0.82, rotate: 8 }}
-              onClick={() => { playEmote(name); setDockPop(p => ({ label, n: p.n + 1 })); }}
+              onClick={() => {
+                playEmote(name);
+                if (name === 'meow') meow();
+                if (name === 'roll') meow(1.3);
+                if (name === 'rub') purr(3);
+                setDockPop(p => ({ label, n: p.n + 1 }));
+              }}
               aria-label={label}
               aria-pressed={emote === name && name !== null}
               className="soft-glass fp-bob flex h-14 w-14 flex-col items-center justify-center rounded-2xl transition-shadow"

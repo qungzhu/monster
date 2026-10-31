@@ -17,7 +17,7 @@ import { glbModels } from '../../data/petModels';
 export type EmoteKind =
   | 'run' | 'walk' | 'roll' | 'groom' | 'cute'
   | 'stretch' | 'pounce' | 'rub' | 'knead' | 'sploot'
-  | 'eat' | 'sleep' | 'meow' | 'zoomies';
+  | 'eat' | 'sleep' | 'meow' | 'zoomies' | 'wag';
 
 /** Skeletal clips baked into rigged GLBs (Meshy auto-rig + retargeted
  *  Catson clips). Moving emotes (run/walk) keep the procedural path on
@@ -25,7 +25,11 @@ export type EmoteKind =
 const emoteClips: Partial<Record<EmoteKind, string>> = {
   run: 'Run', walk: 'Walk', zoomies: 'Run',
   groom: 'Scratch', eat: 'Eat', sleep: 'Sleep', meow: 'Meow', cute: 'Happy',
+  wag: 'TailWag', roll: 'BellyUp',
 };
+/** Emotes that play a skeletal clip AND keep the procedural body motion
+ *  (belly-up: the clip swishes the tail, the group turns the cat over). */
+const layeredEmotes = new Set<EmoteKind>(['roll']);
 const movingEmotes = new Set<EmoteKind>(['run', 'walk', 'zoomies']);
 
 /** Zoomies (FRAP) choreography, from real cat behavior research: chaotic
@@ -268,7 +272,7 @@ export function GLBPet({ config, isHovered, tint, normalize, emote }: GLBPetProp
 
     // A stationary emote backed by a real skeletal clip needs no fake
     // whole-body motion — ease the group home and let the bones act.
-    const skeletalOnly = emote && !movingEmotes.has(emote) && !!actions[requestedEmoteClip ?? ''];
+    const skeletalOnly = emote && !movingEmotes.has(emote) && !layeredEmotes.has(emote) && !!actions[requestedEmoteClip ?? ''];
 
     if (!emote || skeletalOnly) {
       emoteT.current = 0;
@@ -303,12 +307,17 @@ export function GLBPet({ config, isHovered, tint, normalize, emote }: GLBPetProp
       g.rotation.z = (hasClip ? 0.03 : 0.12) * Math.sin(e * stride);
       g.rotation.x = run ? -0.08 : 0;
     } else if (emote === 'roll') {
-      // Flop over and show the belly, wiggling side to side
-      const settle = Math.min(1, e / 0.6);
-      g.rotation.z = settle * 2.35 + Math.sin(e * 5) * 0.08 * settle;
-      g.rotation.y = Math.sin(e * 2.2) * 0.25 * settle;
-      g.position.y = 0.52 * settle + Math.sin(e * 5) * 0.03;
-      g.position.x = 0; g.position.z = 0.1 * settle;
+      // 翻肚皮: flop onto the back and show the belly, paws up, wiggling a
+      // little side to side (the tail swish comes from the BellyUp clip).
+      const settle = Math.min(1, e / 0.7);
+      const ease = settle * settle * (3 - 2 * settle);
+      const wiggle = Math.sin(e * 3.2) * 0.1 * ease;
+      g.rotation.z = ease * Math.PI * 0.92 + wiggle;
+      g.rotation.y = 0.35 * ease + Math.sin(e * 1.4) * 0.12 * ease;
+      g.rotation.x = 0;
+      g.position.y = 0.55 * ease + Math.sin(e * 3.2) * 0.02 * ease;
+      g.position.x = 0;
+      g.position.z = 0.15 * ease;
     } else if (emote === 'groom') {
       // Grooming bow: dip the head end down rhythmically like licking a paw
       const dip = (Math.sin(e * 3.2) + 1) / 2;

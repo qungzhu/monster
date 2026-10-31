@@ -144,6 +144,79 @@ arm.data.pose_position = 'POSE'
 if arm.animation_data:
     arm.animation_data.action = keep_action
 
+if FIT == 'box':
+    import math
+
+    def smooth(e0, e1, x):
+        t = min(1.0, max(0.0, (x - e0) / (e1 - e0)))
+        return t * t * (3 - 2 * t)
+
+    # ---- the tail: the plaza rig's bones sit bunched in the middle of the
+    # body, so its Tail bone barely moves the real tail. Find the tail from
+    # the shape (what sticks out behind the hind feet; the cat faces -Y,
+    # Z up), weight it to Tail with a soft root, and put the bone there.
+    verts = [(o, v, o.matrix_world @ v.co) for o in new for v in o.data.vertices]
+    lo, hi = world_box(new)
+    H, L = hi.z - lo.z, hi.y - lo.y
+    feet = sorted(p.y for _, _, p in verts if p.z < lo.z + 0.12 * H)
+    y0 = feet[int(len(feet) * 0.8)] if feet else lo.y + 0.75 * L  # back of the hind feet
+    def tail_w(p):
+        w = smooth(y0 + 0.03 * L, y0 + 0.14 * L, p.y)
+        if p.z < lo.z + 0.1 * H:  # hind paws: only far back is tail
+            w *= smooth(y0 + 0.12 * L, y0 + 0.2 * L, p.y)
+        return w
+    weights = [tail_w(p) for _, _, p in verts]
+    tail_pts = [p for (_, _, p), w in zip(verts, weights) if w > 0.8]
+    if len(tail_pts) > 30:
+        band = [p for (_, _, p), w in zip(verts, weights) if 0.05 < w < 0.5]
+        root = sum(band, Vector()) / len(band) if band else Vector((0, y0 + 0.05 * L, lo.z + 0.6 * H))
+        root.x = (lo.x + hi.x) / 2
+        tip_c = sum(tail_pts, Vector()) / len(tail_pts)
+        tail_dir = (tip_c - root).normalized()
+        for o in new:
+            g = o.vertex_groups.get('Tail') or o.vertex_groups.new(name='Tail')
+        for (o, v, _), w in zip(verts, weights):
+            if w <= 0:
+                continue
+            tg = o.vertex_groups['Tail'].index
+            for ge in v.groups:
+                if ge.group != tg:
+                    ge.weight *= (1 - w)
+            o.vertex_groups['Tail'].add([v.index], w, 'REPLACE')
+        # move the Tail bone (same orientation) to the tail root
+        bpy.context.view_layer.objects.active = arm
+        bpy.ops.object.mode_set(mode='EDIT')
+        eb = arm.data.edit_bones['Tail']
+        shift = arm.matrix_world.inverted() @ root - eb.head
+        eb.head += shift
+        eb.tail += shift
+        bpy.ops.object.mode_set(mode='OBJECT')
+        print(f'tail: {len(tail_pts)} verts, root {tuple(round(c, 3) for c in root)}, dir {tuple(round(c, 2) for c in tail_dir)}')
+
+        # ---- new clips from Idle: TailWag (happy wag) and BellyUp (tail
+        # swish while the app rolls the cat onto its back)
+        scene = bpy.context.scene
+        idle = bpy.data.actions.get('Idle')
+        X = Vector((1, 0, 0))
+        axis = (arm.matrix_world.inverted().to_3x3() @ tail_dir.cross(X)).normalized()
+        if idle and axis.length > 0.5:
+            start, end = (int(v) for v in idle.frame_range)
+            for name, swings, amp in (('TailWag', 4, 0.55), ('BellyUp', 2, 0.4)):
+                act = idle.copy()
+                act.name = name
+                arm.animation_data.action = act
+                for f in range(start, end + 1):
+                    scene.frame_set(f)
+                    b = arm.pose.bones['Tail']
+                    a = amp * math.sin(2 * math.pi * swings * (f - start) / (end - start))
+                    b.matrix = (Matrix.Translation(b.head) @ Matrix.Rotation(a, 4, axis)
+                                @ Matrix.Translation(-b.head) @ b.matrix)
+                    bpy.context.view_layer.update()
+                    b.keyframe_insert('rotation_quaternion')
+            arm.animation_data.action = keep_action
+    else:
+        print('tail: none found')
+
 bpy.ops.object.select_all(action='SELECT')
 bpy.ops.export_scene.gltf(filepath=out_path, export_format='GLB', export_skins=True,
                           export_animations=True, export_animation_mode='ACTIONS',
