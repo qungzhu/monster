@@ -80,6 +80,21 @@ jobs:
           xcrun simctl io "$UDID" screenshot "$OUT/shots/01-app.png"
           sleep 45
           xcrun simctl io "$UDID" screenshot "$OUT/shots/01-app-90s.png"
+          # Did it stay up? If not, keep the crash report and system log.
+          mkdir -p "$OUT/diagnostics"
+          xcrun simctl spawn "$UDID" launchctl list | grep -i furrypal > "$OUT/diagnostics/running.txt" || echo "not running" > "$OUT/diagnostics/running.txt"
+          cat "$OUT/diagnostics/running.txt"
+          find ~/Library/Logs/DiagnosticReports -newer "$OUT/device.txt" \( -iname "App*" -o -iname "*WebContent*" -o -iname "*furrypal*" \) -exec cp {} "$OUT/diagnostics/" \; 2>/dev/null || true
+          ls -l "$OUT/diagnostics"
+          xcrun simctl spawn "$UDID" log show --last 3m --style compact \
+            --predicate 'process == "App" OR process CONTAINS "WebContent" OR (process == "SpringBoard" AND eventMessage CONTAINS[c] "furrypal") OR eventMessage CONTAINS[c] "com.furrypal.app"' \
+            > "$OUT/diagnostics/first-launch-system.log" 2>&1 || true
+          grep -iE "crash|terminat|exit|jetsam|exception|fault|killed" "$OUT/diagnostics/first-launch-system.log" | tail -40 || true
+          # Second try without the console attachment, to tell the two apart.
+          xcrun simctl terminate "$UDID" "$BUNDLE" 2>/dev/null || true
+          xcrun simctl launch "$UDID" "$BUNDLE"
+          sleep 30
+          xcrun simctl io "$UDID" screenshot "$OUT/shots/01-app-relaunch.png"
           xcrun simctl terminate "$UDID" "$BUNDLE" || true
 
       - name: Living world and 今天 panel (demo user)
