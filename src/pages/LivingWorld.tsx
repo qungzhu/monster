@@ -128,7 +128,8 @@ export function LivingWorld(props: LivingWorldProps) {
   const [nameInput, setNameInput] = useState('');
   const [bubble, setBubble] = useState<string | null>(null);
   const [isThinking, setIsThinking] = useState(false);
-  const [activeCard, setActiveCard] = useState<CardType>(null);
+  // VITE_SIM_DEMO=life: CI simulator screenshot of the 今天 panel.
+  const [activeCard, setActiveCard] = useState<CardType>(import.meta.env.VITE_SIM_DEMO === 'life' ? 'life' : null);
   const [claimedQuests, setClaimedQuests] = useState<Set<string>>(new Set());
   const [floatingRewards, setFloatingRewards] = useState<Array<{ id: number; text: string }>>([]);
   const [petTapCount, setPetTapCount] = useState(0);

@@ -79,6 +79,33 @@ jobs:
           xcrun simctl io "$UDID" screenshot "$OUT/shots/01-app.png"
           xcrun simctl terminate "$UDID" "$BUNDLE" || true
 
+      - name: Living world and 今天 panel (demo user)
+        run: |
+          set -o pipefail
+          for demo in world life; do
+            VITE_SIM_DEMO=$demo npm run build:ios > "$OUT/web-$demo.log" 2>&1
+            xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Debug \
+              -destination 'generic/platform=iOS Simulator' -derivedDataPath build \
+              CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY=- DEVELOPMENT_TEAM= \
+              build > "$OUT/xcodebuild-$demo.log" 2>&1 || { grep -E "error:" "$OUT/xcodebuild-$demo.log" | head -30; exit 1; }
+            APP=build/Build/Products/Debug-iphonesimulator/App.app
+            xcrun simctl uninstall "$UDID" "$BUNDLE" || true
+            xcrun simctl install "$UDID" "$APP"
+            xcrun simctl launch "$UDID" "$BUNDLE"
+            sleep 40
+            xcrun simctl io "$UDID" screenshot "$OUT/shots/02-$demo-a.png"
+            if [ $demo = world ]; then
+              xcrun simctl io "$UDID" recordVideo --codec=h264 --force "$OUT/world.mp4" &
+              REC=$!
+              sleep 10
+              kill -INT $REC; wait $REC || true
+            else
+              sleep 20
+            fi
+            xcrun simctl io "$UDID" screenshot "$OUT/shots/02-$demo-b.png"
+            xcrun simctl terminate "$UDID" "$BUNDLE" || true
+          done
+
       - name: Build self-test
         run: |
           set -o pipefail
