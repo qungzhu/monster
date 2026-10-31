@@ -1,14 +1,26 @@
 import { useEffect, useState } from 'react';
 import { Smartphone } from 'lucide-react';
 import { hasPetWallpaper, openPetWallpaper, setWallpaperPet } from './petWallpaper';
+import { hasPetLockScreen } from './petLockScreen';
+import { IosLockScreenCard } from './IosLockScreenCard';
+import type { PetVisual } from './LockScreenCapture';
 
 interface LockScreenPetCardProps {
   petName: string;
   breedId: string | null;
+  /** What the pet looks like (iOS renders the Live Photo / widget from it). */
+  pet: PetVisual;
+  intimacy: number;
 }
 
-/** "锁屏宠物": put the pet, in 3D, on the lock screen (Android app only). */
-export function LockScreenPetCard({ petName, breedId }: LockScreenPetCardProps) {
+/** "锁屏宠物": put the pet on the lock screen (native apps only). */
+export function LockScreenPetCard(props: LockScreenPetCardProps) {
+  if (hasPetLockScreen()) return <IosLockScreenCard petName={props.petName} pet={props.pet} intimacy={props.intimacy} />;
+  return <AndroidLockScreenCard {...props} />;
+}
+
+/** Android: the 3D live wallpaper. */
+function AndroidLockScreenCard({ petName, breedId }: LockScreenPetCardProps) {
   const [state, setState] = useState<{ supported: boolean; active: boolean } | null>(null);
   const [error, setError] = useState('');
 

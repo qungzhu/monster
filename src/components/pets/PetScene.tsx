@@ -91,7 +91,7 @@ class ModelErrorBoundary extends Component<{ fallback: ReactNode; children: Reac
   }
 }
 
-function PetModel({ characterId, breedId, customBreed, isHovered, emote }: { characterId: string; breedId?: string | null; customBreed?: Breed | null; isHovered: boolean; emote?: EmoteKind | null }) {
+export function PetModel({ characterId, breedId, customBreed, isHovered, emote }: { characterId: string; breedId?: string | null; customBreed?: Breed | null; isHovered: boolean; emote?: EmoteKind | null }) {
   const breed = customBreed ?? getBreed(breedId ?? null);
 
   // Breed-driven rendering: parametric bodies for cats/dogs/hamsters,

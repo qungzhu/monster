@@ -24,7 +24,8 @@
     "test:schedule": "node --experimental-strip-types --no-warnings --import ./server/tests/ts-hooks.mjs server/tests/schedule-test.mjs",
     "test": "npm run test:plaza && npm run test:memory && npm run test:agent && npm run test:schedule && npm run test:push",
     "test:push": "node server/tests/push-e2e.mjs",
-    "build:native": "npm run build && node scripts/prepare-native-build.mjs && node scripts/build-wallpaper-models.mjs && cap sync"
+    "build:native": "npm run build && node scripts/prepare-native-build.mjs && node scripts/build-wallpaper-models.mjs && cap sync",
+    "build:ios": "npm run build && node scripts/prepare-native-build.mjs && cap sync ios"
   },
   "dependencies": {
     "@capacitor/android": "8.4.3",

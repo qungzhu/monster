@@ -970,7 +970,14 @@ export function LivingWorld(props: LivingWorldProps) {
         hubName={hubName}
         onHubNameChange={setHubName}
         agentRuns={agentRuns}
-        featured={<LockScreenPetCard petName={petName || character.name} breedId={adoptedBreedId} />}
+        featured={(
+          <LockScreenPetCard
+            petName={petName || character.name}
+            breedId={adoptedBreedId}
+            pet={{ characterId: character.id, breedId: adoptedBreedId, customBreed: adoptedBreedId === 'custom' ? customPet : generatedModelBreed }}
+            intimacy={intimacyLevel}
+          />
+        )}
         extra={(
           <ProactiveCard
             petName={petName || character.name}

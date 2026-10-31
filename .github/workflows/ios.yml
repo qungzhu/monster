@@ -1,0 +1,85 @@
+# Compiles the iOS app (Capacitor shell + Live Photo lock screen + widget)
+# on a Mac runner, to catch build errors without a Mac of your own. It
+# also uploads an UNSIGNED .ipa (Actions -> this run -> Artifacts ->
+# furrypal-ios-unsigned). An unsigned app can't be installed as is: sign it
+# with your Apple ID (Xcode on a Mac, or a sideloading tool), see
+# docs/ios.md.
+#
+# Uses the same repository variable as Android: FURRYPAL_API_BASE.
+name: iOS build
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [claude/ai-emotional-companion-app-efh3G, main]
+    paths:
+      - 'src/**'
+      - 'public/**'
+      - 'ios/**'
+      - 'scripts/prepare-native-build.mjs'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'capacitor.config.ts'
+      - '.github/workflows/ios.yml'
+
+jobs:
+  build:
+    runs-on: macos-15
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Build web app and sync Capacitor
+        run: npm run build:ios
+        env:
+          VITE_API_BASE: ${{ vars.FURRYPAL_API_BASE }}
+
+      - name: Xcode version
+        run: xcodebuild -version
+
+      - name: Build app (device, unsigned)
+        run: |
+          set -o pipefail
+          xcodebuild \
+            -project ios/App/App.xcodeproj \
+            -scheme App \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" \
+            build | tee xcodebuild.log | grep -E "error:|warning: .*(PetLockScreen|PetWidget|LivePhoto)|BUILD (SUCCEEDED|FAILED)" || true
+          grep -q "BUILD SUCCEEDED" xcodebuild.log
+
+      - name: Check the widget is embedded
+        run: |
+          APP=build/Build/Products/Release-iphoneos/App.app
+          ls "$APP/PlugIns"
+          test -d "$APP/PlugIns/PetWidget.appex"
+
+      - name: Package unsigned IPA
+        run: |
+          mkdir -p Payload
+          cp -R build/Build/Products/Release-iphoneos/App.app Payload/
+          zip -qry FurryPal-unsigned.ipa Payload
+          ls -lh FurryPal-unsigned.ipa
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: furrypal-ios-unsigned
+          path: FurryPal-unsigned.ipa
+          retention-days: 14
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: xcodebuild-log
+          path: xcodebuild.log
+          retention-days: 7
