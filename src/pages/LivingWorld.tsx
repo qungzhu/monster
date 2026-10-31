@@ -19,7 +19,10 @@ import { MoodCalendar } from '../components/MoodCalendar';
 import { MoodStats } from '../components/MoodStats';
 import { IntimacyBar } from '../components/IntimacyBar';
 import { IntimacyUnlocks } from '../components/IntimacyUnlocks';
-import { WinterBackdrop } from '../components/world/WinterBackdrop';
+import { SceneBackdrop } from '../components/world/SceneBackdrop';
+import { ScenePicker } from '../components/world/ScenePicker';
+import { loadScene, saveScene } from '../components/world/sceneList';
+import type { SceneId } from '../components/world/sceneList';
 import { AdoptionGallery } from '../components/game/AdoptionGallery';
 import { CustomPetStudio } from '../components/game/CustomPetStudio';
 import { LifeDashboard } from '../components/game/LifeDashboard';
@@ -134,6 +137,8 @@ export function LivingWorld(props: LivingWorldProps) {
   const [floatingRewards, setFloatingRewards] = useState<Array<{ id: number; text: string }>>([]);
   const [petTapCount, setPetTapCount] = useState(0);
   const petStrokes = useRef(0);
+  const [scene, setScene] = useState<SceneId>(loadScene);
+  const [showScenes, setShowScenes] = useState(false);
   const [isPetting, setIsPetting] = useState(false);
   const [emote, setEmote] = useState<EmoteKind | null>(null);
   const bubbleTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -706,7 +711,7 @@ export function LivingWorld(props: LivingWorldProps) {
   // ————— The Living World —————
   return (
     <div className={`h-full relative overflow-hidden theme-${character.theme}`}>
-      <WinterBackdrop />
+      <SceneBackdrop scene={scene} />
       {/* Subtle character-color aura around the pet's spot */}
       <div className="absolute inset-0 pointer-events-none" style={{ background: `radial-gradient(ellipse at 50% 42%, ${color}14 0%, transparent 50%)` }} />
 
@@ -731,6 +736,25 @@ export function LivingWorld(props: LivingWorldProps) {
         </button>
       </motion.div>
       {/* Today, in one line: opens the hub. */}
+      {/* Scene switcher (top right, under the coins) */}
+      <motion.button
+        initial={reduceMotion ? false : { opacity: 0, x: 30 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ type: 'spring', stiffness: 240, damping: 18, delay: 0.3 }}
+        whileTap={{ scale: 0.92 }}
+        onClick={() => setShowScenes(true)}
+        className="soft-glass absolute right-4 top-[calc(env(safe-area-inset-top)+3.6rem)] z-30 flex h-9 items-center gap-1 rounded-full px-3 text-[13px]"
+        aria-label="换场景"
+      >
+        🏞️ 场景
+      </motion.button>
+      <ScenePicker
+        show={showScenes}
+        current={scene}
+        onClose={() => setShowScenes(false)}
+        onPick={id => { setScene(id); saveScene(id); setShowScenes(false); }}
+      />
+
       <motion.button
         initial={reduceMotion ? false : { opacity: 0, x: -30 }}
         animate={{ opacity: 1, x: 0 }}
@@ -765,7 +789,7 @@ export function LivingWorld(props: LivingWorldProps) {
 
       {/* The world — full-screen winter scene with the pet at center */}
       <div className="absolute inset-0">
-        <PetScene characterId={character.id} breedId={adoptedBreedId} customBreed={adoptedBreedId === 'custom' ? customPet : generatedModelBreed} size="world" interactive={true} emote={emote} zoom={sceneZoom} petYaw={petYaw} />
+        <PetScene characterId={character.id} breedId={adoptedBreedId} customBreed={adoptedBreedId === 'custom' ? customPet : generatedModelBreed} size="world" interactive={true} emote={emote} zoom={sceneZoom} petYaw={petYaw} scene={scene} />
       </div>
 
       {/* Gesture layer over the scene (under the UI): tap or hold to pet,

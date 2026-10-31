@@ -190,7 +190,17 @@ body {
   animation: aurora-drift 22s ease-in-out infinite reverse;
 }
 
+@keyframes cloud-drift {
+  0%, 100% { transform: translateX(0); }
+  50% { transform: translateX(28px); }
+}
+
+.cloud-drift {
+  animation: cloud-drift 24s ease-in-out infinite;
+}
+
 .star-twinkle {
+  animation-duration: 3s;
   animation-name: star-twinkle;
   animation-iteration-count: infinite;
   animation-timing-function: ease-in-out;

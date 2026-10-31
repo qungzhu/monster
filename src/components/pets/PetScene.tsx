@@ -12,6 +12,8 @@ import { GLBPet } from './GLBPet';
 import type { EmoteKind } from './GLBPet';
 import { glbModels } from '../../data/petModels';
 import { WinterScene } from '../world/WinterScene';
+import { SceneSet } from '../world/Scenes';
+import type { SceneId } from '../world/sceneList';
 import { getBreed } from '../../data/breeds';
 import type { Breed, CatParams, DogParams, FoxParams } from '../../data/breeds';
 import * as THREE from 'three';
@@ -31,6 +33,8 @@ interface PetSceneProps {
   zoom?: number;
   /** World view: the pet's own turn in radians (drag); the ground stays put. */
   petYaw?: number;
+  /** World view: which scene surrounds the pet (default: the aurora snow field). */
+  scene?: SceneId;
 }
 
 const WORLD_CAMERA = new THREE.Vector3(0, 0.75, 5.6);
@@ -251,7 +255,7 @@ function GroundPlane({ color }: { color: string }) {
   );
 }
 
-export function PetScene({ characterId, breedId, customBreed, size = 'medium', interactive = true, emote, zoom = 1, petYaw = 0 }: PetSceneProps) {
+export function PetScene({ characterId, breedId, customBreed, size = 'medium', interactive = true, emote, zoom = 1, petYaw = 0, scene = 'snow' }: PetSceneProps) {
   const [isHovered, setIsHovered] = useState(false);
   const config = sceneConfig[characterId] || sceneConfig.tuantuan;
   const sizeClass = sizeMap[size];
@@ -298,12 +302,12 @@ export function PetScene({ characterId, breedId, customBreed, size = 'medium', i
               Smaller views keep the lightweight color disc. */}
           {isLarge ? (
             <>
-              <WinterScene />
-              <ContactShadows position={[0, -0.65, 0]} opacity={0.35} scale={3.5} blur={2.2} far={1.2} color="#2a4a7a" />
+              {scene === 'snow' || !isWorld ? <WinterScene /> : <SceneSet id={scene} />}
+              <ContactShadows position={[0, -0.65, 0]} opacity={0.4} scale={3.5} blur={2.2} far={1.2} color={scene === 'snow' || !isWorld ? '#2a4a7a' : '#2a1d14'} />
             </>
           ) : !isTiny && !isPicker && <GroundPlane color={config.color} />}
 
-          {isLarge && <PetParticles color={isWorld ? '#cfe6ff' : config.color} count={12} />}
+          {isLarge && (scene === 'snow' || !isWorld) && <PetParticles color={isWorld ? '#cfe6ff' : config.color} count={12} />}
 
           {/* The Living World keeps its camera and ground still: drag turns
               the pet, pinch zooms (gestures handled by the page). */}
