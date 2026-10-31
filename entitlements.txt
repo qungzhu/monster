@@ -1,0 +1,2 @@
+Executable=/Users/runner/work/monster/monster/build/Build/Products/Debug-iphonesimulator/App.app/App
+[Dict]

@@ -1,0 +1,151 @@
+2026-10-31 21:49:41.942 App[34682:100638] DiskCookieStorage changing policy from 2 to 0, cookie file: file:///Users/runner/Library/Developer/CoreSimulator/Devices/B7CD7ED2-0DFF-42FE-A30F-21CD2E3D3D2C/data/Containers/Data/Application/14DCAF5B-FCC6-4017-BDC1-204BFC77F53E/Library/Cookies/com.furrypal.app.binarycookies
+⚡️  Loading app at capacitor://localhost...
+⚡️  To Native ->  PetLockScreen setWidgetPet 46261846
+⚡️  To Native ->  PetLockScreen beginLivePhoto 46261847
+⚡️  TO JS undefined
+⚡️  TO JS undefined
+⚡️  [log] - [lockscreen-selftest] live-begin
+⚡️  [warn] - THREE.Clock: This module has been deprecated. Please use THREE.Timer instead.
+⚡️  WebView loaded
+⚡️  [warn] - THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead.
+⚡️  [log] - [lockscreen-selftest] live-frame 1/90
+⚡️  [warn] - THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead.
+⚡️  [warn] - THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead.
+⚡️  [warn] - THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead.
+⚡️  To Native ->  PetLockScreen addFrames 46261848
+unrecognised property key⚡️  TO JS undefined
+⚡️  [warn] - THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead.
+⚡️  [warn] - THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead.
+⚡️  [warn] - THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead.
+⚡️  [warn] - THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead.
+⚡️  [warn] - THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead.
+⚡️  To Native ->  PetLockScreen addFrames 46261849
+⚡️  TO JS undefined
+⚡️  [warn] - THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead.
+⚡️  [warn] - THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead.
+⚡️  [warn] - THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead.
+⚡️  [warn] - THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead.
+⚡️  [warn] - THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead.
+⚡️  To Native ->  PetLockScreen addFrames 46261850
+⚡️  TO JS undefined
+⚡️  [warn] - THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead.
+⚡️  [log] - [lockscreen-selftest] live-frame 16/90
+⚡️  [warn] - THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead.
+⚡️  [warn] - THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead.
+⚡️  [warn] - THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead.
+⚡️  [warn] - THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead.
+⚡️  To Native ->  PetLockScreen addFrames 46261851
+⚡️  TO JS undefined
+⚡️  [warn] - THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead.
+⚡️  [warn] - THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead.
+⚡️  [warn] - THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead.
+⚡️  [warn] - THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead.
+⚡️  [warn] - THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead.
+⚡️  To Native ->  PetLockScreen addFrames 46261852
+⚡️  TO JS undefined
+⚡️  [warn] - THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead.
+⚡️  [warn] - THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead.
+⚡️  [warn] - THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead.
+⚡️  [warn] - THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead.
+⚡️  [warn] - THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead.
+⚡️  To Native ->  PetLockScreen addFrames 46261853
+⚡️  TO JS undefined
+⚡️  [warn] - THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead.
+⚡️  [log] - [lockscreen-selftest] live-frame 31/90
+⚡️  [warn] - THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead.
+⚡️  [warn] - THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead.
+⚡️  [warn] - THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead.
+⚡️  [warn] - THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead.
+⚡️  To Native ->  PetLockScreen addFrames 46261854
+⚡️  TO JS undefined
+⚡️  [warn] - THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead.
+⚡️  [warn] - THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead.
+⚡️  [warn] - THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead.
+⚡️  [warn] - THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead.
+⚡️  [warn] - THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead.
+⚡️  To Native ->  PetLockScreen addFrames 46261855
+⚡️  TO JS undefined
+⚡️  [warn] - THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead.
+⚡️  [warn] - THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead.
+⚡️  [warn] - THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead.
+⚡️  [warn] - THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead.
+⚡️  [warn] - THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead.
+⚡️  To Native ->  PetLockScreen addFrames 46261856
+⚡️  TO JS undefined
+⚡️  [warn] - THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead.
+⚡️  [log] - [lockscreen-selftest] live-frame 46/90
+⚡️  [warn] - THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead.
+⚡️  [warn] - THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead.
+⚡️  [warn] - THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead.
+⚡️  [warn] - THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead.
+⚡️  To Native ->  PetLockScreen addFrames 46261857
+⚡️  TO JS undefined
+⚡️  [warn] - THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead.
+⚡️  [warn] - THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead.
+⚡️  [warn] - THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead.
+⚡️  [warn] - THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead.
+⚡️  [warn] - THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead.
+⚡️  To Native ->  PetLockScreen addFrames 46261858
+⚡️  TO JS undefined
+⚡️  [warn] - THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead.
+⚡️  [warn] - THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead.
+⚡️  [warn] - THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead.
+⚡️  [warn] - THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead.
+⚡️  [warn] - THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead.
+⚡️  To Native ->  PetLockScreen addFrames 46261859
+⚡️  TO JS undefined
+⚡️  [warn] - THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead.
+⚡️  [log] - [lockscreen-selftest] live-frame 61/90
+⚡️  [warn] - THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead.
+⚡️  [warn] - THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead.
+⚡️  [warn] - THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead.
+⚡️  [warn] - THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead.
+⚡️  To Native ->  PetLockScreen addFrames 46261860
+⚡️  TO JS undefined
+⚡️  [warn] - THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead.
+⚡️  [warn] - THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead.
+⚡️  [warn] - THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead.
+⚡️  [warn] - THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead.
+⚡️  [warn] - THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead.
+⚡️  To Native ->  PetLockScreen addFrames 46261861
+⚡️  TO JS undefined
+⚡️  [warn] - THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead.
+⚡️  [warn] - THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead.
+⚡️  [warn] - THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead.
+⚡️  [warn] - THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead.
+⚡️  [warn] - THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead.
+⚡️  To Native ->  PetLockScreen addFrames 46261862
+⚡️  TO JS undefined
+⚡️  [warn] - THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead.
+⚡️  [log] - [lockscreen-selftest] live-frame 76/90
+⚡️  [warn] - THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead.
+⚡️  [warn] - THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead.
+⚡️  [warn] - THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead.
+⚡️  [warn] - THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead.
+⚡️  To Native ->  PetLockScreen addFrames 46261863
+⚡️  TO JS undefined
+⚡️  [warn] - THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead.
+⚡️  [warn] - THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead.
+⚡️  [warn] - THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead.
+⚡️  [warn] - THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead.
+⚡️  [warn] - THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead.
+⚡️  To Native ->  PetLockScreen addFrames 46261864
+⚡️  TO JS undefined
+⚡️  [warn] - THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead.
+⚡️  [warn] - THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead.
+⚡️  [warn] - THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead.
+⚡️  [warn] - THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead.
+⚡️  [warn] - THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead.
+⚡️  To Native ->  PetLockScreen addFrames 46261865
+⚡️  TO JS undefined
+⚡️  [log] - [lockscreen-selftest] live-frame 90/90
+⚡️  To Native ->  PetLockScreen finishLivePhoto 46261866
+⚡️  [log] - THREE.WebGLRenderer: Context Lost.
+⚡️  TO JS {"saved":true}
+⚡️  [log] - [lockscreen-selftest] live-saved
+⚡️  [warn] - THREE.Clock: This module has been deprecated. Please use THREE.Timer instead.
+⚡️  [warn] - THREE.WebGLShadowMap: PCFSoftShadowMap has been deprecated. Using PCFShadowMap instead.
+⚡️  To Native ->  PetLockScreen setWidgetPet 46261867
+⚡️  TO JS undefined
+⚡️  [log] - [lockscreen-selftest] widget-done
+⚡️  [log] - THREE.WebGLRenderer: Context Lost.

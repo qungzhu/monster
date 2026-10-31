@@ -1,0 +1,48 @@
+
+> furry-pal@1.5.0 build:ios
+> npm run build && node scripts/prepare-native-build.mjs && cap sync ios
+
+
+> furry-pal@1.5.0 prebuild
+> node scripts/assemble-rigged-fox.mjs
+
+Assembled public/models/generated/red-fox-meshy-rigged-walk-optimized.glb
+
+> furry-pal@1.5.0 build
+> tsc -b && vite build && node scripts/prepare-sites-build.mjs
+
+[36mvite v8.0.3 [32mbuilding client environment for production...[36m[39m
+[2Ktransforming...Found 1 warning while optimizing generated CSS:
+
+[2m│   }[22m
+[2m│ }[22m
+[2m│[22m m-* utilities can override it. */ @layer base {
+[2m┆[22m   [33m[2m^--[22m Unexpected token Delim('*')[39m
+[2m┆[22m
+[2m│   * {[22m
+[2m│     margin: 0;[22m
+
+✓ 2749 modules transformed.
+rendering chunks...
+computing gzip size...
+dist/index.html                     1.06 kB │ gzip:   0.61 kB
+dist/assets/index-YfyHFcVK.css     71.12 kB │ gzip:  12.09 kB
+dist/assets/index-Bq-9TZFy.js   1,874.29 kB │ gzip: 584.87 kB
+
+[33m[33m[PLUGIN_TIMINGS] Warning:[0m Your build spent significant time in plugin `@tailwindcss/vite:generate:build`. See https://rolldown.rs/options/checks#plugintimings for more details.
+[39m
+[33m[plugin builtin:vite-reporter] 
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.[39m
+[32m✓ built in 11.08s[39m
+dist-native: 78 files, 187 MB (58 unused model files left out)
+✔ Copying web assets from dist-native to ios/App/App/public in 141.16ms
+✔ Creating capacitor.config.json in ios/App/App in 2.72ms
+✔ copy ios in 163.72ms
+✔ Updating iOS plugins in 3.72ms
+[info] All Capacitor plugins have a Package.swift file and will be included in Package.swift
+[info] Writing Package.swift
+✔ update ios in 31.45ms
+[info] Sync finished in 0.225s
