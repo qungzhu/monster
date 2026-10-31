@@ -14,6 +14,8 @@ export interface GLBModelConfig {
   facingY?: number;
   /** Light plush model (Blender pipeline): add shell fur to the 'fur' material, keep eyes/nose glossy. */
   plushFur?: boolean;
+  /** Hand-marked eyes, see Breed.glbEyesUV. */
+  eyesUV?: [number, number, number][];
   /** Animation clip name to loop when idle */
   idleAnimation: string;
   /** Animation clip name to play on hover/interaction */

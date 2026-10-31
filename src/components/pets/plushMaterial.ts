@@ -14,6 +14,8 @@ export function toPlushMaterial(
   mesh?: THREE.Mesh,
   /** Shared eyelid control (0 open .. 1 closed) for Meshy cats. */
   squint?: { value: number },
+  /** Hand-marked eyes ([u, v, radius]) when the texture has no glossy eyes. */
+  eyesUV?: [number, number, number][],
 ): THREE.MeshPhysicalMaterial {
   const mat = new THREE.MeshPhysicalMaterial();
   mat.name = std.name;
@@ -69,12 +71,12 @@ export function toPlushMaterial(
   // Eyelids, when the eyes can be found (see plushEyes.ts).
   let eyes = squint && mesh?.geometry ? (mesh.geometry.userData.plushEyes as ReturnType<typeof findEyes> | undefined) : null;
   if (squint && mesh?.geometry && eyes === undefined) {
-    eyes = findEyes(mesh.geometry, std.roughnessMap, std.map);
+    eyes = findEyes(mesh.geometry, std.roughnessMap, std.map, eyesUV);
     mesh.geometry.userData.plushEyes = eyes;
   }
   mat.onBeforeCompile = shader => {
     if (eyes && squint) {
-      shader.defines = { ...shader.defines, PLUSH_EYES: '' };
+      shader.defines = { ...shader.defines, PLUSH_EYES: '', ...(eyes.marked ? { PLUSH_EYES_MARKED: '' } : {}) };
       shader.uniforms.uEyeA = { value: eyes.a };
       shader.uniforms.uEyeB = { value: eyes.b };
       shader.uniforms.uEyeLid = { value: eyes.lid };
@@ -122,7 +124,7 @@ ${EYE_FRAGMENT}`)
   totalEmissiveRadiance *= 1.0 - plushLid;
   totalEmissiveRadiance += diffuseColor.rgb * pow(1.0 - plushNdV, 2.4) * uPlushRim;`);
   };
-  mat.customProgramCacheKey = () => (eyes && squint ? 'plush-v5-eyes' : 'plush-v5');
+  mat.customProgramCacheKey = () => (eyes && squint ? `plush-v5-eyes${eyes.marked ? '-marked' : ''}` : 'plush-v5');
   return mat;
 }
 

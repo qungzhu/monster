@@ -222,7 +222,7 @@ export function GLBPet({ config, isHovered, tint, normalize, emote }: GLBPetProp
           const fabric = (source as THREE.MeshStandardMaterial).isMeshStandardMaterial
             && (!config.plushFur || source.name.startsWith('fur'));
           const material = fabric
-            ? toPlushMaterial(source as THREE.MeshStandardMaterial, mesh, config.plushFur ? undefined : squint.current)
+            ? toPlushMaterial(source as THREE.MeshStandardMaterial, mesh, config.plushFur ? undefined : squint.current, config.eyesUV)
             : source.clone();
           if (tintColor && 'color' in material) {
             (material as THREE.MeshStandardMaterial).color.multiply(tintColor);
@@ -234,7 +234,7 @@ export function GLBPet({ config, isHovered, tint, normalize, emote }: GLBPetProp
     });
     if (config.plushFur) addFurShells(clonedScene);
     else if (MESHY_FUR) addFurShells(clonedScene, meshyFur, null);
-  }, [clonedScene, tint, config.plushFur]);
+  }, [clonedScene, tint, config.plushFur, config.eyesUV]);
 
   useEffect(() => {
     const idle = actions[config.idleAnimation];

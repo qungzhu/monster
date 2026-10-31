@@ -14,6 +14,40 @@ export interface EyeInfo {
   b: THREE.Vector4;
   /** Fur colour around the eyes (linear), for the lids. */
   lid: THREE.Color;
+  /** Placed from hand marks: lids cover the whole eye disc (no glossy mask). */
+  marked?: boolean;
+}
+
+/** Eyes from hand marks: the mesh points under each [u, v], sized by r
+ *  (a fraction of the model's bounding radius). */
+function markedEyes(geometry: THREE.BufferGeometry, marks: [number, number, number][]): [THREE.Vector4, THREE.Vector4] | null {
+  const pos = geometry.attributes.position, uv = geometry.attributes.uv;
+  geometry.computeBoundingSphere();
+  const size = geometry.boundingSphere?.radius ?? 1;
+  const p = new THREE.Vector3();
+  const eyes = marks.slice(0, 2).map(([u, v, r]) => {
+    // The vertex closest in UV anchors the eye; other UV islands can lie
+    // next to it in the atlas, so only points near it on the mesh count.
+    let anchor = -1, bestD = Infinity;
+    for (let i = 0; i < uv.count; i++) {
+      const d = Math.hypot(uv.getX(i) - u, uv.getY(i) - v);
+      if (d < bestD) { bestD = d; anchor = i; }
+    }
+    if (anchor < 0 || bestD > 0.05) return null;
+    const a = new THREE.Vector3().fromBufferAttribute(pos, anchor);
+    const radius = r * size * 1.1;
+    const c = new THREE.Vector3();
+    let n = 0;
+    for (let i = 0; i < uv.count; i++) {
+      if (Math.hypot(uv.getX(i) - u, uv.getY(i) - v) > 0.02) continue;
+      p.fromBufferAttribute(pos, i);
+      if (p.distanceTo(a) > radius * 0.6) continue;
+      c.add(p); n++;
+    }
+    c.divideScalar(Math.max(n, 1));
+    return new THREE.Vector4(c.x, c.y, c.z, radius);
+  });
+  return eyes[0] && eyes[1] ? [eyes[0], eyes[1]] : null;
 }
 
 const SAMPLE = 256;
@@ -34,7 +68,12 @@ function pixels(texture: THREE.Texture | null): Uint8ClampedArray | null {
 }
 
 /** Finds the two eyes on a Meshy cat mesh, or null when it can't. */
-export function findEyes(geometry: THREE.BufferGeometry, roughness: THREE.Texture | null, color: THREE.Texture | null): EyeInfo | null {
+export function findEyes(
+  geometry: THREE.BufferGeometry,
+  roughness: THREE.Texture | null,
+  color: THREE.Texture | null,
+  marks?: [number, number, number][],
+): EyeInfo | null {
   const pos = geometry.attributes.position;
   const uv = geometry.attributes.uv;
   if (!pos || !uv || typeof document === 'undefined') return null;
@@ -48,6 +87,18 @@ export function findEyes(geometry: THREE.BufferGeometry, roughness: THREE.Textur
     return (Math.min(SAMPLE - 1, Math.floor(v * SAMPLE)) * SAMPLE + Math.min(SAMPLE - 1, Math.floor(u * SAMPLE))) * 4;
   };
 
+  let a: THREE.Vector4, b: THREE.Vector4;
+  const marked = marks?.length ? markedEyes(geometry, marks) : null;
+  if (marked) {
+    [a, b] = marked;
+  } else {
+    const found = glossyEyes();
+    if (!found) return null;
+    [a, b] = found;
+  }
+
+  function glossyEyes(): [THREE.Vector4, THREE.Vector4] | null {
+  if (!rough) return null;
   // Glossy vertices, grouped into blobs along the mesh's edges (vertices
   // at the same spot are joined too: glTF splits them at UV seams).
   const isGlossy = new Uint8Array(pos.count);
@@ -106,7 +157,8 @@ export function findEyes(geometry: THREE.BufferGeometry, roughness: THREE.Textur
   }
   if (!best || bestScore > 3) return null;
   const r = Math.max(best[0].r, best[1].r) * 1.2;
-  const [a, b] = best.map(e => new THREE.Vector4(e.c.x, e.c.y, e.c.z, r));
+  return [best[0], best[1]].map(e => new THREE.Vector4(e.c.x, e.c.y, e.c.z, r)) as [THREE.Vector4, THREE.Vector4];
+  }
 
   // Lid colour: the fur in a ring just around the eyes.
   let rr = 0, g = 0, bl = 0, n = 0;
@@ -124,7 +176,7 @@ export function findEyes(geometry: THREE.BufferGeometry, roughness: THREE.Textur
   }
   if (!n) return null;
   const lid = new THREE.Color().setRGB(rr / n / 255, g / n / 255, bl / n / 255, THREE.SRGBColorSpace);
-  return { a, b, lid };
+  return { a, b, lid, marked: !!marked };
 }
 
 /** Shader pieces; `plushLid` (0..1, how much this texel is covered) is
@@ -143,7 +195,11 @@ export const EYE_FRAGMENT = `
     vec4 E = distance(vPlushPos.xy, uEyeA.xy) < distance(vPlushPos.xy, uEyeB.xy) ? uEyeA : uEyeB;
     vec2 d = (vPlushPos.xy - E.xy) / E.w;
     float near = 1.0 - smoothstep(1.15, 1.35, length(d));
-    float eyeTexel = 1.0 - smoothstep(0.18, 0.3, texture2D(uEyeMask, vMapUv).g);
+    #ifdef PLUSH_EYES_MARKED
+      float eyeTexel = near; // hand-marked: the whole eye disc
+    #else
+      float eyeTexel = 1.0 - smoothstep(0.18, 0.3, texture2D(uEyeMask, vMapUv).g);
+    #endif
     // lids meet along an upward arch (happy squint), opening as squint -> 0
     float meet = -0.1 + 0.35 * uSquint * (1.0 - d.x * d.x);
     float open = 1.15 * (1.0 - uSquint);
