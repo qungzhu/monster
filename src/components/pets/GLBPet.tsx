@@ -5,6 +5,8 @@ import { addFurShells, meshyFur } from './plushFur';
 
 // A/B switch while tuning: ?meshyfur=0 turns the Meshy velvet pile off.
 const MESHY_FUR = typeof window === 'undefined' || !/[?&]meshyfur=0/.test(window.location.search);
+// Tuning aid: ?squint=1 keeps the eyelids closed.
+const FORCE_SQUINT = typeof window !== 'undefined' && /[?&]squint=1/.test(window.location.search);
 import { useGLTF, useAnimations } from '@react-three/drei';
 import { SkeletonUtils } from 'three-stdlib';
 import type { Group } from 'three';
@@ -65,6 +67,8 @@ interface GLBPetProps {
 export function GLBPet({ config, isHovered, tint, normalize, emote }: GLBPetProps) {
   const group = useRef<Group>(null);
   const emoteGroup = useRef<Group>(null);
+  // Uniform object shared with the materials; mutated every frame.
+  const squint = useRef({ value: 0 });
   const { scene, animations } = useGLTF(config.url);
 
   // SkeletonUtils.clone keeps skinned meshes bound to their own bone copies
@@ -218,7 +222,7 @@ export function GLBPet({ config, isHovered, tint, normalize, emote }: GLBPetProp
           const fabric = (source as THREE.MeshStandardMaterial).isMeshStandardMaterial
             && (!config.plushFur || source.name.startsWith('fur'));
           const material = fabric
-            ? toPlushMaterial(source as THREE.MeshStandardMaterial, mesh)
+            ? toPlushMaterial(source as THREE.MeshStandardMaterial, mesh, config.plushFur ? undefined : squint.current)
             : source.clone();
           if (tintColor && 'color' in material) {
             (material as THREE.MeshStandardMaterial).color.multiply(tintColor);
@@ -264,6 +268,25 @@ export function GLBPet({ config, isHovered, tint, normalize, emote }: GLBPetProp
 
   // Procedural whole-body motion: idle bob, or a full emote for
   // static meshes (run laps, belly roll, grooming bow, happy wiggle).
+  // Eyelids (Meshy cats): happy squint while cuddled, belly-up or kneading,
+  // closed asleep, and a natural blink every few seconds otherwise.
+  const blink = useRef({ next: 3, t: -1 });
+  useFrame((state, delta) => {
+    const t = state.clock.elapsedTime;
+    let target = FORCE_SQUINT ? 1 : emote === 'sleep' ? 1 : emote === 'rub' || emote === 'knead' ? 0.92 : emote === 'roll' ? 0.85 : 0;
+    const b = blink.current;
+    if (target === 0) {
+      if (b.t < 0 && t > b.next) b.t = 0;
+      if (b.t >= 0) {
+        b.t += delta;
+        target = b.t < 0.09 ? 1 : 0;
+        if (b.t > 0.2) { b.t = -1; b.next = t + 2.5 + Math.random() * 4; }
+      }
+    }
+    const lid = squint.current;
+    lid.value = THREE.MathUtils.damp(lid.value, target, target > lid.value ? 28 : 14, delta);
+  });
+
   const emoteT = useRef(0);
   useFrame((state, delta) => {
     const g = emoteGroup.current;
@@ -474,6 +497,9 @@ export function GLBPet({ config, isHovered, tint, normalize, emote }: GLBPetProp
       g.rotation.x = (-0.18 + Math.sin(e * 4) * 0.05) * s;
       g.position.y = 0.03 * s;
     }
+    // Never squash or stretch the body: a plush cat keeps its volume (the
+    // skeleton does the crouching and stretching now).
+    g.scale.set(1, 1, 1);
   });
 
   if (fit) {

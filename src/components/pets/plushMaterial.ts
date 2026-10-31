@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { EYE_FRAGMENT, EYE_UNIFORMS, findEyes } from './plushEyes';
 
 /**
  * Upgrade a smooth (plastic-looking) PBR surface to a plush fabric one:
@@ -8,7 +9,12 @@ import * as THREE from 'three';
  * props off the plain source), which silently drops the pet to its
  * procedural fallback.
  */
-export function toPlushMaterial(std: THREE.MeshStandardMaterial, mesh?: THREE.Mesh): THREE.MeshPhysicalMaterial {
+export function toPlushMaterial(
+  std: THREE.MeshStandardMaterial,
+  mesh?: THREE.Mesh,
+  /** Shared eyelid control (0 open .. 1 closed) for Meshy cats. */
+  squint?: { value: number },
+): THREE.MeshPhysicalMaterial {
   const mat = new THREE.MeshPhysicalMaterial();
   mat.name = std.name;
   mat.color.copy(std.color);
@@ -60,7 +66,21 @@ export function toPlushMaterial(std: THREE.MeshStandardMaterial, mesh?: THREE.Me
   if (mesh?.geometry && !mesh.geometry.attributes.plushInflateNormal) {
     mesh.geometry.setAttribute('plushInflateNormal', smoothOutward(mesh.geometry, radius));
   }
+  // Eyelids, when the eyes can be found (see plushEyes.ts).
+  let eyes = squint && mesh?.geometry ? (mesh.geometry.userData.plushEyes as ReturnType<typeof findEyes> | undefined) : null;
+  if (squint && mesh?.geometry && eyes === undefined) {
+    eyes = findEyes(mesh.geometry, std.roughnessMap, std.map);
+    mesh.geometry.userData.plushEyes = eyes;
+  }
   mat.onBeforeCompile = shader => {
+    if (eyes && squint) {
+      shader.defines = { ...shader.defines, PLUSH_EYES: '' };
+      shader.uniforms.uEyeA = { value: eyes.a };
+      shader.uniforms.uEyeB = { value: eyes.b };
+      shader.uniforms.uEyeLid = { value: eyes.lid };
+      shader.uniforms.uEyeMask = { value: std.roughnessMap };
+      shader.uniforms.uSquint = squint;
+    }
     shader.uniforms.uPlushPerRadius = perRadius;
     shader.uniforms.uPlushFibres = plushTuning.fibresPerRadius;
     shader.uniforms.uPlushNoise = plushTuning.noise;
@@ -95,13 +115,14 @@ export function toPlushMaterial(std: THREE.MeshStandardMaterial, mesh?: THREE.Me
   float plushDetail = 1.0 - smoothstep(0.35, 1.1, length(fwidth(plushP)));
   float plushPile = mix(0.5, plushNoise(plushP) * 0.6 + plushNoise(plushP * 2.7 + 13.1) * 0.4, plushDetail);
   diffuseColor.rgb *= 1.0 + (plushPile - 0.5) * 2.0 * uPlushNoise;
-`)
+${EYE_FRAGMENT}`)
       .replace('float dotNL = saturate( dot( geometryNormal, directLight.direction ) );',
         'float dotNL = saturate( ( dot( geometryNormal, directLight.direction ) + uPlushWrap ) / ( 1.0 + uPlushWrap ) );')
       .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>
+  totalEmissiveRadiance *= 1.0 - plushLid;
   totalEmissiveRadiance += diffuseColor.rgb * pow(1.0 - plushNdV, 2.4) * uPlushRim;`);
   };
-  mat.customProgramCacheKey = () => 'plush-v4';
+  mat.customProgramCacheKey = () => (eyes && squint ? 'plush-v5-eyes' : 'plush-v5');
   return mat;
 }
 
@@ -147,7 +168,7 @@ function smoothOutward(geo: THREE.BufferGeometry, radius: number): THREE.BufferA
   return new THREE.BufferAttribute(out, 3);
 }
 
-const PLUSH_FRAGMENT_HEAD = `
+const PLUSH_FRAGMENT_HEAD = EYE_UNIFORMS + `
 varying vec3 vPlushPos;
 uniform float uPlushPerRadius, uPlushFibres, uPlushNoise, uPlushWrap, uPlushRim;
 float plushHash(vec3 p) {
