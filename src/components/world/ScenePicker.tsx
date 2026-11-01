@@ -35,12 +35,12 @@ export function ScenePicker({ show, current, onPick, onClose }: ScenePickerProps
                   type="button"
                   onClick={() => onPick(s.id)}
                   aria-pressed={s.id === current}
-                  className={`relative h-20 overflow-hidden rounded-2xl text-left text-white shadow-sm transition-transform active:scale-95 ${s.id === current ? 'ring-2 ring-violet-500 ring-offset-2 ring-offset-white/60' : ''}`}
+                  className={`relative h-20 overflow-hidden rounded-2xl text-left text-white shadow-sm transition-transform active:scale-95 ${s.id === current ? 'ring-2 ring-coral ring-offset-2 ring-offset-white' : ''}`}
                   style={{ background: s.swatch }}
                 >
                   <span className="absolute right-2 top-1.5 text-2xl">{s.emoji}</span>
                   <span className="absolute bottom-2 left-3 text-[14px] font-semibold drop-shadow">{s.name}</span>
-                  {s.id === current && <span className="absolute left-2 top-2 rounded-full bg-white/90 p-0.5 text-violet-600"><Check size={12} /></span>}
+                  {s.id === current && <span className="absolute left-2 top-2 rounded-full bg-white p-0.5 text-coral"><Check size={12} /></span>}
                 </button>
               ))}
             </div>

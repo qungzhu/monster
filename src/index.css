@@ -13,6 +13,17 @@
   --color-text-secondary: #e6d8ce;
   --color-text-muted: #b9a79b;
 
+  /* DESIGN.md: warm white UI, one coral accent */
+  --color-coral: #f0566a;
+  --color-coral-active: #d63f55;
+  --color-coral-soft: #ffe4e7;
+  --color-ink: #222222;
+  --color-ink-body: #3f3f3f;
+  --color-ink-muted: #6a6a6a;
+  --color-hairline: #dddddd;
+  --color-hairline-soft: #ebebeb;
+  --color-surface-soft: #f7f7f7;
+
   --font-display: 'Noto Serif SC', serif;
   --font-body: 'Noto Sans SC', system-ui, sans-serif;
 }
@@ -121,12 +132,13 @@ body {
 /* Warm frosted cream for controls floating over the snow scene: soft,
    readable, matches the plush pets (instead of dark sci-fi glass). */
 .soft-glass {
-  background: rgba(255, 250, 244, 0.78);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.9);
-  box-shadow: 0 6px 20px rgba(60, 40, 30, 0.12);
-  color: #4a3a33;
+  /* DESIGN.md: white floating surface, single shadow tier */
+  background: rgba(255, 255, 255, 0.94);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.02), 0 2px 6px rgba(0, 0, 0, 0.04), 0 4px 8px rgba(0, 0, 0, 0.1);
+  color: var(--color-ink);
 }
 
 .glass-strong {
@@ -164,10 +176,36 @@ body {
 }
 
 .game-panel {
-  /* Warm cocoa, matching the plush pets and the cream controls. */
-  background: linear-gradient(180deg, rgba(52, 38, 34, 0.97) 0%, rgba(34, 24, 22, 0.98) 100%);
-  border: 1px solid rgba(255, 236, 220, 0.12);
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  /* DESIGN.md: panels are white sheets with ink text. Utilities written for
+     the old dark panels are mapped onto the light palette below. */
+  --color-text-primary: #222222;
+  --color-text-secondary: #3f3f3f;
+  --color-text-muted: #6a6a6a;
+  background: #ffffff;
+  color: #222222;
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.02), 0 2px 6px rgba(0, 0, 0, 0.04), 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+.game-panel :is(.bg-white\/5, .bg-white\/6, .bg-white\/8, .bg-white\/10, .bg-black\/15, .bg-black\/20, .bg-surface-light, .bg-surface-lighter) {
+  background-color: var(--color-surface-soft);
+}
+.game-panel :is(.bg-white\/20, .bg-black\/30, .bg-black\/35, .bg-black\/40) {
+  background-color: #f2f2f2;
+}
+.game-panel :is(.border-white\/5, .border-white\/6, .border-white\/8, .border-white\/10, .border-white\/15, .border-white\/20) {
+  border-color: var(--color-hairline-soft);
+}
+.game-panel :is(.text-violet-300, .text-violet-400, .text-emerald-300, .text-amber-300, .text-sky-300, .text-rose-300) {
+  color: var(--color-coral-active);
+}
+.game-panel :is(.bg-violet-500, .bg-violet-600, .bg-amber-500, .bg-sky-500) {
+  background-color: var(--color-coral);
+}
+.game-panel :is(.accent-violet-500) { accent-color: var(--color-coral); }
+.game-panel :is(.text-amber-400, .text-amber-500, .text-yellow-400) { color: #b26b00; }
+.game-panel :is(.text-green-400, .text-emerald-400) { color: #008a05; }
+.game-panel :is(.border-violet-400\/35, .border-violet-400\/50, .focus\:border-violet-400:focus) {
+  border-color: var(--color-coral);
 }
 
 /* Frozen winter backdrop */
