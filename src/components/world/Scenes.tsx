@@ -73,7 +73,7 @@ function Parlor() {
         </mesh>
       ))}
       {/* arched window glowing with late sun */}
-      <group position={[-1.05, 1.55, -4.12]} scale={0.85}>
+      <group position={[-1.35, 1.55, -4.12]} scale={0.8}>
         <mesh>
           <planeGeometry args={[1.2, 1.8]} />
           <meshBasicMaterial color="#ffd8a0" toneMapped={false} />
@@ -92,47 +92,21 @@ function Parlor() {
           </mesh>
         ))}
       </group>
-      <spotLight position={[-1.05, 2.6, -3.4]} target-position={[0, GROUND, 0]} angle={0.7} penumbra={0.8} intensity={6} color="#ffc98a" castShadow />
-      {/* fireplace */}
-      <group position={[1.05, GROUND, -3.9]} scale={0.72}>
-        <mesh position={[0, 0.65, 0]}>
-          <boxGeometry args={[1.8, 1.3, 0.5]} />
-          <meshStandardMaterial color="#efe6d6" roughness={0.6} />
-        </mesh>
-        <mesh position={[0, 0.45, 0.22]}>
-          <boxGeometry args={[1.0, 0.8, 0.1]} />
-          <meshStandardMaterial color="#1c120c" roughness={1} />
-        </mesh>
-        <mesh position={[0, 1.34, 0.05]}>
-          <boxGeometry args={[2.0, 0.08, 0.6]} />
-          <meshStandardMaterial color="#e6dac2" roughness={0.5} />
-        </mesh>
-        {/* gilded mirror */}
-        <mesh position={[0, 2.0, -0.15]}>
-          <torusGeometry args={[0.45, 0.05, 8, 32]} />
-          <meshStandardMaterial color="#c9a04a" metalness={0.8} roughness={0.3} />
-        </mesh>
-        <mesh position={[0, 2.0, -0.17]}>
-          <circleGeometry args={[0.45, 32]} />
-          <meshStandardMaterial color="#d9cdb9" metalness={0.6} roughness={0.15} />
-        </mesh>
-        <Fire position={[0, 0.08, 0.25]} scale={1.1} light={3} />
-      </group>
+      <spotLight position={[-1.35, 2.6, -3.4]} target-position={[0, GROUND, 0]} angle={0.7} penumbra={0.8} intensity={6} color="#ffc98a" castShadow />
+      {/* marble fireplace (tools/blender/plush_props.py) with a live fire */}
+      <Prop name="plush_fireplace" height={1.35} position={[0, -4.0]} />
+      <Fire position={[0, GROUND + 0.06, -3.8]} scale={0.85} light={3.2} />
       {/* KayKit armchair with pillows, books and a cushion on the rug */}
       <Prop name="armchair_pillows" height={1.25} position={[-1.6, -2.3]} rotation={0.6} />
       <Prop name="book_set" height={0.32} position={[-0.95, -1.7]} rotation={0.3} />
       <Prop name="pillow_A" height={0.16} position={[1.0, 0.35]} rotation={-0.4} />
       {/* floor lamp */}
-      <Prop name="lamp_standing" height={2.3} position={[1.75, -2.6]} />
-      <pointLight position={[1.75, GROUND + 2.0, -2.6]} color="#ffb766" intensity={4} distance={7} decay={1.5} castShadow />
+      <Prop name="plush_lamp" height={2.2} position={[1.45, -3.9]} />
+      <pointLight position={[1.45, GROUND + 1.95, -3.8]} color="#ffb766" intensity={4} distance={7} decay={1.5} castShadow />
       {/* side table with a lamp, cabinet, plant */}
-      <Prop name="table_small" height={0.75} position={[-0.25, -3.7]} />
-      <Prop name="lamp_table" height={0.55} position={[-0.25, -3.7]} y={GROUND + 0.75} />
-      <pointLight position={[-0.25, GROUND + 1.2, -3.5]} color="#ffb766" intensity={1.2} distance={3} />
-      <Prop name="cabinet_small_decorated" height={1.1} position={[-1.95, -3.8]} rotation={0.2} />
-      <Prop name="k-furniture-pottedPlant" height={0.95} position={[1.85, -1.3]} />
+      <Prop name="plush_sofa" height={0.95} position={[1.55, -2.6]} rotation={-0.75} />
+      <Prop name="k-furniture-pottedPlant" height={0.95} position={[-1.95, -3.6]} />
       <Prop name="k-furniture-bear" height={0.45} position={[-1.0, -0.5]} rotation={0.6} />
-      <Prop name="k-furniture-radio" height={0.28} position={[1.05, -3.75]} y={GROUND + 0.94} rotation={-0.2} />
       {/* gold-framed paintings */}
       {[[0.05, 2.35, 0.7, 0.5, '#7d6a4a'], [1.05, 2.65, 0.55, 0.42, '#5b6f7d']].map(([x, y, w, h, c]) => (
         <group key={x as number} position={[x as number, y as number, -4.12]}>

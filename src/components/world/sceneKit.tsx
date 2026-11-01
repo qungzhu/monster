@@ -2,6 +2,7 @@ import { useLayoutEffect, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { useGLTF } from '@react-three/drei';
 import { SkeletonUtils } from 'three-stdlib';
+import { toPlushMaterial } from '../pets/plushMaterial';
 import * as THREE from 'three';
 import { canvasTexture, GROUND, rng } from './sceneUtils';
 
@@ -300,7 +301,12 @@ export function Prop({ name, height, position, rotation = 0, y }: {
     const object = SkeletonUtils.clone(scene);
     object.traverse(o => {
       const m = o as THREE.Mesh;
-      if (m.isMesh) { m.castShadow = true; m.receiveShadow = true; }
+      if (!m.isMesh) return;
+      m.castShadow = true;
+      m.receiveShadow = true;
+      // Our own props name their cloth 'fabric_*': give it the plush shader.
+      const mt = m.material as THREE.MeshStandardMaterial;
+      if (mt?.isMeshStandardMaterial && mt.name.startsWith('fabric')) m.material = toPlushMaterial(mt, m);
     });
     const box = new THREE.Box3().setFromObject(object, true);
     const scale = height / Math.max(box.max.y - box.min.y, 1e-6);
