@@ -1,5 +1,6 @@
 import * as THREE from 'three';
-import { Birch, Butterflies, Drift, Fire, FlowerField, Glows, GrassTufts, Ground, Hill, LeafyTree, Spruce } from './sceneKit';
+import { Suspense } from 'react';
+import { Birch, Butterflies, Drift, Fire, FlowerField, Glows, GrassTufts, Ground, Hill, Prop, Spruce } from './sceneKit';
 import { canvasTexture, GROUND, mottled, rng } from './sceneUtils';
 import type { SceneId } from './sceneList';
 
@@ -117,34 +118,19 @@ function Parlor() {
         </mesh>
         <Fire position={[0, 0.08, 0.25]} scale={1.1} light={3} />
       </group>
-      {/* velvet armchair */}
-      <group position={[-1.55, GROUND, -2.4]} rotation={[0, 0.55, 0]} scale={0.85}>
-        <mesh position={[0, 0.3, 0]} castShadow><boxGeometry args={[0.9, 0.35, 0.8]} /><meshStandardMaterial color="#3e6b5c" roughness={1} /></mesh>
-        <mesh position={[0, 0.75, -0.35]} castShadow><boxGeometry args={[0.9, 0.7, 0.18]} /><meshStandardMaterial color="#3e6b5c" roughness={1} /></mesh>
-        {[-1, 1].map(s => <mesh key={s} position={[s * 0.45, 0.5, 0]}><boxGeometry args={[0.14, 0.3, 0.8]} /><meshStandardMaterial color="#365e51" roughness={1} /></mesh>)}
-        {[[-0.35, -0.3], [0.35, -0.3], [-0.35, 0.3], [0.35, 0.3]].map(([x, z]) => <mesh key={`${x}${z}`} position={[x, 0.06, z]}><cylinderGeometry args={[0.03, 0.02, 0.14, 6]} /><meshStandardMaterial color="#c9a04a" metalness={0.7} roughness={0.3} /></mesh>)}
-      </group>
+      {/* KayKit armchair with pillows, books and a cushion on the rug */}
+      <Prop name="armchair_pillows" height={1.25} position={[-1.6, -2.3]} rotation={0.6} />
+      <Prop name="book_set" height={0.32} position={[-0.95, -1.7]} rotation={0.3} />
+      <Prop name="pillow_A" height={0.16} position={[1.0, 0.35]} rotation={-0.4} />
       {/* floor lamp */}
-      <group position={[1.75, GROUND, -2.6]}>
-        <mesh position={[0, 0.8, 0]}><cylinderGeometry args={[0.02, 0.02, 1.6, 8]} /><meshStandardMaterial color="#c9a04a" metalness={0.8} roughness={0.3} /></mesh>
-        <mesh position={[0, 1.68, 0]}><cylinderGeometry args={[0.18, 0.28, 0.3, 20, 1, true]} /><meshStandardMaterial color="#f6dfb4" side={THREE.DoubleSide} emissive="#ffc77a" emissiveIntensity={0.9} /></mesh>
-        <pointLight position={[0, 1.55, 0]} color="#ffb766" intensity={4} distance={7} decay={1.5} castShadow />
-      </group>
-      {/* side table with books, potted fern */}
-      <group position={[-0.25, GROUND, -3.6]}>
-        <mesh position={[0, 0.3, 0]}><cylinderGeometry args={[0.32, 0.32, 0.04, 24]} /><meshStandardMaterial color="#6b3f26" roughness={0.6} /></mesh>
-        <mesh position={[0, 0.15, 0]}><cylinderGeometry args={[0.04, 0.06, 0.3, 8]} /><meshStandardMaterial color="#6b3f26" /></mesh>
-        {['#7a2a2a', '#2e4a63', '#c7a46a'].map((c, i) => <mesh key={c} position={[0.05, 0.35 + i * 0.05, 0]} rotation={[0, i * 0.3, 0]}><boxGeometry args={[0.28, 0.045, 0.2]} /><meshStandardMaterial color={c} /></mesh>)}
-      </group>
-      <group position={[-1.9, GROUND, -3.7]}>
-        <mesh position={[0, 0.2, 0]}><cylinderGeometry args={[0.2, 0.15, 0.4, 16]} /><meshStandardMaterial color="#d97b5f" roughness={0.8} /></mesh>
-        {Array.from({ length: 9 }, (_, i) => (
-          <mesh key={i} position={[Math.cos(i * 0.7) * 0.15, 0.6, Math.sin(i * 0.7) * 0.15]} rotation={[Math.sin(i) * 0.6, i * 0.7, Math.cos(i) * 0.6]}>
-            <coneGeometry args={[0.07, 0.6, 5]} />
-            <meshStandardMaterial color="#4f7d3a" roughness={0.9} />
-          </mesh>
-        ))}
-      </group>
+      <Prop name="lamp_standing" height={2.3} position={[1.75, -2.6]} />
+      <pointLight position={[1.75, GROUND + 2.0, -2.6]} color="#ffb766" intensity={4} distance={7} decay={1.5} castShadow />
+      {/* side table with a lamp, cabinet, plant */}
+      <Prop name="table_small" height={0.75} position={[-0.25, -3.7]} />
+      <Prop name="lamp_table" height={0.55} position={[-0.25, -3.7]} y={GROUND + 0.75} />
+      <pointLight position={[-0.25, GROUND + 1.2, -3.5]} color="#ffb766" intensity={1.2} distance={3} />
+      <Prop name="cabinet_small_decorated" height={1.1} position={[-1.95, -3.8]} rotation={0.2} />
+      <Prop name="cactus_medium_A" height={0.55} position={[1.85, -1.2]} />
       {/* gold-framed paintings */}
       {[[0.05, 2.35, 0.7, 0.5, '#7d6a4a'], [1.05, 2.65, 0.55, 0.42, '#5b6f7d']].map(([x, y, w, h, c]) => (
         <group key={x as number} position={[x as number, y as number, -4.12]}>
@@ -207,6 +193,9 @@ function RococoGarden() {
       {[[-2.3, -6.5], [2.6, -8], [-2.9, -9]].map(([x, z]) => (
         <mesh key={`${x}${z}`} position={[x, GROUND + 0.9, z]}><coneGeometry args={[0.6, 1.8, 20]} /><meshStandardMaterial color="#4f8a4c" roughness={0.95} /></mesh>
       ))}
+      {/* garden columns and bushes */}
+      {[-1, 1].map(side => <Prop key={side} name="column" height={1.5} position={[side * 0.95, -5.6]} />)}
+      {[[-2.1, -2.3], [2.2, -2.6], [-2.6, -4.6], [2.7, -5]].map(([x, z]) => <Prop key={`${x}${z}`} name="bush_large" height={0.5} position={[x, z]} rotation={x} />)}
       {/* low hedges along the path */}
       {[-1, 1].map(side => (
         <mesh key={side} position={[side * 0.75, GROUND + 0.14, -2.6]}><boxGeometry args={[0.2, 0.28, 2.2]} /><meshStandardMaterial color="#5f9a58" roughness={0.95} /></mesh>
@@ -242,7 +231,13 @@ function Meadow() {
           <mesh position={[0, s * 1.05, 0]} scale={[s * 0.6, s * 0.6, s * 0.6]}><coneGeometry args={[1.0, 1.2, 6]} /><meshStandardMaterial color="#f5f8fc" roughness={0.9} flatShading /></mesh>
         </group>
       ))}
-      {spruces.map(([x, z, s], i) => <Spruce key={i} position={[x, GROUND, z]} scale={s} color={i % 3 ? '#1f4430' : '#28513a'} />)}
+      {spruces.map(([x, z, s], i) => <Prop key={i} name={i % 2 ? 'tree_pine_tall' : 'tree_pine'} height={1.8 * s} position={[x, z]} rotation={i} />)}
+      <Prop name="deer" height={1.1} position={[1.5, -4.2]} rotation={-0.9} />
+      <Prop name="stag" height={1.4} position={[-1.9, -6.5]} rotation={0.7} />
+      <Prop name="rock_large" height={0.35} position={[1.3, -1.6]} rotation={0.5} />
+      <Prop name="rock_small" height={0.22} position={[-1.2, -0.9]} />
+      <Prop name="stump" height={0.25} position={[-1.6, -2.4]} />
+      {[[0.9, -0.6], [-0.8, 0.6], [1.6, 0.4]].map(([x, z]) => <Prop key={`${x}${z}`} name="mushroom_red" height={0.18} position={[x, z]} />)}
       {/* wildflowers: yellow buttercups, purple asters, white daisies */}
       <FlowerField count={420} colors={['#facc15', '#a78bfa', '#ffffff', '#f472b6', '#fde047']} area={[-7, 7, -7, 2.5]} seed={31} size={0.035} height={0.1} />
       <GrassTufts count={500} color="#5a9140" area={[-7, 7, -6, 2.5]} seed={32} />
@@ -281,6 +276,8 @@ function Hokkaido() {
         {[-0.45, 0.45].map(x => <mesh key={x} position={[x, 0.6, 0.71]}><planeGeometry args={[0.34, 0.34]} /><meshBasicMaterial color="#ffc46b" toneMapped={false} /></mesh>)}
         <pointLight position={[0, 0.6, 1.1]} color="#ffb35c" intensity={2.4} distance={5} />
       </group>
+      <Prop name="fox" height={0.55} position={[1.3, -2.2]} rotation={-0.8} />
+      <Prop name="log" height={0.28} position={[-1.2, -1.6]} rotation={0.4} />
       {/* soft, slow, big flakes: powder snow */}
       <Drift count={300} color="#ffffff" size={0.022} speed={0.35} sway={0.5} />
       <directionalLight position={[-4, 4, -3]} intensity={0.7} color="#ffd1c4" />
@@ -313,9 +310,11 @@ function ButterflyPark() {
           <FlowerField count={90} colors={colors} area={[x - 0.5, x + 0.5, z - 0.5, z + 0.5]} seed={50 + i} avoid={0} size={0.06} height={0.3} />
         </group>
       ))}
-      {[[-2.1, -5.5, 1.3, '#5c9c45'], [2.3, -6.5, 1.5, '#6aa84f'], [-0.6, -10, 2, '#4e8a3c'], [3.4, -10.5, 1.8, '#79b356'], [-3.4, -9.5, 1.7, '#5f9a48']].map(([x, z, s, c], i) => (
-        <LeafyTree key={i} position={[x as number, GROUND, z as number]} scale={s as number} color={c as string} />
+      {([[-2.1, -5.5, 2.2, 'tree_oak'], [2.3, -6.5, 2.6, 'tree_fat'], [-0.6, -10, 3.2, 'tree_autumn'], [3.4, -10.5, 2.8, 'tree_oak'], [-3.4, -9.5, 3, 'tree_fat']] as const).map(([x, z, h, name], i) => (
+        <Prop key={i} name={name} height={h} position={[x, z]} rotation={i * 1.3} />
       ))}
+      {[-1.5, -0.5, 0.5, 1.5].map(x => <Prop key={x} name="fence" height={0.3} position={[x, -7.2]} />)}
+      {[[1.9, -2.4], [-1.9, -1.2]].map(([x, z]) => <Prop key={`${x}`} name="bush_large" height={0.45} position={[x, z]} />)}
       {/* bench */}
       <group position={[-1.45, GROUND, -2.8]} rotation={[0, 0.5, 0]} scale={0.85}>
         {[0, 0.12, 0.24].map(z => <mesh key={z} position={[0, 0.42, z - 0.12]}><boxGeometry args={[1.3, 0.04, 0.09]} /><meshStandardMaterial color="#9a6b43" /></mesh>)}
@@ -357,14 +356,14 @@ function Campsite() {
       <Glows points={bulbs} color="#ffd98a" size={0.035} />
       {/* campfire ring */}
       <group position={[-0.95, GROUND, -1.6]}>
-        {Array.from({ length: 9 }, (_, i) => {
-          const a = (i / 9) * Math.PI * 2;
-          return <mesh key={i} position={[Math.cos(a) * 0.38, 0.06, Math.sin(a) * 0.38]}><icosahedronGeometry args={[0.09, 0]} /><meshStandardMaterial color="#77736c" roughness={1} flatShading /></mesh>;
-        })}
+        <Prop name="campfire" height={0.12} position={[0, 0]} y={0} />
         {[0.4, -0.4, 1.4].map(a => <mesh key={a} position={[0, 0.06, 0]} rotation={[0, a, Math.PI / 2]}><cylinderGeometry args={[0.04, 0.04, 0.5, 6]} /><meshStandardMaterial color="#4a3020" /></mesh>)}
         <Fire position={[0, 0.06, 0]} scale={0.9} light={3.5} />
         <Drift count={30} color="#ffb04a" size={0.008} speed={-0.5} area={0.6} sway={0.15} />
       </group>
+      <Prop name="log" height={0.3} position={[-1.7, -1.0]} rotation={1.2} />
+      <Prop name="stump" height={0.28} position={[-0.2, -0.7]} />
+      <Prop name="fox" height={0.5} position={[1.6, -2.0]} rotation={-1.2} />
       {/* folding chairs and a lantern */}
       {[[-1.45, -2.7, 0.9], [-0.1, -3.0, -0.3]].map(([x, z, ry]) => (
         <group key={x} position={[x, GROUND, z]} rotation={[0, ry, 0]}>
@@ -381,7 +380,7 @@ function Campsite() {
       {/* pines around, fireflies */}
       {Array.from({ length: 16 }, (_, i) => {
         const x = (r() - 0.5) * 8, z = -6 - r() * 6;
-        return <Spruce key={i} position={[x, GROUND, z]} scale={1.3 + r() * 1.1} color="#1a3026" />;
+        return <Prop key={i} name={i % 2 ? 'tree_pine_tall' : 'tree_pine'} height={2.2 + r() * 1.6} position={[x, z]} rotation={i} />;
       })}
       <Glows points={Array.from({ length: 24 }, () => [(r() - 0.5) * 8, GROUND + 0.3 + r() * 1.4, -1 - r() * 5] as [number, number, number])} color="#d9ff8a" size={0.015} />
       <ambientLight intensity={0.25} color="#8fa0d8" />
@@ -392,6 +391,10 @@ function Campsite() {
 }
 
 export function SceneSet({ id }: { id: Exclude<SceneId, 'snow'> }) {
+  return <Suspense fallback={null}><SceneBody id={id} /></Suspense>;
+}
+
+function SceneBody({ id }: { id: Exclude<SceneId, 'snow'> }) {
   switch (id) {
     case 'parlor': return <Parlor />;
     case 'rococo': return <RococoGarden />;

@@ -1,5 +1,7 @@
 import { useLayoutEffect, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
+import { useGLTF } from '@react-three/drei';
+import { SkeletonUtils } from 'three-stdlib';
 import * as THREE from 'three';
 import { canvasTexture, GROUND, rng } from './sceneUtils';
 
@@ -283,5 +285,30 @@ export function Drift({ count, color, size, speed, area = 12, sway = 0.3, opacit
       <icosahedronGeometry args={[1, 0]} />
       <meshBasicMaterial color={color} transparent opacity={opacity} toneMapped={false} />
     </instancedMesh>
+  );
+}
+
+/**
+ * A cartoon prop from public/models/scenes (CC0, see CREDITS.md there),
+ * scaled to `height` and standing on the ground (or at `y`).
+ */
+export function Prop({ name, height, position, rotation = 0, y }: {
+  name: string; height: number; position: [number, number]; rotation?: number; y?: number;
+}) {
+  const { scene } = useGLTF(`/models/scenes/${name}.glb`);
+  const { object, scale, lift } = useMemo(() => {
+    const object = SkeletonUtils.clone(scene);
+    object.traverse(o => {
+      const m = o as THREE.Mesh;
+      if (m.isMesh) { m.castShadow = true; m.receiveShadow = true; }
+    });
+    const box = new THREE.Box3().setFromObject(object, true);
+    const scale = height / Math.max(box.max.y - box.min.y, 1e-6);
+    return { object, scale, lift: -box.min.y * scale };
+  }, [scene, height]);
+  return (
+    <group position={[position[0], (y ?? GROUND) + lift, position[1]]} rotation={[0, rotation, 0]} scale={scale}>
+      <primitive object={object} />
+    </group>
   );
 }
