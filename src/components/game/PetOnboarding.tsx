@@ -67,9 +67,13 @@ export function PetOnboarding({ onChoose }: PetOnboardingProps) {
   // plates, a carbon command bar, warm colour only where you act.
   return (
     <div className="nx-canvas relative flex h-full min-h-[620px] flex-col overflow-hidden pb-6">
-      <div className="nx-command z-10 px-4 pb-3 pt-[calc(env(safe-area-inset-top)+0.9rem)] text-center">
-        <h1 className="nx-title text-[26px]">选择你的 AI 搭档</h1>
-        <p className="mt-1.5 text-[11px] font-bold tracking-wide text-[#ecab37]">猫咪、小狗或狐狸 · 陪你管理每天的生活</p>
+      <div className="nx-command relative z-10 px-4 pb-4 pt-[calc(env(safe-area-inset-top)+1.1rem)] text-center">
+        {/* Box-art logo: gradient letters, white + ink outlines, hard shadow */}
+        <h1 className="nx-boxart text-[32px]" data-text="选择你的 AI 搭档"><span>选择你的 AI 搭档</span></h1>
+        <div className="mt-2.5">
+          <span className="nx-ribbon"><span>猫咪 · 狗狗 · 狐狸 · 陪你过好每一天</span></span>
+        </div>
+        <span className="nx-burst right-1 top-[calc(env(safe-area-inset-top)+0.2rem)]" aria-hidden="true">3D!</span>
       </div>
 
       <div className="z-10 mt-3 flex justify-center gap-2 px-4" role="tablist" aria-label="宠物类型">

@@ -395,3 +395,62 @@ body {
   text-transform: uppercase;
   color: #3d4f97;
 }
+
+/* Box-art title: gradient fill, white inner outline, thick ink outer
+   outline and a hard drop shadow, tilted like a game-cover logo. The outer
+   outline is a ::before copy of the text (data-text) behind it. */
+.nx-boxart {
+  position: relative;
+  display: inline-block;
+  font-weight: 900;
+  line-height: 1.1;
+  letter-spacing: 1px;
+  transform: rotate(-3deg) skewX(-7deg);
+}
+.nx-boxart::before {
+  content: attr(data-text);
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  color: #21242e;
+  -webkit-text-stroke: 4px #ffffff;
+  filter: drop-shadow(0 0 0 #21242e) drop-shadow(2px 0 0 #21242e) drop-shadow(-2px 0 0 #21242e) drop-shadow(0 2px 0 #21242e) drop-shadow(0 -2px 0 #21242e);
+  text-shadow: 3px 4px 0 #21242e, 5px 7px 0 #21242e, 6px 9px 0 rgba(33, 36, 46, 0.55);
+}
+.nx-boxart > span {
+  position: relative;
+  z-index: 1;
+  background: linear-gradient(180deg, #fff6a8 0%, #ffd23f 38%, #ff9f1c 70%, #f46a12 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  /* no inner stroke: thin CJK strokes keep their gradient */
+}
+.nx-ribbon {
+  display: inline-block;
+  transform: rotate(-3deg) skewX(-12deg);
+  background: linear-gradient(180deg, #ff4d4d 0%, #d81e1e 100%);
+  border: 2px solid #21242e;
+  box-shadow: 3px 3px 0 #21242e;
+  color: #ffffff;
+  font: 900 12px/1 Arial, 'Noto Sans SC', sans-serif;
+  letter-spacing: 1px;
+  padding: 5px 14px;
+}
+.nx-ribbon > span { display: inline-block; transform: skewX(12deg); }
+.nx-burst {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 46px;
+  height: 46px;
+  background: #ecab37;
+  color: #21242e;
+  font: 900 13px/1 Arial, sans-serif;
+  clip-path: polygon(50% 0, 61% 18%, 82% 8%, 80% 30%, 100% 36%, 85% 52%, 98% 70%, 76% 72%, 74% 94%, 56% 82%, 42% 100%, 34% 80%, 12% 90%, 16% 68%, 0 58%, 16% 44%, 4% 24%, 26% 24%, 26% 2%, 42% 16%);
+  filter: drop-shadow(2px 2px 0 #21242e);
+  animation: nx-burst 4s ease-in-out infinite;
+}
+@keyframes nx-burst { 0%, 100% { transform: rotate(-12deg) scale(1); } 50% { transform: rotate(-4deg) scale(1.08); } }
+@media (prefers-reduced-motion: reduce) { .nx-burst { animation: none; transform: rotate(-12deg); } }
