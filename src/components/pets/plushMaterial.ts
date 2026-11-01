@@ -219,11 +219,11 @@ export const plushTuning = {
   /** Fibre clumps across one bounding radius of the mesh. */
   fibresPerRadius: { value: 140 },
   /** Albedo variation of the pile, 0–1. */
-  noise: { value: 0.12 },
+  noise: { value: 0.04 },
   /** Wrap-lighting amount: 0 = Lambert, 1 = fully wrapped. */
   wrap: { value: 0.25 },
   /** Backlit rim glow strength. */
-  rim: { value: 0.3 },
+  rim: { value: 0.4 },
   /** Strength of the baked ambient occlusion, 0–1. */
   ao: { value: 0.75 },
   /** Stuffing: how far the surface is pushed out, as a fraction of the mesh's radius. */

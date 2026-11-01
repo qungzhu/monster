@@ -89,14 +89,30 @@ function shellMaterial(base: THREE.MeshPhysicalMaterial, h: number, perRadius: n
   // Short-fur areas (around the eyes and nose) simply have fewer layers.
   if (uFurH > furLen + 0.02) discard;
   float radius = 0.55 * (1.0 - uFurH * 0.8);
-  if (best > radius) discard;
+  // Soft, anti-aliased fibres (a hard cut sparkles as grain on a phone).
+  float aa = max(fwidth(best) * 1.2, 0.04);
+  float fibre = 1.0 - smoothstep(radius - aa, radius + aa, best);
+  // Fibres smaller than a pixel become an even haze of the same density.
+  float haze = 0.55 * radius * radius * 3.14;
+  float cover = mix(fibre, haze, smoothstep(0.35, 1.1, length(fwidth(fp))));
+  // Plush reads smooth face-on and fuzzy at the silhouette: fibres show
+  // mostly where the surface turns away from the eye.
+  vec3 furV = normalize(vViewPosition);
+  float furEdge = 1.0 - abs(dot(normalize(vNormal), furV));
+  float furAlpha = cover * mix(0.22, 1.0, pow(furEdge, 1.3)) * (1.0 - uFurH * 0.55);
+  if (furAlpha < 0.015) discard;
   // Self-shadowing: deeper layers darker, tips catch the light.
   diffuseColor.rgb *= mix(0.72, 1.08, uFurH);
   #ifdef PLUSH_AO
   diffuseColor.rgb *= mix(1.0, smoothstep(0.0, 1.0, vPlushAO), uPlushAO);
-  #endif`);
+  #endif
+  diffuseColor.a *= furAlpha;`);
   };
-  m.customProgramCacheKey = () => `plush-fur-${mask ? 'm' : ''}${ao ? 'a' : ''}${h.toFixed(3)}`;
+  // Blended, not cut out: shells draw back to front (renderOrder) without
+  // writing depth, so soft fibre edges don't flicker.
+  m.transparent = true;
+  m.depthWrite = false;
+  m.customProgramCacheKey = () => `plush-fur2-${mask ? 'm' : ''}${ao ? 'a' : ''}${h.toFixed(3)}`;
   return m;
 }
 
