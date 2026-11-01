@@ -80,6 +80,9 @@ def cyl(name, r, depth, loc, m, rot=(0, 0, 0), verts=32, bevel=0.0, subdiv=1, r2
         bpy.ops.mesh.primitive_cone_add(vertices=verts, radius1=r, radius2=r2, depth=depth, location=loc, rotation=rot)
     o = bpy.context.active_object
     o.name = name
+    if subdiv and not bevel:
+        # round the cap edges first, or subdivision pulls the caps to a point
+        bevel = min(r if r2 is None else min(r, r2 or r), depth) * 0.25
     return finish(o, m, bevel, 3, subdiv)
 
 
@@ -90,6 +93,22 @@ def sphere(name, r, loc, m, scale=(1, 1, 1)):
     o.scale = scale
     bpy.ops.object.transform_apply(scale=True)
     return finish(o, m, 0, subdiv=0)
+
+
+def prism(name, w, d, h, z0, m, subdiv=0, bevel=0.0):
+    """Gable roof: a triangular prism along X, eaves at z0, ridge at z0 + h."""
+    me = bpy.data.meshes.new(name)
+    bm = bmesh.new()
+    vs = [bm.verts.new(v) for v in ((-w / 2, -d / 2, z0), (-w / 2, d / 2, z0), (-w / 2, 0, z0 + h),
+                                    (w / 2, -d / 2, z0), (w / 2, d / 2, z0), (w / 2, 0, z0 + h))]
+    for f in ((0, 1, 2), (5, 4, 3), (0, 3, 4, 1), (1, 4, 5, 2), (2, 5, 3, 0)):
+        bm.faces.new([vs[i] for i in f])
+    bm.normal_update()
+    bm.to_mesh(me); bm.free()
+    o = bpy.data.objects.new(name, me)
+    bpy.context.scene.collection.objects.link(o)
+    bpy.context.view_layer.objects.active = o
+    return finish(o, m, bevel, 3, subdiv, smooth=bool(subdiv))
 
 
 def puff(o, amount):
@@ -212,7 +231,253 @@ def plush_lamp():
     export('plush_lamp')
 
 
-PROPS = {'plush_sofa': plush_sofa, 'plush_fireplace': plush_fireplace, 'plush_lamp': plush_lamp}
+def plush_armchair():
+    """Single tufted velvet armchair matching the sofa (sage)."""
+    velvet = mat('fabric_velvet_sage', srgb('#8fae95'), rough=1, sheen=1)
+    tuft = mat('fabric_velvet_sage_dark', srgb('#6c8a72'), rough=1, sheen=1)
+    gold = mat('brass', srgb('#c9a04a'), rough=0.35, metal=1)
+    W, D = 1.0, 0.9
+    box('base', (W - 0.15, D, 0.3), (0, 0, 0.3), velvet, bevel=0.1)
+    puff(box('seat', (0.74, 0.74, 0.24), (0, 0.06, 0.58), velvet, bevel=0.11, subdiv=3), 0.25)
+    puff(box('back', (W - 0.05, 0.3, 0.72), (0, -D / 2 + 0.15, 0.88), velvet, bevel=0.14, subdiv=3), 0.15)
+    for x in (-0.18, 0.18):
+        for z in (0.8, 1.02):
+            sphere('tuft', 0.03, (x, -D / 2 + 0.31, z), tuft, scale=(1, 0.7, 1))
+    for s in (-1, 1):
+        cyl(f'arm{s}', 0.16, D, (s * (W / 2 - 0.02), 0, 0.62), velvet, rot=(math.pi / 2, 0, 0), bevel=0.06, subdiv=2)
+        box(f'armside{s}', (0.18, D, 0.4), (s * (W / 2 - 0.02), 0, 0.42), velvet, bevel=0.08)
+    for x in (-W / 2 + 0.12, W / 2 - 0.12):
+        for y in (-D / 2 + 0.12, D / 2 - 0.12):
+            cyl('leg', 0.035, 0.18, (x, y, 0.09), gold, r2=0.022, subdiv=1)
+    export('plush_armchair')
+
+
+def plush_fountain():
+    """Three-tier garden fountain with scalloped basins and glowing water."""
+    stone = mat('marble', srgb('#f1ebe0'), rough=0.45)
+    water = mat('glow_water', srgb('#8fd3ea'), rough=0.05, emit=(srgb('#9edcf0'), 0.6))
+    gold = mat('brass', srgb('#d4ad5a'), rough=0.3, metal=1)
+    cyl('basin', 1.0, 0.36, (0, 0, 0.18), stone, bevel=0.05, subdiv=2, verts=48)
+    cyl('pool', 0.9, 0.04, (0, 0, 0.34), water, subdiv=0, verts=48)
+    for i in range(16):  # scalloped rim
+        a = i / 16 * 2 * math.pi
+        sphere(f'scallop{i}', 0.12, (math.cos(a) * 0.98, math.sin(a) * 0.98, 0.36), stone, scale=(1, 1, 0.6))
+    cyl('stem', 0.13, 0.75, (0, 0, 0.72), stone, r2=0.09, subdiv=1)
+    cyl('bowl', 0.55, 0.2, (0, 0, 1.12), stone, r2=0.18, rot=(math.pi, 0, 0), subdiv=2, verts=40)
+    cyl('pool2', 0.5, 0.03, (0, 0, 1.21), water, subdiv=0, verts=40)
+    cyl('stem2', 0.07, 0.4, (0, 0, 1.4), stone, subdiv=1)
+    cyl('bowl2', 0.28, 0.12, (0, 0, 1.62), stone, r2=0.1, rot=(math.pi, 0, 0), subdiv=2)
+    sphere('finial', 0.08, (0, 0, 1.8), gold)
+    for i in range(8):  # streams falling from the upper bowl
+        a = i / 8 * 2 * math.pi
+        cyl(f'stream{i}', 0.018, 0.75, (math.cos(a) * 0.5, math.sin(a) * 0.5, 0.78), water, subdiv=0, verts=8)
+    export('plush_fountain')
+
+
+def plush_gazebo():
+    """White garden gazebo: six columns, scalloped mint dome, gold finial."""
+    white = mat('paint_white', srgb('#fbf7ef'), rough=0.5)
+    roof = mat('fabric_roof_mint', srgb('#bfe0d2'), rough=1, sheen=1)
+    gold = mat('brass', srgb('#d4ad5a'), rough=0.3, metal=1)
+    cyl('floor', 1.25, 0.16, (0, 0, 0.08), white, verts=6, bevel=0.03, subdiv=0)
+    for i in range(6):
+        a = i / 6 * 2 * math.pi
+        x, y = math.cos(a) * 1.0, math.sin(a) * 1.0
+        cyl(f'col{i}', 0.06, 1.7, (x, y, 1.0), white, subdiv=1, verts=16)
+        sphere(f'cap{i}', 0.09, (x, y, 1.86), white)
+    bpy.ops.mesh.primitive_uv_sphere_add(radius=1.25, location=(0, 0, 1.9), segments=48, ring_count=24)
+    d = bpy.context.active_object
+    bm = bmesh.new(); bm.from_mesh(d.data)
+    bmesh.ops.delete(bm, geom=[v for v in bm.verts if v.co.z < -0.01], context='VERTS')
+    bm.to_mesh(d.data); bm.free()
+    d.scale = (1, 1, 0.7)
+    finish(d, roof, subdiv=1)
+    for i in range(18):  # scalloped valance
+        a = i / 18 * 2 * math.pi
+        sphere(f'val{i}', 0.15, (math.cos(a) * 1.22, math.sin(a) * 1.22, 1.88), roof, scale=(1, 1, 0.55))
+    cyl('spire', 0.04, 0.3, (0, 0, 2.95), gold, subdiv=0)
+    sphere('ball', 0.09, (0, 0, 3.12), gold)
+    export('plush_gazebo')
+
+
+def plush_sheep():
+    """A fluffy sheep: cloud of wool puffs, dark face and legs."""
+    wool = mat('fabric_wool', srgb('#f6f1e6'), rough=1, sheen=1)
+    face = mat('fabric_face', srgb('#3b3330'), rough=1, sheen=0.5)
+    eye = mat('eye', srgb('#111111'), rough=0.2)
+    import random
+    rnd = random.Random(3)
+    for i in range(22):
+        x = rnd.uniform(-0.38, 0.38); y = rnd.uniform(-0.22, 0.22); z = 0.52 + rnd.uniform(-0.12, 0.14)
+        sphere(f'puff{i}', rnd.uniform(0.17, 0.24), (y * 0, x, z) if False else (y, x, z), wool)
+    sphere('head', 0.15, (0, 0.5, 0.62), face, scale=(0.8, 1.1, 1))
+    sphere('topknot', 0.1, (0, 0.46, 0.78), wool)
+    for s in (-1, 1):
+        sphere(f'ear{s}', 0.06, (s * 0.15, 0.45, 0.68), face, scale=(1.6, 0.5, 0.6))
+        sphere(f'eye{s}', 0.022, (s * 0.07, 0.63, 0.67), eye)
+    for x in (-0.12, 0.12):
+        for y in (-0.22, 0.25):
+            cyl('leg', 0.045, 0.32, (x, y, 0.16), face, subdiv=1)
+    export('plush_sheep')
+
+
+def plush_yurt():
+    """Kazakh yurt of the Tianshan meadows: white felt, red band, carved door."""
+    felt = mat('fabric_felt', srgb('#f4ede0'), rough=1, sheen=1)
+    band = mat('fabric_band_red', srgb('#b5373a'), rough=1, sheen=1)
+    wood = mat('wood_red', srgb('#9b3b2c'), rough=0.6)
+    gold = mat('paint_gold', srgb('#e2b54e'), rough=0.5)
+    cyl('wall', 1.3, 1.0, (0, 0, 0.5), felt, verts=48, subdiv=1, bevel=0.03)
+    cyl('roof', 1.38, 0.75, (0, 0, 1.36), felt, r2=0.32, verts=48, subdiv=1)
+    cyl('crown', 0.34, 0.12, (0, 0, 1.78), wood, verts=24, subdiv=0)
+    for z in (0.18, 0.92):
+        cyl(f'band{z}', 1.31, 0.12, (0, 0, z), band, verts=48, subdiv=0)
+    bpy.ops.mesh.primitive_torus_add(major_radius=1.1, minor_radius=0.06, location=(0, 0, 1.25), major_segments=48, minor_segments=8)
+    finish(bpy.context.active_object, band, subdiv=0)
+    box('door', (0.6, 0.12, 0.85), (0, 1.27, 0.45), wood, bevel=0.03, subdiv=0)
+    for z in (0.3, 0.6):
+        box(f'carve{z}', (0.4, 0.13, 0.05), (0, 1.29, z), gold, bevel=0.01, subdiv=0)
+    export('plush_yurt')
+
+
+def plush_cabin():
+    """Log cabin with a thick snowy roof, glowing windows and a chimney."""
+    log = mat('wood_log', srgb('#8a5a3c'), rough=0.8)
+    snow = mat('fabric_snow', srgb('#f7f9fd'), rough=1, sheen=1)
+    roof = mat('roof_red', srgb('#b2392f'), rough=0.7)
+    glow = mat('glow_window', srgb('#ffc56b'), emit=(srgb('#ffc56b'), 3))
+    stone = mat('stone', srgb('#9a948c'), rough=1)
+    W, D = 2.0, 1.6
+    for k in range(7):
+        z = 0.12 + k * 0.17
+        for s in (-1, 1):
+            cyl(f'logx{k}{s}', 0.09, W + 0.2, (0, s * D / 2, z), log, rot=(0, math.pi / 2, 0), subdiv=1, verts=12)
+            cyl(f'logy{k}{s}', 0.09, D + 0.2, (s * W / 2, 0, z + 0.08), log, rot=(math.pi / 2, 0, 0), subdiv=1, verts=12)
+    prism('roof', W + 0.5, D + 0.6, 0.85, 1.25, roof)
+    prism('roofsnow', W + 0.6, D + 0.75, 0.95, 1.3, snow, subdiv=2, bevel=0.08)
+    for x in (-0.55, 0.55):
+        box(f'win{x}', (0.38, 0.06, 0.36), (x, D / 2 + 0.06, 0.62), glow, subdiv=0)
+        box(f'frame{x}', (0.46, 0.05, 0.44), (x, D / 2 + 0.04, 0.62), log, subdiv=0)
+    box('door', (0.42, 0.06, 0.8), (0, D / 2 + 0.06, 0.4), mat('wood_door', srgb('#5e3a26'), rough=0.7), bevel=0.02, subdiv=0)
+    box('chimney', (0.3, 0.3, 1.0), (0.6, -0.35, 2.0), stone, bevel=0.03, subdiv=0)
+    puff(box('chimsnow', (0.38, 0.38, 0.12), (0.6, -0.35, 2.52), snow, bevel=0.05, subdiv=2), 0.3)
+    export('plush_cabin')
+
+
+def plush_snowman():
+    """Snowman with a knitted scarf, top hat and carrot nose."""
+    snow = mat('fabric_snow', srgb('#f7f9fd'), rough=1, sheen=1)
+    scarf = mat('fabric_scarf', srgb('#c8394a'), rough=1, sheen=1)
+    black = mat('coal', srgb('#1d1d22'), rough=0.6)
+    carrot = mat('carrot', srgb('#f08a2c'), rough=0.6)
+    sphere('base', 0.42, (0, 0, 0.4), snow)
+    sphere('mid', 0.31, (0, 0, 0.98), snow)
+    sphere('head', 0.23, (0, 0, 1.42), snow)
+    bpy.ops.mesh.primitive_torus_add(major_radius=0.25, minor_radius=0.07, location=(0, 0, 1.22), major_segments=32, minor_segments=10)
+    finish(bpy.context.active_object, scarf, subdiv=1)
+    t = box('tail', (0.12, 0.06, 0.38), (0.12, 0.24, 1.02), scarf, bevel=0.03)
+    t.rotation_euler = (0.1, 0.25, 0)
+    cyl('brim', 0.24, 0.03, (0, 0, 1.6), black, subdiv=0)
+    cyl('hat', 0.15, 0.26, (0, 0, 1.75), black, subdiv=0)
+    cyl('nose', 0.04, 0.22, (0, 0.32, 1.42), carrot, r2=0.0, rot=(-math.pi / 2, 0, 0), subdiv=0)
+    for s in (-1, 1):
+        sphere(f'eye{s}', 0.03, (s * 0.08, 0.2, 1.5), black)
+    for z in (0.85, 1.0, 1.15):
+        sphere(f'btn{z}', 0.035, (0, 0.3, z - 0.02), black)
+    export('plush_snowman')
+
+
+def plush_bench():
+    """Park bench: rounded wooden slats on curly iron frames."""
+    wood = mat('wood_bench', srgb('#a8703f'), rough=0.6)
+    iron = mat('iron', srgb('#2f3a35'), rough=0.4, metal=0.6)
+    for k, (y, z) in enumerate(((0.12, 0.45), (0.0, 0.45), (-0.12, 0.45), (-0.2, 0.62), (-0.24, 0.78))):
+        box(f'slat{k}', (1.5, 0.1, 0.05), (0, y, z), wood, bevel=0.02, subdiv=1)
+    for s in (-1, 1):
+        bpy.ops.mesh.primitive_torus_add(major_radius=0.22, minor_radius=0.025, location=(s * 0.7, 0.0, 0.3), rotation=(0, math.pi / 2, 0), major_segments=32, minor_segments=8)
+        finish(bpy.context.active_object, iron, subdiv=0)
+        box(f'leg{s}', (0.05, 0.45, 0.05), (s * 0.7, -0.05, 0.05), iron, subdiv=0)
+        bpy.ops.mesh.primitive_torus_add(major_radius=0.12, minor_radius=0.025, location=(s * 0.7, 0.05, 0.6), rotation=(0, math.pi / 2, 0), major_segments=24, minor_segments=8)
+        finish(bpy.context.active_object, iron, subdiv=0)
+    export('plush_bench')
+
+
+def plush_flowercart():
+    """Wooden flower cart heaped with blooms."""
+    wood = mat('wood_cart', srgb('#b98252'), rough=0.6)
+    import random
+    rnd = random.Random(8)
+    box('bed', (1.2, 0.7, 0.35), (0, 0, 0.6), wood, bevel=0.03, subdiv=0)
+    for s in (-1, 1):
+        bpy.ops.mesh.primitive_torus_add(major_radius=0.32, minor_radius=0.04, location=(s * 0.4, 0.4, 0.34), rotation=(math.pi / 2, 0, 0), major_segments=32, minor_segments=8)
+        finish(bpy.context.active_object, wood, subdiv=0)
+        cyl(f'hub{s}', 0.06, 0.08, (s * 0.4, 0.4, 0.34), wood, rot=(math.pi / 2, 0, 0), subdiv=0)
+        box(f'handle{s}', (0.05, 0.05, 0.6), (s * 0.3, -0.55, 0.65), wood, subdiv=0).rotation_euler = (0.9, 0, 0)
+    cols = ['#f472a6', '#fbcfe0', '#fde047', '#c084fc', '#ffffff', '#fb923c']
+    for i in range(30):
+        c = mat(f'fabric_bloom{i % len(cols)}', srgb(cols[i % len(cols)]), rough=1, sheen=1)
+        sphere(f'bloom{i}', rnd.uniform(0.07, 0.11), (rnd.uniform(-0.5, 0.5), rnd.uniform(-0.28, 0.28), 0.82 + rnd.uniform(0, 0.15)), c)
+    for i in range(10):
+        sphere(f'leaf{i}', 0.08, (rnd.uniform(-0.55, 0.55), rnd.uniform(-0.3, 0.3), 0.78), mat('fabric_leaf', srgb('#6fa55a'), rough=1, sheen=1), scale=(1.4, 0.8, 0.5))
+    export('plush_flowercart')
+
+
+def plush_belltent():
+    """Canvas bell tent with an open, glowing doorway and bunting."""
+    canvas = mat('fabric_canvas', srgb('#efe4cf'), rough=1, sheen=1)
+    glow = mat('glow_inside', srgb('#ffb766'), emit=(srgb('#ffb766'), 2.5))
+    wood = mat('wood_pole', srgb('#6b4a33'), rough=0.7)
+    cyl('wall', 1.3, 0.75, (0, 0, 0.375), canvas, verts=48, subdiv=1)
+    cyl('roof', 1.38, 1.15, (0, 0, 1.32), canvas, r2=0.03, verts=48, subdiv=1)
+    box('door', (0.62, 0.05, 0.95), (0, 1.29, 0.5), glow, bevel=0.03, subdiv=0)
+    for s in (-1, 1):
+        f = box(f'flap{s}', (0.32, 0.05, 0.9), (s * 0.42, 1.31, 0.52), canvas, bevel=0.04)
+        f.rotation_euler = (0, 0, s * 0.35)
+    cyl('pole', 0.025, 0.35, (0, 0, 2.05), wood, subdiv=0)
+    cols = ['#e76f51', '#f4a261', '#2a9d8f', '#e9c46a']
+    for i in range(10):
+        a = i / 10 * 2 * math.pi
+        fl = mat(f'fabric_flag{i % 4}', srgb(cols[i % 4]), rough=1, sheen=1)
+        cyl(f'flag{i}', 0.07, 0.12, (math.cos(a) * 0.9, math.sin(a) * 0.9, 1.02), fl, r2=0.0, verts=3, rot=(math.pi, 0, a), subdiv=0)
+    export('plush_belltent')
+
+
+def plush_campfire():
+    """Stone ring with crossed logs (the app adds the flames and light)."""
+    stone = mat('fabric_stone', srgb('#9b968e'), rough=1, sheen=0.5)
+    wood = mat('wood_log', srgb('#7a4e33'), rough=0.8)
+    ember = mat('glow_ember', srgb('#ff6a2a'), emit=(srgb('#ff6a2a'), 4))
+    for i in range(10):
+        a = i / 10 * 2 * math.pi
+        sphere(f'stone{i}', 0.11, (math.cos(a) * 0.42, math.sin(a) * 0.42, 0.07), stone, scale=(1.2, 1, 0.75))
+    for k in range(4):
+        l = cyl(f'log{k}', 0.055, 0.6, (0, 0, 0.12 + (k % 2) * 0.03), wood, rot=(0, math.pi / 2, k * math.pi / 4), subdiv=1, verts=12)
+    sphere('embers', 0.16, (0, 0, 0.06), ember, scale=(1, 1, 0.35))
+    export('plush_campfire')
+
+
+def plush_picnic():
+    """Gingham picnic blanket with a wicker basket."""
+    red = mat('fabric_gingham_red', srgb('#d4464f'), rough=1, sheen=1)
+    white = mat('fabric_gingham_white', srgb('#f8efe6'), rough=1, sheen=1)
+    wicker = mat('wicker', srgb('#c99a5b'), rough=0.8)
+    for i in range(6):
+        for j in range(6):
+            box(f'sq{i}{j}', (0.25, 0.25, 0.02), (-0.625 + i * 0.25, -0.625 + j * 0.25, 0.01), red if (i + j) % 2 else white, bevel=0.005, subdiv=0)
+    box('basket', (0.42, 0.3, 0.26), (0.35, 0.2, 0.15), wicker, bevel=0.04)
+    bpy.ops.mesh.primitive_torus_add(major_radius=0.17, minor_radius=0.02, location=(0.35, 0.2, 0.3), rotation=(0, math.pi / 2, 0), major_segments=24, minor_segments=8)
+    t = bpy.context.active_object
+    bm = bmesh.new(); bm.from_mesh(t.data)
+    bmesh.ops.delete(bm, geom=[v for v in bm.verts if v.co.x < 0], context='VERTS')
+    bm.to_mesh(t.data); bm.free()
+    finish(t, wicker, subdiv=0)
+    sphere('apple', 0.06, (-0.2, 0.3, 0.07), mat('apple', srgb('#d93a3a'), rough=0.4))
+    export('plush_picnic')
+
+
+PROPS = {f.__name__: f for f in (plush_sofa, plush_fireplace, plush_lamp, plush_armchair, plush_fountain, plush_gazebo,
+                                  plush_sheep, plush_yurt, plush_cabin, plush_snowman, plush_bench, plush_flowercart,
+                                  plush_belltent, plush_campfire, plush_picnic)}
 for name, build in PROPS.items():
     if ONLY and name not in ONLY:
         continue

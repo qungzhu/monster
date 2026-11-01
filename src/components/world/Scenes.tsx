@@ -1,4 +1,3 @@
-import * as THREE from 'three';
 import { Suspense } from 'react';
 import { Birch, Butterflies, Drift, Fire, FlowerField, Glows, GrassTufts, Ground, Hill, Prop } from './sceneKit';
 import { canvasTexture, GROUND, mottled, rng } from './sceneUtils';
@@ -96,17 +95,12 @@ function Parlor() {
       {/* marble fireplace (tools/blender/plush_props.py) with a live fire */}
       <Prop name="plush_fireplace" height={1.35} position={[0, -4.0]} />
       <Fire position={[0, GROUND + 0.06, -3.8]} scale={0.85} light={3.2} />
-      {/* KayKit armchair with pillows, books and a cushion on the rug */}
-      <Prop name="armchair_pillows" height={1.25} position={[-1.6, -2.3]} rotation={0.6} />
-      <Prop name="book_set" height={0.32} position={[-0.95, -1.7]} rotation={0.3} />
-      <Prop name="pillow_A" height={0.16} position={[1.0, 0.35]} rotation={-0.4} />
+      {/* plush velvet armchair (tools/blender/plush_props.py) */}
+      <Prop name="plush_armchair" height={1.15} position={[-1.6, -2.4]} rotation={0.6} />
       {/* floor lamp */}
       <Prop name="plush_lamp" height={2.2} position={[1.45, -3.9]} />
       <pointLight position={[1.45, GROUND + 1.95, -3.8]} color="#ffb766" intensity={4} distance={7} decay={1.5} castShadow />
-      {/* side table with a lamp, cabinet, plant */}
       <Prop name="plush_sofa" height={0.95} position={[1.55, -2.6]} rotation={-0.75} />
-      <Prop name="k-furniture-pottedPlant" height={0.95} position={[-1.95, -3.6]} />
-      <Prop name="k-furniture-bear" height={0.45} position={[-1.0, -0.5]} rotation={0.6} />
       {/* gold-framed paintings */}
       {[[0.05, 2.35, 0.7, 0.5, '#7d6a4a'], [1.05, 2.65, 0.55, 0.42, '#5b6f7d']].map(([x, y, w, h, c]) => (
         <group key={x as number} position={[x as number, y as number, -4.12]}>
@@ -140,24 +134,12 @@ function RococoGarden() {
         <circleGeometry args={[1.5, 40]} />
         <meshStandardMaterial map={gravel} roughness={1} />
       </mesh>
-      {/* tiered fountain */}
-      <group position={[-1.2, GROUND, -4.6]} scale={0.8}>
-        <mesh position={[0, 0.2, 0]}><cylinderGeometry args={[1.1, 1.2, 0.4, 32]} /><meshStandardMaterial color="#f4ede2" roughness={0.6} /></mesh>
-        <mesh position={[0, 0.41, 0]} rotation={[-Math.PI / 2, 0, 0]}><circleGeometry args={[1.0, 32]} /><meshStandardMaterial color="#9fd3df" roughness={0.1} metalness={0.3} /></mesh>
-        <mesh position={[0, 0.8, 0]}><cylinderGeometry args={[0.1, 0.16, 0.8, 16]} /><meshStandardMaterial color="#f4ede2" /></mesh>
-        <mesh position={[0, 1.2, 0]}><cylinderGeometry args={[0.5, 0.3, 0.14, 24]} /><meshStandardMaterial color="#f4ede2" /></mesh>
-        <mesh position={[0, 1.5, 0]}><sphereGeometry args={[0.12, 16, 12]} /><meshStandardMaterial color="#e9c88a" metalness={0.6} roughness={0.3} /></mesh>
+      {/* tiered fountain and gazebo (tools/blender/plush_props.py) */}
+      <Prop name="plush_fountain" height={1.5} position={[-1.2, -4.6]} />
+      <group position={[-1.2, GROUND, -4.6]}>
         <Drift count={40} color="#d8f2ff" size={0.012} speed={1.2} area={1} sway={0.05} opacity={0.6} />
       </group>
-      {/* white gazebo */}
-      <group position={[1.5, GROUND, -6.2]} scale={0.85}>
-        {Array.from({ length: 6 }, (_, i) => {
-          const a = (i / 6) * Math.PI * 2;
-          return <mesh key={i} position={[Math.cos(a) * 1, 1, Math.sin(a) * 1]}><cylinderGeometry args={[0.06, 0.07, 2, 10]} /><meshStandardMaterial color="#fbf7ef" /></mesh>;
-        })}
-        <mesh position={[0, 2.35, 0]}><coneGeometry args={[1.35, 0.8, 6]} /><meshStandardMaterial color="#c9e4dc" roughness={0.7} /></mesh>
-        <mesh position={[0, 0.05, 0]}><cylinderGeometry args={[1.2, 1.25, 0.1, 6]} /><meshStandardMaterial color="#f4ede2" /></mesh>
-      </group>
+      <Prop name="plush_gazebo" height={2.6} position={[1.5, -6.2]} rotation={0.3} />
       {/* topiary: clipped balls on stems, cone trees */}
       {[[-1.15, -1.3], [1.15, -1.3], [-1.6, -3.2], [1.6, -3.4]].map(([x, z]) => (
         <group key={`${x}${z}`} position={[x, GROUND, z]}>
@@ -222,7 +204,11 @@ function Meadow() {
       <Prop name="k-nature-mushroom_redGroup" height={0.22} position={[-1.1, 0.2]} />
       <Prop name="k-nature-rock_tallA" height={0.9} position={[2.3, -5.5]} rotation={1} />
       <Prop name="k-nature-log_large" height={0.3} position={[1.9, -3.2]} rotation={0.8} />
-      <Prop name="deer" height={1.1} position={[1.5, -4.2]} rotation={-0.9} />
+      {/* a Kazakh yurt and a few sheep (tools/blender/plush_props.py) */}
+      <Prop name="plush_yurt" height={1.6} position={[1.5, -5.4]} rotation={-0.5} />
+      {[[-1.4, -2.2, 0.55, 0.9], [1.15, -1.6, 0.5, -0.7], [-0.6, -4.3, 0.48, 0.3], [0.4, -6.2, 0.45, -1.2]].map(([x, z, h, ry], i) => (
+        <Prop key={`sheep${i}`} name="plush_sheep" height={h} position={[x, z]} rotation={ry} />
+      ))}
       <Prop name="stag" height={1.4} position={[-1.9, -6.5]} rotation={0.7} />
       <Prop name="rock_large" height={0.35} position={[1.3, -1.6]} rotation={0.5} />
       <Prop name="rock_small" height={0.22} position={[-1.2, -0.9]} />
@@ -260,20 +246,15 @@ function Hokkaido() {
       {Array.from({ length: 12 }, (_, i) => (
         <Prop key={`s${i}`} name={['k-holiday-tree-snow-a', 'k-holiday-tree-snow-b', 'k-holiday-tree-snow-c'][i % 3]} height={1.6 + r() * 1.6} position={[(r() - 0.5) * 7, -6.5 - r() * 5]} rotation={i} />
       ))}
-      <Prop name="k-holiday-snowman-hat" height={0.9} position={[1.35, -1.9]} rotation={-0.5} />
+      <Prop name="plush_snowman" height={1.05} position={[1.35, -1.9]} rotation={-0.4} />
       <Prop name="k-holiday-sled" height={0.3} position={[-1.15, -0.9]} rotation={0.9} />
       <Prop name="k-holiday-lantern" height={1.6} position={[1.75, -3.6]} />
       <pointLight position={[1.75, GROUND + 1.5, -3.5]} color="#ffbf6b" intensity={1.6} distance={4} />
       <Prop name="k-holiday-reindeer" height={0.8} position={[-1.7, -5.0]} rotation={0.8} />
       <Prop name="k-holiday-snow-pile" height={0.25} position={[0.6, -3.2]} />
-      {/* cabin with warm windows */}
-      <group position={[-1.4, GROUND, -6]} rotation={[0, 0.35, 0]}>
-        <mesh position={[0, 0.55, 0]} castShadow><boxGeometry args={[1.8, 1.1, 1.4]} /><meshStandardMaterial color="#6e4a35" roughness={0.9} /></mesh>
-        <mesh position={[0, 1.4, 0]} rotation={[0, 0, 0]}><cylinderGeometry args={[0.02, 1.25, 0.75, 4, 1]} /><meshStandardMaterial color="#b3312c" roughness={0.8} /></mesh>
-        <mesh position={[0, 1.55, 0]}><cylinderGeometry args={[0.02, 1.1, 0.5, 4, 1]} /><meshStandardMaterial color="#f7f9fd" roughness={0.9} /></mesh>
-        {[-0.45, 0.45].map(x => <mesh key={x} position={[x, 0.6, 0.71]}><planeGeometry args={[0.34, 0.34]} /><meshBasicMaterial color="#ffc46b" toneMapped={false} /></mesh>)}
-        <pointLight position={[0, 0.6, 1.1]} color="#ffb35c" intensity={2.4} distance={5} />
-      </group>
+      {/* log cabin with a snowy roof (tools/blender/plush_props.py) */}
+      <Prop name="plush_cabin" height={2.2} position={[-1.4, -6]} rotation={0.35} />
+      <pointLight position={[-1.0, GROUND + 0.7, -4.9]} color="#ffb35c" intensity={2.4} distance={5} />
       <Prop name="fox" height={0.5} position={[-0.6, -3.6]} rotation={0.6} />
       <Prop name="log" height={0.28} position={[-1.2, -1.6]} rotation={0.4} />
       {/* soft, slow, big flakes: powder snow */}
@@ -314,13 +295,9 @@ function ButterflyPark() {
       {[-1.5, -0.5, 0.5, 1.5].map(x => <Prop key={x} name="fence" height={0.3} position={[x, -7.2]} />)}
       {[[1.9, -2.4], [-1.9, -1.2]].map(([x, z]) => <Prop key={`${x}`} name="k-nature-plant_bushLarge" height={0.5} position={[x, z]} />)}
       <Prop name="k-nature-path_stoneCircle" height={0.04} position={[0, 0]} />
-      <Prop name="k-holiday-lantern" height={1.7} position={[1.7, -3.3]} />
-      {/* bench */}
-      <group position={[-1.45, GROUND, -2.8]} rotation={[0, 0.5, 0]} scale={0.85}>
-        {[0, 0.12, 0.24].map(z => <mesh key={z} position={[0, 0.42, z - 0.12]}><boxGeometry args={[1.3, 0.04, 0.09]} /><meshStandardMaterial color="#9a6b43" /></mesh>)}
-        {[0.55, 0.7].map(y => <mesh key={y} position={[0, y, -0.2]}><boxGeometry args={[1.3, 0.08, 0.04]} /><meshStandardMaterial color="#9a6b43" /></mesh>)}
-        {[-0.55, 0.55].map(x => <mesh key={x} position={[x, 0.3, 0]}><boxGeometry args={[0.05, 0.6, 0.45]} /><meshStandardMaterial color="#2f3a33" metalness={0.5} roughness={0.5} /></mesh>)}
-      </group>
+      <Prop name="k-holiday-lantern" height={1.7} position={[2.2, -5.2]} />
+      <Prop name="plush_flowercart" height={0.9} position={[1.5, -3.4]} rotation={-0.5} />
+      <Prop name="plush_bench" height={0.75} position={[-1.45, -2.8]} rotation={0.5} />
       <GrassTufts count={400} color="#6aa848" area={[-7, 7, -7, 2.5]} seed={60} />
       <FlowerField count={160} colors={['#ffffff', '#fde047']} area={[-7, 7, -7, 2.5]} seed={61} size={0.025} height={0.06} />
       <Butterflies count={12} />
@@ -343,21 +320,15 @@ function Campsite() {
   return (
     <group>
       <Ground map={ground} />
-      {/* bell tent */}
-      <group position={[1.15, GROUND, -4.6]} rotation={[0, -0.6, 0]} scale={0.9}>
-        <mesh position={[0, 0.45, 0]} castShadow><cylinderGeometry args={[1.25, 1.25, 0.9, 32, 1, true]} /><meshStandardMaterial color="#e8dcc4" side={THREE.DoubleSide} roughness={1} /></mesh>
-        <mesh position={[0, 1.4, 0]} castShadow><coneGeometry args={[1.32, 1.1, 32, 1, true]} /><meshStandardMaterial color="#efe4cf" side={THREE.DoubleSide} roughness={1} /></mesh>
-        <mesh position={[0, 0.42, 1.24]}><planeGeometry args={[0.7, 0.85]} /><meshBasicMaterial color="#ffb766" toneMapped={false} /></mesh>
-        <mesh position={[0, 2.05, 0]}><cylinderGeometry args={[0.02, 0.02, 0.4, 6]} /><meshStandardMaterial color="#6b4a33" /></mesh>
-        <pointLight position={[0, 0.6, 1.0]} color="#ffae55" intensity={2.2} distance={4} />
-      </group>
+      {/* canvas bell tent, campfire and picnic blanket (tools/blender/plush_props.py) */}
+      <Prop name="plush_belltent" height={2.0} position={[1.15, -4.6]} rotation={-0.6} />
+      <pointLight position={[0.6, GROUND + 0.6, -3.6]} color="#ffae55" intensity={2.2} distance={4} />
       {/* string lights between two poles */}
       {[[-1.9, -3.4], [1.9, -3.8]].map(([x, z]) => <mesh key={x} position={[x, GROUND + 1.25, z]}><cylinderGeometry args={[0.025, 0.03, 2.5, 6]} /><meshStandardMaterial color="#5b4636" /></mesh>)}
       <Glows points={bulbs} color="#ffd98a" size={0.035} />
       {/* campfire ring */}
       <group position={[-0.95, GROUND, -1.6]}>
-        <Prop name="campfire" height={0.12} position={[0, 0]} y={0} />
-        {[0.4, -0.4, 1.4].map(a => <mesh key={a} position={[0, 0.06, 0]} rotation={[0, a, Math.PI / 2]}><cylinderGeometry args={[0.04, 0.04, 0.5, 6]} /><meshStandardMaterial color="#4a3020" /></mesh>)}
+        <Prop name="plush_campfire" height={0.22} position={[0, 0]} y={0} />
         <Fire position={[0, 0.06, 0]} scale={0.9} light={3.5} />
         <Drift count={30} color="#ffb04a" size={0.008} speed={-0.5} area={0.6} sway={0.15} />
       </group>
@@ -365,7 +336,7 @@ function Campsite() {
       <Prop name="stump" height={0.28} position={[-0.2, -0.7]} />
       <Prop name="fox" height={0.5} position={[1.6, -2.0]} rotation={-1.2} />
       <Prop name="k-survival-tent-canvas" height={0.9} position={[-1.8, -4.6]} rotation={0.5} />
-      <Prop name="k-survival-bedroll" height={0.15} position={[-0.3, -2.2]} rotation={0.3} />
+      <Prop name="plush_picnic" height={0.3} position={[0.95, -0.6]} rotation={-0.35} />
       <Prop name="k-survival-barrel" height={0.45} position={[1.9, -3.0]} />
       <Prop name="k-survival-signpost" height={0.9} position={[-2.1, -2.2]} rotation={0.7} />
       <Prop name="k-nature-log_stack" height={0.35} position={[0.5, -3.4]} rotation={0.2} />
