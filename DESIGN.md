@@ -74,3 +74,13 @@ Tokens live in `src/index.css` (`@theme` colours, `.soft-glass` = floating
 white surface, `.game-panel` = white sheet). Panels written for the old dark
 cocoa look are mapped onto the light palette in `.game-panel` there, so text
 utilities like `text-text-primary` read as ink inside sheets.
+
+## Exception: the pet picker
+
+The first-run pet picker (`PetOnboarding`) uses a playful game-console look
+instead, adapted from the Nintendo-2001 analysis in the same collection
+(`.nx-*` classes in `src/index.css`): periwinkle beveled plates, a carbon
+command bar with halftone dots, amber tabs and signal-orange "go" controls
+(warm colour only where you act), outlined box-art titles, sharp and
+chamfered corners. Everything else follows the white + coral rules above.
+

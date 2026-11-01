@@ -64,8 +64,7 @@ export function AdoptionGallery({ show, onClose, onAdopt, currentBreedId, onOpen
               {onOpenStudio && (
                 <button
                   onClick={() => { onClose(); onOpenStudio(); }}
-                  className="shrink-0 rounded-full px-3 py-1.5 text-[11px] font-medium text-white mt-1"
-                  style={{ background: 'linear-gradient(135deg, #8b5cf6, #ec4899)' }}
+                  className="shrink-0 rounded-full bg-coral px-3 py-1.5 text-[11px] font-semibold text-white mt-1 hover:bg-coral-active"
                 >
                   📸 照片定制
                 </button>
@@ -90,7 +89,7 @@ export function AdoptionGallery({ show, onClose, onAdopt, currentBreedId, onOpen
             <div className="fp-stagger overflow-y-auto" style={{ maxHeight: 'calc(88vh - 130px)' }}>
               {/* Live 3D preview of the highlighted breed */}
               <div className="flex items-center gap-4 px-5 py-2">
-                <div className="shrink-0 rounded-2xl overflow-hidden" style={{ background: 'rgba(255,255,255,0.04)' }}>
+                <div className="shrink-0 rounded-2xl overflow-hidden" style={{ background: '#f7f7f7' }}>
                   <PetScene characterId={preview.characterId} breedId={preview.id} size="medium" interactive={false} />
                 </div>
                 <div className="min-w-0 flex-1">
@@ -140,8 +139,8 @@ export function AdoptionGallery({ show, onClose, onAdopt, currentBreedId, onOpen
                       onClick={() => setPreviewId(b.id)}
                       className="rounded-xl p-2 text-center transition-colors relative"
                       style={{
-                        background: active ? 'rgba(255,255,255,0.14)' : 'rgba(255,255,255,0.05)',
-                        border: `1px solid ${active ? rarityLabels[b.rarity].color + '88' : 'rgba(255,255,255,0.07)'}`,
+                        background: active ? '#ebebeb' : '#f7f7f7',
+                        border: `1px solid ${active ? rarityLabels[b.rarity].color + '88' : '#f7f7f7'}`,
                       }}
                     >
                       {isCurrent && (

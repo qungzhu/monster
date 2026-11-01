@@ -207,10 +207,10 @@ export function LifeDashboard({
             </div>
 
             <div className="px-5 py-2">
-              <div className="rounded-2xl border border-violet-400/25 fp-aurora p-4">
+              <div className="rounded-2xl border border-hairline-soft bg-white p-4 shadow-[0_0_0_1px_rgba(0,0,0,0.02),0_2px_6px_rgba(0,0,0,0.04),0_4px_8px_rgba(0,0,0,0.1)]">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <div className="flex items-center gap-1.5 text-[11px] font-semibold text-violet-200">
+                    <div className="flex items-center gap-1.5 text-[11px] font-semibold text-coral">
                       <Sparkles size={12} /> 主动简报
                     </div>
                     <p className="mt-1.5 text-sm font-semibold leading-snug text-text-primary">
@@ -226,15 +226,15 @@ export function LifeDashboard({
                     type="button"
                     onClick={generatePlan}
                     disabled={agentState === 'working'}
-                    className="shrink-0 rounded-xl bg-violet-500 px-3 py-2 text-[11px] font-semibold text-white disabled:opacity-70"
+                    className="shrink-0 rounded-lg bg-coral px-3.5 py-2 text-[12px] font-semibold text-white hover:bg-coral-active disabled:opacity-70"
                   >
                     {agentState === 'working' ? (
                       <span className="flex items-center gap-1"><LoaderCircle size={12} className="animate-spin" />规划中</span>
                     ) : agentState === 'done' ? '计划已就绪' : '安排今天'}
                   </button>
                 </div>
-                <div className="mt-3 flex items-center gap-2 rounded-xl bg-black/15 px-3 py-2 text-[11px] text-text-secondary">
-                  <span className={`h-1.5 w-1.5 rounded-full ${agentState === 'working' ? 'animate-pulse bg-amber-300' : agentState === 'done' ? 'bg-emerald-400' : 'bg-violet-300'}`} />
+                <div className="mt-3 flex items-center gap-2 rounded-xl bg-coral-soft px-3 py-2 text-[11px] text-text-secondary">
+                  <span className={`h-1.5 w-1.5 rounded-full ${agentState === 'working' ? 'animate-pulse bg-amber-300' : agentState === 'done' ? 'bg-emerald-500' : 'bg-coral'}`} />
                   {agentState === 'working'
                     ? '正在帮你理一理…'
                     : agentState === 'done'

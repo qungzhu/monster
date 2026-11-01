@@ -233,7 +233,7 @@ export function CustomPetStudio({ show, onClose, onSave, apiKey }: CustomPetStud
                 <div>
                   <div className="flex items-start gap-4 mb-4">
                     {/* Live 3D preview */}
-                    <div className="shrink-0 rounded-2xl overflow-hidden" style={{ background: 'rgba(255,255,255,0.04)' }}>
+                    <div className="shrink-0 rounded-2xl overflow-hidden" style={{ background: '#f7f7f7' }}>
                       <PetScene characterId={previewBreed.characterId} customBreed={previewBreed} size="medium" interactive={false} />
                     </div>
                     <div className="min-w-0 flex-1">
@@ -313,7 +313,7 @@ export function CustomPetStudio({ show, onClose, onSave, apiKey }: CustomPetStud
                   </div>
 
                   {/* HD photo-to-mesh reconstruction */}
-                  <div className="mb-3 rounded-xl p-3" style={{ background: 'rgba(139, 92, 246, 0.08)', border: '1px solid rgba(139, 92, 246, 0.25)' }}>
+                  <div className="mb-3 rounded-xl p-3" style={{ background: '#ffe4e7', border: '1px solid #f0566a' }}>
                     {hdState === 'idle' && (
                       <div>
                         <button onClick={startHD} className="w-full text-left">

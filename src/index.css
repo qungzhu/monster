@@ -175,6 +175,29 @@ body {
   animation: reward-rise 1.5s ease-out forwards;
 }
 
+.light-ui {
+  /* DESIGN.md light pages (onboarding studio, chat, settings): same mapping
+     as the sheets below, on a soft white canvas. */
+  --color-text-primary: #222222;
+  --color-text-secondary: #3f3f3f;
+  --color-text-muted: #6a6a6a;
+  --color-primary: #f0566a;
+  background: #f7f7f7;
+  color: #222222;
+}
+:is(.light-ui, .game-panel) :is(.glass, .glass-strong, .bg-surface, .bg-surface\/80) {
+  background: #ffffff;
+  border: 1px solid #ebebeb;
+  box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.02), 0 2px 6px rgba(0, 0, 0, 0.04);
+  backdrop-filter: none;
+}
+:is(.light-ui, .game-panel) :is(.text-red-400) { color: #c13515; }
+:is(.light-ui, .game-panel) :is(.text-pink-400, .text-indigo-400, .text-violet-400) { color: var(--color-coral-active); }
+.light-ui :is(.bg-violet-600\/20, .bg-violet-600\/30, .bg-amber-600\/20, .bg-amber-600\/30, .bg-green-500\/20, .bg-red-500\/10, .bg-red-500\/20) {
+  background-color: var(--color-surface-soft);
+}
+.light-ui :is(.border-violet-500\/20, .border-red-500\/10, .border-primary\/20, .border-primary\/30) { border-color: var(--color-hairline-soft); }
+
 .game-panel {
   /* DESIGN.md: panels are white sheets with ink text. Utilities written for
      the old dark panels are mapped onto the light palette below. */
@@ -186,25 +209,25 @@ body {
   border: 1px solid rgba(0, 0, 0, 0.04);
   box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.02), 0 2px 6px rgba(0, 0, 0, 0.04), 0 4px 8px rgba(0, 0, 0, 0.1);
 }
-.game-panel :is(.bg-white\/5, .bg-white\/6, .bg-white\/8, .bg-white\/10, .bg-black\/15, .bg-black\/20, .bg-surface-light, .bg-surface-lighter) {
+:is(.game-panel, .light-ui) :is(.bg-white\/5, .bg-white\/6, .bg-white\/8, .bg-white\/10, .bg-black\/15, .bg-black\/20, .bg-surface-light, .bg-surface-lighter) {
   background-color: var(--color-surface-soft);
 }
-.game-panel :is(.bg-white\/20, .bg-black\/30, .bg-black\/35, .bg-black\/40) {
+:is(.game-panel, .light-ui) :is(.bg-white\/20, .bg-black\/30, .bg-black\/35, .bg-black\/40) {
   background-color: #f2f2f2;
 }
-.game-panel :is(.border-white\/5, .border-white\/6, .border-white\/8, .border-white\/10, .border-white\/15, .border-white\/20) {
+:is(.game-panel, .light-ui) :is(.border-white\/5, .border-white\/6, .border-white\/8, .border-white\/10, .border-white\/15, .border-white\/20) {
   border-color: var(--color-hairline-soft);
 }
-.game-panel :is(.text-violet-300, .text-violet-400, .text-emerald-300, .text-amber-300, .text-sky-300, .text-rose-300) {
+:is(.game-panel, .light-ui) :is(.text-violet-300, .text-violet-400, .text-emerald-300, .text-amber-300, .text-sky-300, .text-rose-300) {
   color: var(--color-coral-active);
 }
-.game-panel :is(.bg-violet-500, .bg-violet-600, .bg-amber-500, .bg-sky-500) {
+:is(.game-panel, .light-ui) :is(.bg-violet-500, .bg-violet-600, .bg-amber-500, .bg-sky-500) {
   background-color: var(--color-coral);
 }
-.game-panel :is(.accent-violet-500) { accent-color: var(--color-coral); }
-.game-panel :is(.text-amber-400, .text-amber-500, .text-yellow-400) { color: #b26b00; }
-.game-panel :is(.text-green-400, .text-emerald-400) { color: #008a05; }
-.game-panel :is(.border-violet-400\/35, .border-violet-400\/50, .focus\:border-violet-400:focus) {
+:is(.game-panel, .light-ui) :is(.accent-violet-500) { accent-color: var(--color-coral); }
+:is(.game-panel, .light-ui) :is(.text-amber-400, .text-amber-500, .text-yellow-400) { color: #b26b00; }
+:is(.game-panel, .light-ui) :is(.text-green-400, .text-emerald-400) { color: #008a05; }
+:is(.game-panel, .light-ui) :is(.border-violet-400\/35, .border-violet-400\/50, .focus\:border-violet-400:focus) {
   border-color: var(--color-coral);
 }
 
@@ -281,4 +304,94 @@ body {
 
 @media (prefers-reduced-motion: reduce) {
   .fp-bob, .fp-aurora, .fp-shimmer::after, .fp-stagger > * { animation: none !important; }
+}
+
+/* ————— Console look for the pet picker (Nintendo-2001 analysis in
+   VoltAgent/awesome-design-md, MIT): periwinkle beveled plates, a carbon
+   command bar with halftone dots, warm colour only for "act here",
+   outlined box-art titles, sharp/chamfered corners. ————— */
+.nx-canvas {
+  background:
+    repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.035) 0 1px, transparent 1px 3px),
+    linear-gradient(180deg, #8b9bcb 0%, #7a8aba 45%, #6f7fb0 100%);
+  color: #21242e;
+}
+.nx-command {
+  background:
+    radial-gradient(rgba(255, 255, 255, 0.07) 1px, transparent 1.2px) 0 0 / 5px 5px,
+    #21242e;
+  border-bottom: 2px solid #3d4f97;
+}
+.nx-plate {
+  background: linear-gradient(180deg, #a3b4e0 0%, #8ba1d4 100%);
+  border: 1px solid #3d4f97;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7), inset 0 -2px 0 rgba(61, 79, 151, 0.55);
+}
+.nx-inset {
+  background: linear-gradient(180deg, #c0d5e6 0%, #acace7 100%);
+  border: 2px solid #3d4f97;
+  box-shadow: inset 0 2px 0 rgba(61, 79, 151, 0.5), inset 0 -1px 0 rgba(255, 255, 255, 0.6);
+}
+.nx-chamfer {
+  clip-path: polygon(14px 0, calc(100% - 14px) 0, 100% 14px, 100% calc(100% - 14px), calc(100% - 14px) 100%, 14px 100%, 0 calc(100% - 14px), 0 14px);
+}
+.nx-chip {
+  border-radius: 2px;
+  font: 700 12px/1 Arial, 'Noto Sans SC', sans-serif;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: #ffffff;
+  background: linear-gradient(180deg, #7778b4 0%, #60619c 100%);
+  border: 1px solid #3d4f97;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.45), 0 2px 0 #3d4f97;
+}
+.nx-chip[aria-pressed='true'] {
+  color: #21242e;
+  background: linear-gradient(180deg, #f6c862 0%, #ecab37 100%);
+  border-color: #a8701a;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7), 0 2px 0 #a8701a;
+}
+.nx-tile {
+  border-radius: 4px;
+  background: #dedede;
+  border: 2px solid #3d4f97;
+  box-shadow: inset 0 1px 0 #ffffff;
+  color: #21242e;
+}
+.nx-tile[aria-pressed='true'] {
+  background: #ffffff;
+  border-color: #ecab37;
+  box-shadow: 0 0 0 2px #ecab37, inset 0 1px 0 #ffffff;
+}
+.nx-go {
+  border-radius: 4px;
+  font: 700 15px/1 Arial, 'Noto Sans SC', sans-serif;
+  letter-spacing: 0.5px;
+  color: #ffffff;
+  background: linear-gradient(180deg, #ffa94a 0%, #f68d1f 55%, #db7410 100%);
+  border: 1px solid #a8560a;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6), 0 3px 0 #a8560a;
+  text-shadow: 0 1px 0 rgba(0, 0, 0, 0.25);
+}
+.nx-go:active { transform: translateY(2px); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6), 0 1px 0 #a8560a; }
+.nx-orb {
+  border-radius: 9999px;
+  color: #ffffff;
+  background: radial-gradient(circle at 35% 30%, #ffb866, #f68d1f 60%, #c9620a);
+  border: 2px solid #ffffff;
+  box-shadow: 0 2px 0 #3d4f97;
+}
+.nx-title {
+  color: #ffffff;
+  font-weight: 900;
+  -webkit-text-stroke: 1.5px #21242e;
+  paint-order: stroke fill;
+  text-shadow: 3px 3px 0 #21242e;
+  letter-spacing: 1px;
+}
+.nx-label {
+  font: 700 11px/1 Arial, 'Noto Sans SC', sans-serif;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: #3d4f97;
 }

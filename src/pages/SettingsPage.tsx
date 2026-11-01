@@ -40,7 +40,7 @@ export function SettingsPage({ userName, setUserName, clearAllData, apiKey, setA
   };
 
   return (
-    <div className="h-full overflow-y-auto pb-20">
+    <div className="light-ui h-full overflow-y-auto pb-20">
       <div className="px-6 pt-8">
         <motion.div
           initial={{ opacity: 0, y: -20 }}

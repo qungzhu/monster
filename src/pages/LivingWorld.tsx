@@ -677,11 +677,11 @@ export function LivingWorld(props: LivingWorldProps) {
   // ————— Onboarding: name —————
   if (!userName) {
     return (
-      <div className="h-full flex items-center justify-center relative overflow-hidden">
-        <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at center, rgba(217,119,6,0.15) 0%, transparent 70%)' }} />
+      <div className="light-ui h-full flex items-center justify-center relative overflow-hidden">
+        <div className="absolute inset-0" style={{ background: 'radial-gradient(ellipse at 50% 35%, rgba(240,86,106,0.10) 0%, transparent 65%)' }} />
         <motion.div initial={{ opacity: 0, scale: 0.92 }} animate={{ opacity: 1, scale: 1 }} className="relative z-10 text-center px-8 max-w-sm w-full">
           <motion.div animate={{ y: [0, -8, 0] }} transition={{ duration: 3, repeat: Infinity }} className="text-6xl mb-6">🐾</motion.div>
-          <h1 className="text-2xl font-bold bg-gradient-to-r from-amber-400 via-pink-400 to-violet-400 bg-clip-text text-transparent mb-2">毛茸伙伴 FurryPal</h1>
+          <h1 className="text-2xl font-semibold text-ink mb-2">毛茸伙伴 <span className="text-coral">FurryPal</span></h1>
           <p className="text-text-muted text-sm mb-8">一个会懂你的小生命，正在等你</p>
           <div className="glass rounded-2xl p-6">
             <p className="text-text-secondary text-sm mb-4">怎么称呼你？</p>
@@ -690,10 +690,10 @@ export function LivingWorld(props: LivingWorldProps) {
                 type="text" value={nameInput} onChange={e => setNameInput(e.target.value)}
                 onKeyDown={e => e.key === 'Enter' && nameInput.trim() && setUserName(nameInput.trim())}
                 placeholder="你的名字..." maxLength={20}
-                className="min-w-0 flex-1 bg-surface-light rounded-xl px-4 py-3 text-text-primary placeholder:text-text-muted outline-none border border-transparent focus:border-amber-500/30 transition-colors text-sm"
+                className="min-w-0 flex-1 bg-white rounded-xl px-4 py-3 text-ink placeholder:text-ink-muted outline-none border border-hairline focus:border-ink transition-colors text-sm"
               />
               <motion.button whileTap={{ scale: 0.95 }} onClick={() => nameInput.trim() && setUserName(nameInput.trim())}
-                className="shrink-0 bg-gradient-to-r from-amber-600 to-orange-600 rounded-xl px-5 py-3 text-white font-medium">
+                className="shrink-0 bg-coral hover:bg-coral-active rounded-lg px-5 py-3 text-white font-semibold">
                 进入
               </motion.button>
             </div>

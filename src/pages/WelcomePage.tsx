@@ -24,9 +24,9 @@ const themeColors: Record<string, string> = {
 };
 
 const themeBgs: Record<string, string> = {
-  tuantuan: 'from-amber-950/50 via-yellow-950/30 to-transparent',
-  xiaoxue: 'from-violet-950/50 via-purple-950/30 to-transparent',
-  mianhuatang: 'from-pink-950/50 via-rose-950/30 to-transparent',
+  tuantuan: 'from-amber-50 via-white to-transparent',
+  xiaoxue: 'from-violet-50 via-white to-transparent',
+  mianhuatang: 'from-pink-50 via-white to-transparent',
 };
 
 export function WelcomePage({
@@ -69,7 +69,7 @@ export function WelcomePage({
   };
 
   return (
-    <div className="h-full overflow-y-auto pb-20 relative">
+    <div className="light-ui h-full overflow-y-auto pb-20 relative">
       <ParticleBackground color={hoveredChar ? themeColors[hoveredChar] : '#d97706'} />
 
       <div className="relative z-10 px-6 pt-12">

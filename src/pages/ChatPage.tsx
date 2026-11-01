@@ -96,7 +96,7 @@ export function ChatPage({
 
   if (!character) {
     return (
-      <div className="h-full flex items-center justify-center pb-20">
+      <div className="light-ui h-full flex items-center justify-center pb-20">
         <div className="text-center">
           <span className="text-5xl block mb-4">💬</span>
           <p className="text-text-secondary">请先选择一只小可爱</p>
@@ -184,12 +184,12 @@ export function ChatPage({
   };
 
   return (
-    <div className={`h-full flex flex-col relative overflow-hidden theme-${character.theme}`}>
+    <div className={`light-ui h-full flex flex-col relative overflow-hidden theme-${character.theme}`}>
       {/* Background scene */}
       <div
         className="absolute inset-0"
         style={{
-          background: `radial-gradient(ellipse at 50% 30%, ${themeColor}12 0%, transparent 60%), linear-gradient(180deg, #0d0a08 0%, #1a1025 50%, #0d0a08 100%)`,
+          background: `radial-gradient(ellipse at 50% 30%, ${themeColor}14 0%, transparent 60%), #f7f7f7`,
         }}
       />
 
@@ -239,8 +239,8 @@ export function ChatPage({
               exit={{ opacity: 0, y: -20 }}
               className="absolute inset-x-3 top-10 bottom-4 z-20 rounded-2xl overflow-hidden"
               style={{
-                background: 'rgba(10, 8, 20, 0.92)',
-                border: '1px solid rgba(255,255,255,0.1)',
+                background: 'rgba(255, 255, 255, 0.96)',
+                border: '1px solid #ebebeb',
               }}
             >
               <div className="h-full overflow-y-auto p-4 space-y-3">
@@ -251,8 +251,8 @@ export function ChatPage({
                         message.role === 'user' ? 'rounded-tr-sm' : 'rounded-tl-sm'
                       }`}
                       style={{
-                        background: message.role === 'user' ? `${themeColor}22` : 'rgba(255,255,255,0.05)',
-                        border: `1px solid ${message.role === 'user' ? `${themeColor}22` : 'rgba(255,255,255,0.05)'}`,
+                        background: message.role === 'user' ? `${themeColor}22` : '#f7f7f7',
+                        border: `1px solid ${message.role === 'user' ? `${themeColor}22` : '#f7f7f7'}`,
                       }}
                     >
                       <p className="text-xs leading-relaxed text-text-primary">{message.content}</p>
@@ -287,8 +287,8 @@ export function ChatPage({
         <div
           className="mx-3 rounded-t-2xl p-4 min-h-[100px]"
           style={{
-            background: 'linear-gradient(180deg, rgba(20, 15, 35, 0.95) 0%, rgba(15, 10, 25, 0.98) 100%)',
-            border: '1px solid rgba(255,255,255,0.12)',
+            background: '#ffffff',
+            border: '1px solid #ebebeb',
             borderBottom: 'none',
           }}
           onClick={skipReveal}
@@ -365,7 +365,7 @@ export function ChatPage({
               animate={{ height: 'auto', opacity: 1 }}
               exit={{ height: 0, opacity: 0 }}
               className="overflow-hidden mx-3"
-              style={{ background: 'rgba(20, 15, 35, 0.95)', borderLeft: '1px solid rgba(255,255,255,0.12)', borderRight: '1px solid rgba(255,255,255,0.12)' }}
+              style={{ background: '#ffffff', borderLeft: '1px solid #ebebeb', borderRight: '1px solid #ebebeb' }}
             >
               <div className="px-4 py-3">
                 <p className="text-[11px] text-text-muted mb-2">选择当前心情...</p>
@@ -390,9 +390,9 @@ export function ChatPage({
         <div
           className="mx-3 rounded-b-2xl px-4 py-3 pb-20"
           style={{
-            background: 'rgba(15, 10, 25, 0.98)',
-            border: '1px solid rgba(255,255,255,0.12)',
-            borderTop: '1px solid rgba(255,255,255,0.06)',
+            background: '#ffffff',
+            border: '1px solid #ebebeb',
+            borderTop: '1px solid #f7f7f7',
           }}
         >
           <form onSubmit={handleSubmit} className="flex items-center gap-2">
