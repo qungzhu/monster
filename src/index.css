@@ -454,3 +454,75 @@ body {
 }
 @keyframes nx-burst { 0%, 100% { transform: rotate(-12deg) scale(1); } 50% { transform: rotate(-4deg) scale(1.08); } }
 @media (prefers-reduced-motion: reduce) { .nx-burst { animation: none; transform: rotate(-12deg); } }
+
+/* Chunkier, more physical buttons for the picker: a thick coloured base
+   edge (the button's "side"), a glossy top highlight, inner shading, and a
+   press that sinks the key onto its base. */
+:is(.nx-chip, .nx-go, .nx-orb, .nx-tile) {
+  /* no position here: some of these are absolutely placed (arrow orbs, the
+     3D badge); the ones with a gloss ::after add 'relative' in the markup */
+  transition: transform 0.08s ease, box-shadow 0.08s ease;
+}
+:is(.nx-chip, .nx-go)::after {
+  content: '';
+  position: absolute;
+  inset: 2px 3px 52% 3px;
+  border-radius: 2px 2px 8px 8px / 2px 2px 6px 6px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0.08));
+  pointer-events: none;
+}
+.nx-chip {
+  border-radius: 6px;
+  border: 2px solid #2c3878;
+  background: linear-gradient(180deg, #8d8ecb 0%, #6a6ba9 55%, #585995 100%);
+  box-shadow:
+    inset 0 -3px 0 rgba(0, 0, 0, 0.18),
+    0 5px 0 #2c3878,
+    0 7px 6px rgba(33, 36, 46, 0.35);
+}
+.nx-chip[aria-pressed='true'] {
+  border-color: #8a5a10;
+  background: linear-gradient(180deg, #ffe08a 0%, #f2b53d 55%, #e39a1f 100%);
+  box-shadow:
+    inset 0 -3px 0 rgba(120, 70, 0, 0.25),
+    0 5px 0 #8a5a10,
+    0 7px 6px rgba(33, 36, 46, 0.35);
+}
+.nx-chip:active, .nx-chip[aria-pressed='true']:active {
+  transform: translateY(4px);
+  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.18), 0 1px 0 #2c3878, 0 2px 3px rgba(33, 36, 46, 0.3);
+}
+.nx-go {
+  border-radius: 10px;
+  border: 2px solid #8f4706;
+  background: linear-gradient(180deg, #ffbe6b 0%, #f68d1f 50%, #d9690a 100%);
+  box-shadow:
+    inset 0 -4px 0 rgba(120, 50, 0, 0.3),
+    0 6px 0 #8f4706,
+    0 9px 8px rgba(33, 36, 46, 0.4);
+  text-shadow: 0 2px 0 rgba(120, 50, 0, 0.55);
+}
+.nx-go:active {
+  transform: translateY(5px);
+  box-shadow: inset 0 -2px 0 rgba(120, 50, 0, 0.3), 0 1px 0 #8f4706, 0 2px 3px rgba(33, 36, 46, 0.3);
+}
+.nx-orb {
+  border: 3px solid #ffffff;
+  background: radial-gradient(circle at 35% 28%, #ffe0b0 0%, #ffad4d 22%, #f68d1f 55%, #c55f08 100%);
+  box-shadow:
+    inset 0 -3px 0 rgba(120, 50, 0, 0.35),
+    0 4px 0 #2c3878,
+    0 6px 6px rgba(33, 36, 46, 0.4);
+}
+.nx-orb:active { transform: translateY(3px); box-shadow: inset 0 -2px 0 rgba(120, 50, 0, 0.35), 0 1px 0 #2c3878; }
+.nx-tile {
+  border-radius: 6px;
+  box-shadow: inset 0 2px 0 #ffffff, inset 0 -3px 0 rgba(61, 79, 151, 0.18), 0 4px 0 #2c3878;
+}
+.nx-tile[aria-pressed='true'] {
+  transform: translateY(2px);
+  box-shadow: 0 0 0 3px #ecab37, inset 0 2px 0 #ffffff, 0 2px 0 #8a5a10;
+}
+@media (prefers-reduced-motion: reduce) {
+  :is(.nx-chip, .nx-go, .nx-orb, .nx-tile) { transition: none; }
+}

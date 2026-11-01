@@ -84,7 +84,7 @@ export function PetOnboarding({ onChoose }: PetOnboardingProps) {
             aria-selected={species === item.species}
             aria-pressed={species === item.species}
             onClick={() => chooseSpecies(item.species)}
-            className="nx-chip px-4 py-2.5"
+            className="nx-chip relative px-4 py-2.5 text-[13px]"
           >
             {item.emoji} {item.label}
           </button>
@@ -127,7 +127,7 @@ export function PetOnboarding({ onChoose }: PetOnboardingProps) {
                 key={breed.id}
                 onClick={() => setIndex(breedIndex)}
                 aria-pressed={breedIndex === index}
-                className="nx-tile w-[74px] shrink-0 px-1.5 py-2 text-center"
+                className="nx-tile mb-1 w-[74px] shrink-0 px-1.5 py-2 text-center"
               >
                 <span className="block text-xl">{breed.emoji}</span>
                 <span className="block truncate text-[11px] font-bold">{breed.name}</span>
@@ -143,7 +143,7 @@ export function PetOnboarding({ onChoose }: PetOnboardingProps) {
         <motion.button
           whileTap={{ scale: 0.97 }}
           onClick={() => onChoose(selected.id)}
-          className="nx-go mt-3 inline-flex items-center px-6 py-3"
+          className="nx-go relative mt-3 mb-1.5 inline-flex items-center px-7 py-3.5"
         >
           <Heart size={15} className="mr-1.5" fill="currentColor" />
           让{selected.petName}成为我的搭档 ▶
