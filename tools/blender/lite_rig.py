@@ -101,6 +101,36 @@ for o in new:
         bm.from_mesh(o.data)
         size = max(o.dimensions)
         bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=size * 1e-5)
+        # Whiskers: Meshy models them as zero-thickness strips glued to the
+        # muzzle, which decimation and skinning crumple into a tangle. Drop
+        # them here (the app draws fine new ones from the whisker pads):
+        # in the front quarter of the head, any face whose other side is
+        # within a hair's breadth (a ray along its normal, either way, hits
+        # the mesh again almost at once) is a whisker, not skin.
+        from mathutils.bvhtree import BVHTree
+        bm.faces.ensure_lookup_table()
+        bm.normal_update()
+        tree = BVHTree.FromBMesh(bm)
+        cs = [v.co for v in bm.verts]
+        wlo = Vector([min(c[i] for c in cs) for i in range(3)])
+        whi = Vector([max(c[i] for c in cs) for i in range(3)])
+        WD = whi - wlo
+        WS = max(WD)
+        front_lim = wlo.y + 0.25 * WD.y  # the cat faces -Y
+        def sheet(f):
+            c, n = f.calc_center_median(), f.normal
+            for d in (-n, n):
+                hit = tree.ray_cast(c + d * 1e-5 * WS, d, 0.004 * WS)
+                if hit[0] is not None and hit[2] != f.index:
+                    return True
+            return False
+        whiskers = [f for f in bm.faces
+                    if f.calc_center_median().y < front_lim
+                    and wlo.z + 0.3 * WD.z < f.calc_center_median().z < wlo.z + 0.9 * WD.z
+                    and sheet(f)]
+        bmesh.ops.delete(bm, geom=whiskers, context='FACES_ONLY')
+        bmesh.ops.delete(bm, geom=[v for v in bm.verts if not v.link_faces], context='VERTS')
+        print(f'whiskers: removed {len(whiskers)} faces')
         bm.to_mesh(o.data)
         bm.free()
     if total > TRIS:

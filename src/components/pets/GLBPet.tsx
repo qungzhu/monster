@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { toPlushMaterial } from './plushMaterial';
 import { addFurShells, meshyFur } from './plushFur';
+import { attachWhiskers, buildWhiskers } from './plushWhiskers';
+import type { WhiskerInfo } from './plushWhiskers';
 
 // A/B switch while tuning: ?meshyfur=0 turns the Meshy velvet pile off.
 const MESHY_FUR = typeof window === 'undefined' || !/[?&]meshyfur=0/.test(window.location.search);
@@ -234,6 +236,17 @@ export function GLBPet({ config, isHovered, tint, normalize, emote }: GLBPetProp
         mesh.material = hasMaterialArray ? clonedMaterials : clonedMaterials[0];
       }
     });
+    // New whiskers in place of the hidden originals (once per clone).
+    const whiskerHosts: THREE.Mesh[] = [];
+    clonedScene.traverse(obj => {
+      const mesh = obj as THREE.Mesh;
+      if (mesh.isMesh && !mesh.userData.furShell && mesh.geometry.userData.plushWhiskers && !mesh.userData.whiskers) whiskerHosts.push(mesh);
+    });
+    for (const mesh of whiskerHosts) {
+      const group = buildWhiskers(mesh.geometry.userData.plushWhiskers as WhiskerInfo);
+      attachWhiskers(mesh, group);
+      mesh.userData.whiskers = group;
+    }
     if (config.plushFur) addFurShells(clonedScene);
     else if (MESHY_FUR) addFurShells(clonedScene, meshyFur, null);
   }, [clonedScene, tint, config.plushFur, config.eyesUV]);

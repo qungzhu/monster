@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { EYE_FRAGMENT, EYE_UNIFORMS, findEyes } from './plushEyes';
+import { findWhiskerPads } from './plushWhiskers';
 
 /**
  * Upgrade a smooth (plastic-looking) PBR surface to a plush fabric one:
@@ -85,6 +86,8 @@ export function toPlushMaterial(
   if (squint && mesh?.geometry && eyes === undefined) {
     eyes = findEyes(mesh.geometry, std.roughnessMap, std.map, eyesUV);
     mesh.geometry.userData.plushEyes = eyes;
+    // new whiskers grow from here (plushWhiskers.ts)
+    if (eyes) mesh.geometry.userData.plushWhiskers = findWhiskerPads(mesh.geometry, eyes);
   }
   mat.onBeforeCompile = shader => {
     if (eyes && squint) {
@@ -144,7 +147,7 @@ ${EYE_FRAGMENT}`)
   totalEmissiveRadiance *= 1.0 - plushLid;
   totalEmissiveRadiance += diffuseColor.rgb * pow(1.0 - plushNdV, 2.4) * uPlushRim;`);
   };
-  mat.customProgramCacheKey = () => (`plush-v6${eyes && squint ? `-eyes${eyes.marked ? '-marked' : ''}` : ''}${hasAO ? '-ao' : ''}`);
+  mat.customProgramCacheKey = () => (`plush-v7${eyes && squint ? `-eyes${eyes.marked ? '-marked' : ''}` : ''}${hasAO ? '-ao' : ''}`);
   return mat;
 }
 
