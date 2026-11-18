@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { motion } from 'framer-motion';
 import { BarChart3, TrendingUp } from 'lucide-react';
 import type { MoodEntry, MoodType } from '../data/characters';
@@ -11,19 +11,19 @@ interface MoodStatsProps {
 const ALL_MOODS: MoodType[] = ['happy', 'sad', 'angry', 'anxious', 'lonely', 'neutral'];
 
 export function MoodStats({ entries }: MoodStatsProps) {
+  // When the panel opened; the windows don't need to slide while it's open.
+  const [now] = useState(() => Date.now());
   const weeklyStats = useMemo(() => {
-    const now = Date.now();
     const weekAgo = now - 7 * 24 * 60 * 60 * 1000;
     const weekEntries = entries.filter(e => new Date(e.date).getTime() > weekAgo);
     return computeStats(weekEntries);
-  }, [entries]);
+  }, [entries, now]);
 
   const monthlyStats = useMemo(() => {
-    const now = Date.now();
     const monthAgo = now - 30 * 24 * 60 * 60 * 1000;
     const monthEntries = entries.filter(e => new Date(e.date).getTime() > monthAgo);
     return computeStats(monthEntries);
-  }, [entries]);
+  }, [entries, now]);
 
   if (entries.length === 0) return null;
 

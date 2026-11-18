@@ -184,7 +184,7 @@ const LIGHTS: Record<string, { env: number; amb: number; hemi: number; key: numb
   b: { env: 0.18, amb: 0.22, hemi: 0.4, key: 1.9, rim: 1.0, fill: 0.4, wrap: 0.25 },
   c: { env: 0.14, amb: 0.12, hemi: 0.32, key: 2.3, rim: 1.1, fill: 0.25, wrap: 0.15 },
 };
-export const plushLight = LIGHTS[LIGHT] ?? LIGHTS[''];
+const plushLight = LIGHTS[LIGHT] ?? LIGHTS[''];
 plushTuning.wrap.value = plushLight.wrap;
 
 export function PlushLighting({ color }: { color: string }) {

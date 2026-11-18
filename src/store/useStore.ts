@@ -98,7 +98,7 @@ export function useAppStore() {
     loadFromStorage(STORAGE_KEYS.questProgress, {})
   );
   const [lastStatDecay, setLastStatDecay] = useState<number>(
-    loadFromStorage(STORAGE_KEYS.lastStatDecay, Date.now())
+    () => loadFromStorage(STORAGE_KEYS.lastStatDecay, Date.now())
   );
   const [inventory, setInventory] = useState<Record<string, number>>(
     loadFromStorage(STORAGE_KEYS.inventory, {})

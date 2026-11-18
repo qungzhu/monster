@@ -53,7 +53,7 @@ export function GameHomePage(props: GameHomePageProps) {
   const {
     character, characters, selectCharacter, userName, setUserName,
     coins, addCoins, addXP, levelInfo, getPetStats, updateQuestProgress,
-    getQuestProgress, inventory, buyItem, useItem, getReaction,
+    getQuestProgress, inventory, buyItem, useItem: consumeItem, getReaction,
     addIntimacy, intimacyLevels, isCheckedIn, checkIn, checkInStreak, getCheckInReward,
   } = props;
 
@@ -135,7 +135,7 @@ export function GameHomePage(props: GameHomePageProps) {
 
   const handleUseItem = (item: GameItem) => {
     if (!character) return;
-    const reaction = useItem(item.id, character.id);
+    const reaction = consumeItem(item.id, character.id);
     if (reaction) {
       const actionType = item.type === 'food' ? 'feed' : item.type === 'toy' ? 'play' : 'clean';
       updateQuestProgress(actionType);

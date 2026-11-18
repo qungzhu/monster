@@ -12,14 +12,15 @@ export function PetParticles({ color, count = 20 }: PetParticlesProps) {
   const dummy = useMemo(() => new THREE.Object3D(), []);
 
   const particles = useMemo(() => {
+    const random = seededRandom(count);
     return Array.from({ length: count }, () => ({
-      x: (Math.random() - 0.5) * 3,
-      y: Math.random() * 2.5 - 0.5,
-      z: (Math.random() - 0.5) * 3,
-      speed: 0.2 + Math.random() * 0.4,
-      offset: Math.random() * Math.PI * 2,
-      scale: 0.02 + Math.random() * 0.03,
-      rotSpeed: (Math.random() - 0.5) * 2,
+      x: (random() - 0.5) * 3,
+      y: random() * 2.5 - 0.5,
+      z: (random() - 0.5) * 3,
+      speed: 0.2 + random() * 0.4,
+      offset: random() * Math.PI * 2,
+      scale: 0.02 + random() * 0.03,
+      rotSpeed: (random() - 0.5) * 2,
     }));
   }, [count]);
 
@@ -53,4 +54,16 @@ export function PetParticles({ color, count = 20 }: PetParticlesProps) {
       />
     </instancedMesh>
   );
+}
+
+/** Small seeded PRNG (mulberry32) so the layout is pure and stable. */
+function seededRandom(seed: number) {
+  let a = seed * 0x9e3779b1 >>> 0;
+  return () => {
+    a = (a + 0x6d2b79f5) >>> 0;
+    let t = a;
+    t = Math.imul(t ^ (t >>> 15), t | 1);
+    t ^= t + Math.imul(t ^ (t >>> 7), t | 61);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
 }

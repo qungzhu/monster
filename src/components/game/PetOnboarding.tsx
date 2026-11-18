@@ -23,15 +23,22 @@ function wrap(index: number, length: number) {
   return (index % length + length) % length;
 }
 
+const PREVIEW_SEQUENCE: Array<EmoteKind | null> = [
+  null, 'walk', 'run', 'groom', 'sleep', 'cute', 'eat', 'meow',
+];
+
 /** First-run companion picker backed by the real breed registry and 3D renderer. */
 export function PetOnboarding({ onChoose }: PetOnboardingProps) {
   const [species, setSpecies] = useState<PickerSpecies>('cat');
   const [index, setIndex] = useState(0);
-  const [previewEmote, setPreviewEmote] = useState<EmoteKind | null>('cute');
+  // Which step of the preview sequence is playing, for which breed.
+  const [preview, setPreview] = useState({ id: '', step: 0 });
   const list = useMemo(() => breeds
     .filter(breed => breed.species === species)
     .sort((a, b) => Number(Boolean(b.glbUrl)) - Number(Boolean(a.glbUrl))), [species]);
   const selected = list[index] as Breed;
+  // A newly selected breed starts from the top (idle) without an extra render.
+  const previewEmote = preview.id === selected.id ? PREVIEW_SEQUENCE[preview.step] : null;
 
   // Download and parse the entire active species in the background so model
   // changes use drei's cache instead of showing a temporary fallback.
@@ -45,14 +52,9 @@ export function PetOnboarding({ onChoose }: PetOnboardingProps) {
     // Mirror the Pixie-Bob action set for every cat. Rigged models use their
     // safe clips; static or face-sensitive models use GLBPet's matching
     // procedural choreography.
-    const sequence: Array<EmoteKind | null> = [
-      null, 'walk', 'run', 'groom', 'sleep', 'cute', 'eat', 'meow',
-    ];
-    let step = 0;
-    setPreviewEmote(sequence[step]);
+    const id = selected.id;
     const timer = setInterval(() => {
-      step = (step + 1) % sequence.length;
-      setPreviewEmote(sequence[step]);
+      setPreview(p => ({ id, step: p.id === id ? (p.step + 1) % PREVIEW_SEQUENCE.length : 1 }));
     }, 3200);
     return () => clearInterval(timer);
   }, [selected.id]);

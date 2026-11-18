@@ -249,7 +249,7 @@ export function GLBPet({ config, isHovered, tint, normalize, emote }: GLBPetProp
     }
     if (config.plushFur) addFurShells(clonedScene);
     else if (MESHY_FUR) addFurShells(clonedScene, meshyFur, null);
-  }, [clonedScene, tint, config.plushFur, config.eyesUV]);
+  }, [clonedScene, tint, config.plushFur, config.eyesUV, config.recolor]);
 
   useEffect(() => {
     const idle = actions[config.idleAnimation];
