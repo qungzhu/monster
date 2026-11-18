@@ -35,3 +35,4 @@ __pycache__/
 
 # Capacitor web bundle (npm run build:native)
 dist-native/
+.venv-blender/

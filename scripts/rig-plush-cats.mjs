@@ -8,7 +8,9 @@
 // Sleep Happy Eat Meow, plus TailWag and BellyUp made for each cat's own
 // tail), then compress
 // it again into public/models/plush/rigged/<name>.glb. Check every result
-// from the side mid-walk and mid-run before switching the breed to it.
+// from the side mid-walk and mid-run before switching the breed to it, then
+// run scripts/fix-skin-spikes.mjs on it (glues loose fur pieces, mends
+// edges that tear when the legs swing).
 import { execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, mkdtempSync, readdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -57,6 +59,7 @@ for (const name of names) {
   try {
     await decode(src, plain);
     const log = execFileSync(blender, [path.join(root, 'tools/blender/lite_rig.py'), rigPlain, plain, rigged, TRIANGLES, 'box'], { stdio: 'pipe' }).toString();
+    if (process.env.RIG_LOG) console.log(log.split("\n").filter(l => /heat|anatomy|whisk|tail/i.test(l)).join("\n"));
     const tail = log.split('\n').find(l => l.startsWith('tail:'));
     const opt = path.join(work, `${name}-opt.glb`);
     execFileSync(gltfTransform, ['optimize', rigged, opt, '--texture-compress', 'webp', '--texture-size', '1024', '--simplify', 'false'], { stdio: 'pipe' });

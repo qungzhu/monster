@@ -295,12 +295,57 @@ def heat_weights(o):
     bpy.context.view_layer.objects.active = tmp
     bpy.ops.object.parent_set(type='ARMATURE_AUTO')
     # unbind from the temp armature (keep the groups)
-    for m in list(o.modifiers):
-        if m.type == 'ARMATURE':
-            o.modifiers.remove(m)
-    mw = o.matrix_world.copy()
-    o.parent = None
-    o.matrix_world = mw
+    def unbind(ob):
+        for m in list(ob.modifiers):
+            if m.type == 'ARMATURE':
+                ob.modifiers.remove(m)
+        mw = ob.matrix_world.copy()
+        ob.parent = None
+        ob.matrix_world = mw
+    unbind(o)
+
+    # Bone heat gives up on meshes with holes, overlapping shells or
+    # inner faces (it then leaves every vertex empty, and the cat would
+    # move with the template cat's rough weights: legs that drag the chest
+    # and belly along). Heat a closed voxel copy of the cat instead and
+    # carry its weights over to the real surface.
+    if sum(1 for v in o.data.vertices if sum(g.weight for g in v.groups) < 1e-3) > 0.2 * len(o.data.vertices):
+        proxy = o.copy()
+        proxy.data = o.data.copy()
+        bpy.context.scene.collection.objects.link(proxy)
+        for g in list(proxy.vertex_groups):
+            proxy.vertex_groups.remove(g)
+        dims = proxy.dimensions
+        rm = proxy.modifiers.new('r', 'REMESH')
+        rm.mode, rm.voxel_size = 'VOXEL', max(dims) / 110
+        bpy.ops.object.select_all(action='DESELECT')
+        proxy.select_set(True)
+        bpy.context.view_layer.objects.active = proxy
+        bpy.ops.object.modifier_apply(modifier='r')
+        bpy.ops.object.select_all(action='DESELECT')
+        proxy.select_set(True)
+        tmp.select_set(True)
+        bpy.context.view_layer.objects.active = tmp
+        bpy.ops.object.parent_set(type='ARMATURE_AUTO')
+        unbind(proxy)
+        heated = sum(1 for v in proxy.data.vertices if v.groups)
+        print(f'heat weights: voxel proxy {heated} of {len(proxy.data.vertices)} vertices heated')
+        for g in list(o.vertex_groups):
+            o.vertex_groups.remove(g)
+        for g in proxy.vertex_groups:
+            o.vertex_groups.new(name=g.name)
+        dt = o.modifiers.new('proxyweights', 'DATA_TRANSFER')
+        dt.object = proxy
+        dt.use_vert_data = True
+        dt.data_types_verts = {'VGROUP_WEIGHTS'}
+        dt.vert_mapping = 'POLYINTERP_NEAREST'
+        dt.layers_vgroup_select_src = 'ALL'
+        dt.layers_vgroup_select_dst = 'NAME'
+        bpy.ops.object.select_all(action='DESELECT')
+        o.select_set(True)
+        bpy.context.view_layer.objects.active = o
+        bpy.ops.object.modifier_apply(modifier='proxyweights')
+        bpy.data.objects.remove(proxy)
     bpy.data.objects.remove(tmp)
 
     empty = 0
