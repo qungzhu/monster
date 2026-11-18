@@ -4,7 +4,7 @@ import type { Memory, MemoryOp } from '../data/memory';
 import type { CompanionRole, LifeItem } from '../data/companion';
 // Same-origin on the web (Vite proxies /api to the Express server in dev),
 // so the server's own OPENAI_API_KEY works without the user pasting a key.
-import { API_BASE } from './apiBase';
+import { API_BASE, apiHeaders } from './apiBase';
 
 /** Extra context that makes the pet "know" its owner. */
 export interface ChatContext {
@@ -12,6 +12,11 @@ export interface ChatContext {
   memoryContext?: string;
   /** An earlier event the pet should naturally ask about. */
   followUp?: string;
+  /**
+   * Stream the reply: called with the text so far as it arrives, so the
+   * bubble fills in while the model is still writing.
+   */
+  onDelta?: (textSoFar: string) => void;
 }
 
 export interface AIChatResponse {
@@ -28,13 +33,15 @@ export async function sendAIMessage(
   apiKey: string,
   context: ChatContext = {},
 ): Promise<AIChatResponse> {
+  const stream = !!context.onDelta;
+  let res: Response;
   try {
-    const res = await fetch(`${API_BASE}/api/chat`, {
+    res = await fetch(`${API_BASE}/api/chat`, {
       method: 'POST',
-      headers: {
+      headers: apiHeaders({
         'Content-Type': 'application/json',
         ...(apiKey ? { 'X-API-Key': apiKey } : {}),
-      },
+      }),
       body: JSON.stringify({
         message,
         characterId: character.id,
@@ -47,21 +54,63 @@ export async function sendAIMessage(
         role: context.role,
         memoryContext: context.memoryContext,
         followUp: context.followUp,
+        stream,
       }),
     });
-
-    if (!res.ok) {
-      const err = await res.json().catch(() => ({}));
-      if (err.error === 'no_api_key') {
-        return fallbackResponse(message, character);
-      }
-      throw new Error(err.message || 'API request failed');
-    }
-
-    const data = await res.json();
-    return { response: data.response, isAI: true };
   } catch {
     return fallbackResponse(message, character);
+  }
+  if (!res.ok) return fallbackResponse(message, character);
+
+  // Older servers ignore `stream` and answer with JSON; handle both.
+  if (!stream || !res.body || !(res.headers.get('content-type') ?? '').includes('text/event-stream')) {
+    try {
+      const data = await res.json();
+      if (typeof data.response !== 'string' || !data.response) return fallbackResponse(message, character);
+      context.onDelta?.(data.response);
+      return { response: data.response, isAI: true };
+    } catch {
+      return fallbackResponse(message, character);
+    }
+  }
+
+  let text = '';
+  try {
+    for await (const event of readSSE(res.body)) {
+      if (typeof event.delta === 'string') {
+        text += event.delta;
+        context.onDelta?.(text);
+      }
+      if (event.done || event.error) break;
+    }
+  } catch {
+    // Connection dropped mid-reply: keep whatever already arrived.
+  }
+  if (!text.trim()) return fallbackResponse(message, character);
+  return { response: text, isAI: true };
+}
+
+/** Parse a Server-Sent Events body into its JSON `data:` payloads. */
+export async function* readSSE(body: ReadableStream<Uint8Array>): AsyncGenerator<Record<string, unknown>> {
+  const reader = body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  try {
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      let sep: number;
+      while ((sep = buffer.indexOf('\n\n')) !== -1) {
+        const block = buffer.slice(0, sep);
+        buffer = buffer.slice(sep + 2);
+        const data = block.split('\n').filter(l => l.startsWith('data:')).map(l => l.slice(5).trimStart()).join('\n');
+        if (!data) continue;
+        try { yield JSON.parse(data); } catch { /* skip malformed event */ }
+      }
+    }
+  } finally {
+    reader.releaseLock();
   }
 }
 
@@ -73,7 +122,7 @@ export async function extractMemoriesAI(said: string[], memories: Memory[], apiK
   try {
     const res = await fetch(`${API_BASE}/api/memory/extract`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...(apiKey ? { 'X-API-Key': apiKey } : {}) },
+      headers: apiHeaders({ 'Content-Type': 'application/json', ...(apiKey ? { 'X-API-Key': apiKey } : {}) }),
       body: JSON.stringify({
         messages: said,
         memories: memories.map(m => ({ id: m.id, text: m.text, category: m.category })),
@@ -102,7 +151,7 @@ export async function planWithAI(
   try {
     const res = await fetch(`${API_BASE}/api/agent/plan`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...(apiKey ? { 'X-API-Key': apiKey } : {}) },
+      headers: apiHeaders({ 'Content-Type': 'application/json', ...(apiKey ? { 'X-API-Key': apiKey } : {}) }),
       body: JSON.stringify({
         command,
         now: new Date().toString(),

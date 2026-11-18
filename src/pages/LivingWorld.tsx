@@ -9,6 +9,7 @@ import type { GameItem } from '../data/gameConfig';
 import { parseIntent, getSuggestions } from '../utils/intents';
 import { getTimeOfDay } from '../utils/emotion';
 import { extractMemoriesAI, planWithAI, sendAIMessage } from '../utils/ai';
+import { crisisReply, isCrisisMessage } from '../utils/safety';
 import { addGoogleCalendarEvent, getGoogleCalendarStatus } from '../utils/googleCalendar';
 import { PetScene } from '../components/pets/PetScene';
 import type { EmoteKind } from '../components/pets/GLBPet';
@@ -118,7 +119,7 @@ export function LivingWorld(props: LivingWorldProps) {
     chatHistory, addMessage, getCharacterResponse, intimacyLevel, addIntimacy,
     apiKey, setApiKey, clearAllData, moodEntries, addMoodEntry,
     coins, addCoins, addXP, levelInfo, getPetStats,
-    getQuestProgress, updateQuestProgress, inventory, buyItem, useItem,
+    getQuestProgress, updateQuestProgress, inventory, buyItem, useItem: consumeItem,
     getReaction, isCheckedIn, checkIn, checkInStreak, getCheckInReward, chatCount,
     adoptedBreedId, adoptBreed, petName, customPet, saveCustomPet,
     selectedGeneratedPetKey, hubName, setHubName, agentRuns, recordAgentRun,
@@ -294,10 +295,11 @@ export function LivingWorld(props: LivingWorldProps) {
     addCoins(2);
     setIsThinking(true);
 
+    const rename = (raw: string) => petName && petName !== character.name
+      ? raw.split(character.name).join(petName)
+      : raw;
     const finish = (raw: string) => {
-      const response = petName && petName !== character.name
-        ? raw.split(character.name).join(petName)
-        : raw;
+      const response = rename(raw);
       addMessage(character.id, {
         id: `char-${Date.now()}`,
         role: 'character',
@@ -322,6 +324,13 @@ export function LivingWorld(props: LivingWorldProps) {
       role: companionRole,
       memoryContext: memoryContext(memories),
       followUp: followUp?.text,
+      // Fill the bubble as the reply streams in; `finish` then sets the
+      // final text and starts the bubble's hide timer.
+      onDelta: soFar => {
+        if (bubbleTimer.current) clearTimeout(bubbleTimer.current);
+        setIsThinking(false);
+        setBubble(rename(soFar));
+      },
     });
     if (result.isAI) {
       if (followUp) markMemoryFollowedUp(followUp.id);
@@ -469,6 +478,17 @@ export function LivingWorld(props: LivingWorldProps) {
     if (!text || isThinking) return;
     setInput('');
 
+    // Safety first: thoughts of self-harm always get a caring reply with
+    // real help lines — before plans, intents, memory or the model.
+    if (isCrisisMessage(text)) {
+      if (plan) closePlan();
+      const reply = crisisReply(petName || character?.name || '我');
+      playEmote('rub', 6000);
+      logExchange(text, reply);
+      say(reply, 45_000);
+      return;
+    }
+
     // A plan is waiting: "好的" runs it, "算了" drops it, anything else
     // replaces it with whatever comes next.
     if (plan && planStatus === 'ready') {
@@ -575,7 +595,7 @@ export function LivingWorld(props: LivingWorldProps) {
 
   const handleUseItem = (item: GameItem) => {
     if (!character) return;
-    const reaction = useItem(item.id, character.id);
+    const reaction = consumeItem(item.id, character.id);
     if (reaction) {
       const actionType = item.type === 'food' ? 'feed' : item.type === 'toy' ? 'play' : 'clean';
       updateQuestProgress(actionType);
@@ -1236,19 +1256,22 @@ export function LivingWorld(props: LivingWorldProps) {
 
 /** Speech appears as if the pet is saying it, a few characters at a time. */
 function TypeText({ text, instant }: { text: string; instant: boolean }) {
+  // Streaming replies grow the text a chunk at a time: keep typing from
+  // where we are instead of starting over whenever the text extends.
   const [shown, setShown] = useState({ text: '', n: 0 });
   useEffect(() => {
     if (instant) return;
-    let n = 0;
     const t = setInterval(() => {
-      n += 1;
-      setShown({ text, n });
-      if (n >= text.length) clearInterval(t);
+      setShown(prev => {
+        const n = text.startsWith(prev.text) ? Math.min(prev.n, text.length) : 0;
+        if (n >= text.length) return prev.text === text ? prev : { text, n };
+        return { text, n: n + 1 };
+      });
     }, 28);
     return () => clearInterval(t);
   }, [text, instant]);
   if (instant) return <>{text}</>;
-  const n = shown.text === text ? shown.n : 0;
+  const n = text.startsWith(shown.text) ? Math.min(shown.n, text.length) : 0;
   return (
     <span aria-label={text}>
       <span aria-hidden>{text.slice(0, n)}</span>
