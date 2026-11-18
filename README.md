@@ -59,8 +59,8 @@ npm run preview    # 本地预览生产构建
 
 | 变量 | 用途 | 获取 | 不填的影响 |
 |---|---|---|---|
-| `OPENAI_API_KEY` | AI 对话、长期记忆整理、任务规划、照片视觉分析 | [platform.openai.com](https://platform.openai.com/api-keys)(需有余额) | 对话走本地模板,记忆/任务走本地规则,照片分析走离线取色 |
-| `OPENAI_MODEL` | 使用的模型,默认 `gpt-5.5` | — | 用默认模型 |
+| `ANTHROPIC_API_KEY` | AI 对话(含情绪识别)、长期记忆整理、任务规划、照片视觉分析 | [console.anthropic.com](https://console.anthropic.com)(需有余额) | 对话走本地模板,记忆/任务走本地规则,照片分析走离线取色 |
+| `CLAUDE_MODEL` | 使用的模型,默认 `claude-opus-5-5` | — | 用默认模型 |
 | `MESHY_API_KEY` | 照片转 3D 建模 | [meshy.ai](https://www.meshy.ai) → Settings → API | 无法生成新的自定义宠物,已内置的猫不受影响 |
 
 ### 上线部署时的防护
@@ -73,8 +73,29 @@ AI 和 Meshy 接口会花你的额度,公开部署时请配置(见 `server/guard
 | `APP_TOKEN` / `VITE_APP_TOKEN` | 服务端设置 `APP_TOKEN` 后,付费接口需带 `X-App-Token`;构建前端时把同样的值设为 `VITE_APP_TOKEN`。令牌会打包进 App,只能挡住随手滥用,真正封顶花费的是限流 | 不校验 |
 | `AI_RATE_LIMIT_PER_MIN` / `AI_RATE_LIMIT_PER_DAY` | 每个 IP 调用 AI 接口的上限 | 20 / 600 |
 | `MESHY_RATE_LIMIT_PER_HOUR` | 每个 IP 发起 3D 生成的上限 | 6 |
+| `SAVE_RATE_LIMIT_PER_MIN` | 每个 IP 访问云端存档的上限(防止猜同步码) | 30 |
 
 限流计数存在进程内存里,多实例部署时需要换成共享存储。服务端只监听 `127.0.0.1`,公网访问请放在反向代理(Nginx / Caddy 等)后面。
+
+### AI 对话与情绪识别(Claude)
+
+- 对话、记忆整理、任务规划、照片识别都走 Claude(`server/llm.js`),默认模型 `claude-opus-5-5`,聊天用 `low` effort 保证回复快;回复边生成边出现在气泡里(SSE 流式)
+- 开启了服务端拒答兜底(`fallbacks: "default"`):万一请求被安全分类器拒绝,API 会自动换推荐模型重答;仍然失败时前端回落到本地模板
+- **情绪由模型判断**:每条回复末尾带一个隐藏的 `<mood>主情绪,次情绪</mood>` 标签,服务端剥掉后单独发给前端,用来更正心情日记(支持混合情绪)和触发宠物动作。没有网络时退回本地关键词识别,已处理否定句("一点都不开心"→难过,"我没有生气"→不记为生气)
+- 离线模板回复会避开最近说过的 6 句,不再连着重复
+
+### 云端存档(同步码)
+
+设置里点「开启云端存档」会得到一个同步码(如 `K7QX-M2PD-9WFT`),新手机上输入即可恢复宠物、聊天、记忆和心情日记,之后每 30 秒和切到后台时自动同步(`src/sync/cloudSave.ts`、`server/saves.js`)。
+
+- 不需要注册;服务端只存同步码的 SHA-256,存档在 `SAVES_DIR`(默认 `server/data/saves/`,已 gitignore)
+- 两台设备同时改时,后同步的一方会收到较新的存档并载入(以先到的为准)
+- API Key、推送订阅、设备标识、音效开关只留在本机,不上传
+- 「清除所有数据」只清本机并停止同步,不会把空数据覆盖到云端
+
+### 安装到手机桌面(PWA)
+
+`public/manifest.webmanifest` + `public/icons/`(由 `node scripts/build-app-icons.mjs` 从 `assets/icons/app-icon.svg` 生成)。生产环境会注册 `sw.js`,Android Chrome 会提示安装;iOS 在 Safari 里「分享 → 添加到主屏幕」。
 
 ### 心理安全兜底
 
@@ -142,7 +163,7 @@ tools/animation-retarget/  # 动画/绑骨工具链(见下)
 
 宠物会从聊天里自动记下关于你的事，下次聊天自然地用上。
 
-- **自动记住**:名字、生日、职业、学校/公司、喜好与讨厌的东西、身边的人和宠物、要发生的事(考试/面试/出差…)、目标。配了 `OPENAI_API_KEY` 时由 AI 整理(`/api/memory/extract`),没配时用本地规则(`src/data/memory.ts`),离线也能用
+- **自动记住**:名字、生日、职业、学校/公司、喜好与讨厌的东西、身边的人和宠物、要发生的事(考试/面试/出差…)、目标。配了 `ANTHROPIC_API_KEY` 时由 AI 整理(`/api/memory/extract`),没配时用本地规则(`src/data/memory.ts`),离线也能用
 - **会追问**:1–14 天前提到的事，它会主动问"后来怎么样啦?",每件只问一次
 - **角色生效**:在 AI 中枢选的朋友 / 管家 / 助手 / 老师会改变它说话的方式
 - **可查看可修改**:说"你都记得我什么",或在 AI 中枢点"它记得你的事"——按类别展示，可编辑、删除、手动添加、清空，也可关闭自动记住
@@ -159,7 +180,7 @@ tools/animation-retarget/  # 动画/绑骨工具链(见下)
 - **一句话多件事**:"明天下午3点提醒我取快递，再记一下体重60" → 两个动作
 - **时间理解**:今天 / 明天 / 后天 / 周五 / 下周三 / 11月3号 / 下午3点半 / 30分钟后;只说日期默认 9:00
 - **确认方式**:计划卡片上可以取消勾选某一项;点"确认执行"或直接说"好的",说"算了"就放弃
-- **两种大脑**:配了 `OPENAI_API_KEY` 时由 AI 理解(`/api/agent/plan`),没配时用本地规则(`src/data/agent.ts`)。AI 只负责提议，所有动作都在本地校验(只认识的动作、只能动已有的事项、最多 6 个)后才会执行
+- **两种大脑**:配了 `ANTHROPIC_API_KEY` 时由 AI 理解(`/api/agent/plan`),没配时用本地规则(`src/data/agent.ts`)。AI 只负责提议，所有动作都在本地校验(只认识的动作、只能动已有的事项、最多 6 个)后才会执行
 - **提醒**:App 开着时到点宠物会喵一声提醒你;App 关着时的提醒属于下一步(定时与主动任务)
 - AI 中枢的"Agent 指令台"也走同一套流程
 - 测试:`npm run test:agent`
@@ -224,4 +245,4 @@ npm run dev        # 前端(Vite 已代理 /plaza-ws)
 
 ## 技术栈
 
-React 19 · TypeScript · Vite · @react-three/fiber (three.js) · @react-three/drei · @react-three/postprocessing · Tailwind CSS v4 · framer-motion · Express · OpenAI SDK · Meshy API
+React 19 · TypeScript · Vite · @react-three/fiber (three.js) · @react-three/drei · @react-three/postprocessing · Tailwind CSS v4 · framer-motion · Express · Anthropic SDK (Claude) · Meshy API
