@@ -226,9 +226,9 @@ export function GLBPet({ config, isHovered, tint, normalize, emote }: GLBPetProp
           const fabric = (source as THREE.MeshStandardMaterial).isMeshStandardMaterial
             && (!config.plushFur || source.name.startsWith('fur'));
           const material = fabric
-            ? toPlushMaterial(source as THREE.MeshStandardMaterial, mesh, config.plushFur ? undefined : squint.current, config.eyesUV)
+            ? toPlushMaterial(source as THREE.MeshStandardMaterial, mesh, config.plushFur ? undefined : squint.current, config.eyesUV, config.recolor ? new THREE.Color(config.recolor) : undefined)
             : source.clone();
-          if (tintColor && 'color' in material) {
+          if (tintColor && !config.recolor && 'color' in material) {
             (material as THREE.MeshStandardMaterial).color.multiply(tintColor);
           }
           return material;

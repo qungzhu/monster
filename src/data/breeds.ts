@@ -53,6 +53,8 @@ export interface Breed {
   /** Eyes marked by hand ([u, v, radius] each; radius as a fraction of the
    *  model's size) for cats whose texture has no glossy eyes to find. */
   glbEyesUV?: [number, number, number][];
+  /** Dye the model's coat this colour, keeping its light and dark. */
+  glbRecolor?: string;
   /** Extra vertical correction after automatic fitting. Negative sinks low tails/fur into the ground. */
   glbGroundOffset?: number;
   /** Generated asset contains a disconnected flat display pedestal. */
@@ -239,6 +241,11 @@ export const breeds: Breed[] = [
     petName: '雪球', emoji: '❄️', rarity: 'legendary', characterId: 'xiaoxue',
     description: '极地雪精灵，一身雪白和冰雪世界融为一体',
     personality: ['雪白', '耐寒', '精灵'],
+    glbUrl: '/models/generated/red-fox-meshy-rigged-walk-optimized.glb?v=1',
+    glbIdleAnimation: '',
+    glbWalkAnimation: 'Armature|Unreal Take|baselayer',
+    glbGroundOffset: -0.28,
+    glbRecolor: '#f4f6fb',
     params: { tint: '#cfe0f5' } as FoxParams,
   },
   {
@@ -246,6 +253,11 @@ export const breeds: Breed[] = [
     petName: '月影', emoji: '🌙', rarity: 'legendary', characterId: 'xiaoxue',
     description: '驯化实验的奇迹，银黑毛色高贵神秘，行为像狗一样亲人',
     personality: ['神秘', '银黑', '亲人'],
+    glbUrl: '/models/generated/red-fox-meshy-rigged-walk-optimized.glb?v=1',
+    glbIdleAnimation: '',
+    glbWalkAnimation: 'Armature|Unreal Take|baselayer',
+    glbGroundOffset: -0.28,
+    glbRecolor: '#8a909c',
     params: { tint: '#6a7280' } as FoxParams,
   },
   {
@@ -253,6 +265,11 @@ export const breeds: Breed[] = [
     petName: '方脸', emoji: '🙂', rarity: 'rare', characterId: 'mianhuatang',
     description: '高原方脸表情包，一脸淡定看破红尘',
     personality: ['淡定', '方脸', '表情包'],
+    glbUrl: '/models/generated/red-fox-meshy-rigged-walk-optimized.glb?v=1',
+    glbIdleAnimation: '',
+    glbWalkAnimation: 'Armature|Unreal Take|baselayer',
+    glbGroundOffset: -0.28,
+    glbRecolor: '#d9b47c',
     params: { tint: '#d8c090' } as FoxParams,
   },
 

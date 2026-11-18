@@ -34,6 +34,9 @@ const FUR_HEAD = `
 varying vec3 vFurPos;
 varying float vFurLength;
 uniform float uFurH, uFurDensity;
+#ifdef PLUSH_RECOLOR
+uniform vec3 uRecolor;
+#endif
 #ifdef PLUSH_AO
 varying float vPlushAO;
 uniform float uPlushAO;
@@ -48,7 +51,9 @@ function shellMaterial(base: THREE.MeshPhysicalMaterial, h: number, perRadius: n
   const m = base.clone();
   m.name = `${base.name}-fur-${h.toFixed(2)}`;
   const mask = (base.userData.furMask as THREE.Texture | null | undefined) ?? null;
+  const recolor = (base.userData.recolor as THREE.Color | undefined) ?? null;
   const uniforms = {
+    uRecolor: { value: recolor ?? new THREE.Color(1, 1, 1) },
     uFurMask: { value: mask },
     uPlushInflate: plushTuning.inflate,
     uPlushRadius: { value: 1 / perRadius },
@@ -61,6 +66,7 @@ function shellMaterial(base: THREE.MeshPhysicalMaterial, h: number, perRadius: n
   m.onBeforeCompile = shader => {
     Object.assign(shader.uniforms, uniforms);
     if (ao) shader.defines = { ...shader.defines, PLUSH_AO: '' };
+    if (recolor) shader.defines = { ...shader.defines, PLUSH_RECOLOR: '' };
     shader.vertexShader = `attribute float furLength;\nattribute vec3 plushInflateNormal;\nvarying vec3 vFurPos;\nvarying float vFurLength;\n#ifdef PLUSH_AO\nattribute vec4 plushAO;\nvarying float vPlushAO;\n#endif\nuniform float uFurH, uFurOffset, uFurDroop, uPlushInflate, uPlushRadius;\n${shader.vertexShader}`
       .replace('#include <begin_vertex>', '#include <begin_vertex>\n  vFurPos = position;\n  vFurLength = furLength;\n  #ifdef PLUSH_AO\n  vPlushAO = plushAO.r;\n  #endif')
       .replace('#include <skinning_vertex>', `#include <skinning_vertex>
@@ -70,6 +76,9 @@ function shellMaterial(base: THREE.MeshPhysicalMaterial, h: number, perRadius: n
   transformed.y -= uFurDroop * uFurH * uFurH * furLength;`);
     shader.fragmentShader = (mask ? '#define FUR_MASK\nuniform sampler2D uFurMask;\n' : '') + FUR_HEAD + shader.fragmentShader
       .replace('#include <map_fragment>', `#include <map_fragment>
+  #ifdef PLUSH_RECOLOR
+  diffuseColor.rgb = uRecolor * (0.3 + 1.25 * smoothstep(0.0, 0.75, dot(diffuseColor.rgb, vec3(0.299, 0.587, 0.114))));
+  #endif
   float furLen = vFurLength;
   #if defined(FUR_MASK) && defined(USE_MAP)
     // Sharp mask, plus a blurred one (coarser mip) so a bare margin rings
@@ -112,7 +121,7 @@ function shellMaterial(base: THREE.MeshPhysicalMaterial, h: number, perRadius: n
   // writing depth, so soft fibre edges don't flicker.
   m.transparent = true;
   m.depthWrite = false;
-  m.customProgramCacheKey = () => `plush-fur2-${mask ? 'm' : ''}${ao ? 'a' : ''}${h.toFixed(3)}`;
+  m.customProgramCacheKey = () => `plush-fur2-${mask ? 'm' : ''}${ao ? 'a' : ''}${recolor ? 'r' : ''}${h.toFixed(3)}`;
   return m;
 }
 

@@ -16,6 +16,8 @@ export interface GLBModelConfig {
   plushFur?: boolean;
   /** Hand-marked eyes, see Breed.glbEyesUV. */
   eyesUV?: [number, number, number][];
+  /** Dye the coat this colour (see plushMaterial recolor). */
+  recolor?: string;
   /** Animation clip name to loop when idle */
   idleAnimation: string;
   /** Animation clip name to play on hover/interaction */

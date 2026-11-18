@@ -17,6 +17,9 @@ export function toPlushMaterial(
   squint?: { value: number },
   /** Hand-marked eyes ([u, v, radius]) when the texture has no glossy eyes. */
   eyesUV?: [number, number, number][],
+  /** Recolour the coat: keep the texture's light and dark, dye it this colour
+   *  (one fox model serves the red, arctic, silver and Tibetan fox). */
+  recolor?: THREE.Color,
 ): THREE.MeshPhysicalMaterial {
   const mat = new THREE.MeshPhysicalMaterial();
   mat.name = std.name;
@@ -34,6 +37,12 @@ export function toPlushMaterial(
   // blows those pets out while emissive-free ones (ragdoll) look right.
   // Keep only a trace of it so every pet is lit by the same rules.
   mat.emissiveIntensity = std.emissiveMap ? 0.22 : std.emissiveIntensity;
+  if (recolor) {
+    // the self-glow is the original coat colour: drop it when dyeing
+    mat.emissiveMap = null;
+    mat.emissive.setRGB(0, 0, 0);
+    mat.userData.recolor = recolor;
+  }
   mat.alphaMap = std.alphaMap;
   mat.alphaTest = std.alphaTest;
   mat.transparent = std.transparent;
@@ -102,6 +111,10 @@ export function toPlushMaterial(
       shader.defines = { ...shader.defines, PLUSH_AO: '' };
       shader.uniforms.uPlushAO = plushTuning.ao;
     }
+    if (recolor) {
+      shader.defines = { ...shader.defines, PLUSH_RECOLOR: '' };
+      shader.uniforms.uRecolor = { value: recolor };
+    }
     shader.uniforms.uPlushPerRadius = perRadius;
     shader.uniforms.uPlushFibres = plushTuning.fibresPerRadius;
     shader.uniforms.uPlushNoise = plushTuning.noise;
@@ -135,6 +148,13 @@ export function toPlushMaterial(
   vec3 plushP = vPlushPos * uPlushPerRadius * uPlushFibres;
   float plushDetail = 1.0 - smoothstep(0.35, 1.1, length(fwidth(plushP)));
   float plushPile = mix(0.5, plushNoise(plushP) * 0.6 + plushNoise(plushP * 2.7 + 13.1) * 0.4, plushDetail);
+  #ifdef PLUSH_RECOLOR
+  {
+    // light and dark of the original coat, dyed: stays soft, keeps markings
+    float lum = dot(diffuseColor.rgb, vec3(0.299, 0.587, 0.114));
+    diffuseColor.rgb = uRecolor * (0.3 + 1.25 * smoothstep(0.0, 0.75, lum));
+  }
+  #endif
   diffuseColor.rgb *= 1.0 + (plushPile - 0.5) * 2.0 * uPlushNoise;
   #ifdef PLUSH_AO
   // baked occlusion: creases, chin, belly and between the legs go darker
@@ -147,7 +167,7 @@ ${EYE_FRAGMENT}`)
   totalEmissiveRadiance *= 1.0 - plushLid;
   totalEmissiveRadiance += diffuseColor.rgb * pow(1.0 - plushNdV, 2.4) * uPlushRim;`);
   };
-  mat.customProgramCacheKey = () => (`plush-v7${eyes && squint ? `-eyes${eyes.marked ? '-marked' : ''}` : ''}${hasAO ? '-ao' : ''}`);
+  mat.customProgramCacheKey = () => (`plush-v7${recolor ? '-rc' : ''}${eyes && squint ? `-eyes${eyes.marked ? '-marked' : ''}` : ''}${hasAO ? '-ao' : ''}`);
   return mat;
 }
 
@@ -194,6 +214,9 @@ function smoothOutward(geo: THREE.BufferGeometry, radius: number): THREE.BufferA
 }
 
 const PLUSH_FRAGMENT_HEAD = EYE_UNIFORMS + `
+#ifdef PLUSH_RECOLOR
+uniform vec3 uRecolor;
+#endif
 #ifdef PLUSH_AO
 varying float vPlushAO;
 uniform float uPlushAO;
