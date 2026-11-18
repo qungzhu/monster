@@ -1,4 +1,5 @@
 import { StrictMode } from 'react'
+import { Capacitor } from '@capacitor/core'
 import { createRoot } from 'react-dom/client'
 import './index.css'
 import App from './App.tsx'
@@ -22,3 +23,12 @@ createRoot(document.getElementById('root')!).render(
     {selfTest ? <LockScreenSelfTest /> : <App />}
   </StrictMode>,
 )
+
+// Installable web app (PWA): register the service worker up front so the
+// browser offers "add to home screen". Skipped inside the native shells,
+// which are apps already, and in dev where Vite serves files directly.
+if (import.meta.env.PROD && 'serviceWorker' in navigator && !Capacitor.isNativePlatform()) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js').catch(() => { /* not fatal: the app works without it */ })
+  })
+}

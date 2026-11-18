@@ -15,8 +15,8 @@ self.addEventListener('push', event => {
     await self.registration.showNotification(job.title || '🐾 FurryPal', {
       body: job.body || '',
       tag: job.id || 'furrypal',
-      icon: '/favicon.svg',
-      badge: '/favicon.svg',
+      icon: '/icons/icon-192.png',
+      badge: '/icons/icon-192.png',
       data: { url: '/' },
     });
   })());
