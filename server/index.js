@@ -3,6 +3,8 @@ import cors from 'cors';
 import OpenAI from 'openai';
 import dotenv from 'dotenv';
 import { mountSchedule } from './schedule.js';
+import { corsOptions, isMeshyAssetUrl, rateLimit, requireAppToken } from './guard.js';
+import { CRISIS_RESOURCES, SAFETY_RULES, isCrisisMessage } from './safety.js';
 import {
   buildGoogleAuthorizationUrl,
   createGoogleCalendarEvent,
@@ -18,9 +20,30 @@ import {
 dotenv.config();
 
 const app = express();
-app.use(cors());
-app.use(express.json());
+// Behind a reverse proxy (the server itself listens on 127.0.0.1), so take
+// the client IP for rate limiting from X-Forwarded-For.
+app.set('trust proxy', 'loopback');
+app.use(cors(corsOptions()));
+// Photo uploads carry base64 images; everything else stays small.
+const IMAGE_ROUTES = new Set(['/api/analyze-pet', '/api/meshy/generate']);
+const imageJson = express.json({ limit: '25mb' });
+const smallJson = express.json({ limit: '256kb' });
+app.use((req, res, next) => (IMAGE_ROUTES.has(req.path) ? imageJson : smallJson)(req, res, next));
 mountSchedule(app);
+
+// Paid endpoints: optional app token + per-IP limits.
+const appToken = requireAppToken();
+const MINUTE = 60_000;
+const aiLimit = rateLimit({ windowMs: MINUTE, max: Number(process.env.AI_RATE_LIMIT_PER_MIN) || 20 });
+const aiDailyLimit = rateLimit({ windowMs: 24 * 60 * MINUTE, max: Number(process.env.AI_RATE_LIMIT_PER_DAY) || 600 });
+const meshyLimit = rateLimit({ windowMs: 60 * MINUTE, max: Number(process.env.MESHY_RATE_LIMIT_PER_HOUR) || 6 });
+const meshyPollLimit = rateLimit({ windowMs: MINUTE, max: 60 });
+for (const route of ['/api/chat', '/api/analyze-pet', '/api/agent/plan', '/api/memory/extract']) {
+  app.use(route, appToken, aiLimit, aiDailyLimit);
+}
+app.use('/api/meshy/generate', appToken, meshyLimit);
+app.use('/api/meshy/status', appToken, meshyPollLimit);
+app.use('/api/meshy/fetch-model', appToken, meshyPollLimit);
 
 const PORT = process.env.PORT || 3001;
 const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-5.5';
@@ -179,65 +202,92 @@ function getIntimacyContext(level) {
 }
 
 app.post('/api/chat', async (req, res) => {
-  try {
-    const { message, characterId, history, intimacyLevel, userName, role, memoryContext, followUp } = req.body;
+  const { message, characterId, history, intimacyLevel, userName, role, memoryContext, followUp, stream } = req.body ?? {};
+  const text = String(message ?? '').slice(0, 2000);
+  if (!text.trim()) return res.status(400).json({ error: 'no_message' });
 
-    const apiKey = req.headers['x-api-key'] || process.env.OPENAI_API_KEY;
-    if (!apiKey) {
-      return res.status(400).json({ error: 'no_api_key', message: 'API key not configured' });
-    }
+  // Self-harm never goes to the model alone: the reply always carries
+  // real help lines, whatever the model says (or if it fails).
+  const crisis = isCrisisMessage(text);
+  const crisisTail = crisis ? `\n${CRISIS_RESOURCES}` : '';
 
-    const client = new OpenAI({ apiKey });
-
-    const systemPrompt = characterPrompts[characterId] || characterPrompts.tuantuan;
-    const intimacyContext = getIntimacyContext(intimacyLevel || 0);
-    const nameContext = userName ? `主人的名字叫"${userName}"。` : '你还不知道主人的名字。';
-
-    const roleContext = roleInstructions[role] || roleInstructions.friend;
-    const memoryBlock = typeof memoryContext === 'string' && memoryContext.trim()
-      ? `\n\n你记得的关于主人的事(长期记忆,自然地用上,不要一次全说出来,也不要说"根据记忆"):\n${memoryContext.slice(0, MEMORY_CONTEXT_LIMIT)}`
-      : '';
-    const followUpBlock = typeof followUp === 'string' && followUp.trim()
-      ? `\n\n如果合适,这次顺便问问主人:之前说的「${followUp.slice(0, 80)}」后来怎么样了。`
-      : '';
-
-    const fullSystemPrompt = `${systemPrompt}\n\n${roleContext}\n\n当前状态：\n${intimacyContext}\n${nameContext}${memoryBlock}${followUpBlock}\n\n重要规则：\n- 始终保持角色扮演，不要跳出角色\n- 回复要自然、可爱、有温度\n- 感知主人的情绪，给予相应的回应\n- 不要给出专业建议，只需要用萌宠的方式陪伴和安慰`;
-
-    const messages = (history || []).slice(-20).map(msg => ({
-      role: msg.role === 'user' ? 'user' : 'assistant',
-      content: msg.content,
-    }));
-    messages.push({ role: 'user', content: message });
-
-    const cleanMessages = [];
-    for (const msg of messages) {
-      if (cleanMessages.length === 0) {
-        if (msg.role === 'user') cleanMessages.push(msg);
-      } else {
-        const last = cleanMessages[cleanMessages.length - 1];
-        if (last.role !== msg.role) {
-          cleanMessages.push(msg);
-        }
-      }
-    }
-
-    if (cleanMessages.length === 0 || cleanMessages[0].role !== 'user') {
-      cleanMessages.unshift({ role: 'user', content: message });
-    }
-
-    const response = await client.responses.create({
-      model: OPENAI_MODEL,
-      max_output_tokens: 300,
-      instructions: fullSystemPrompt,
-      input: cleanMessages,
-    });
-
-    const text = response.output_text;
-    res.json({ response: text });
-  } catch (error) {
-    console.error('Chat API error:', error.message);
-    res.status(500).json({ error: 'api_error', message: error.message });
+  const apiKey = req.headers['x-api-key'] || process.env.OPENAI_API_KEY;
+  if (!apiKey) {
+    return res.status(400).json({ error: 'no_api_key', message: 'API key not configured' });
   }
+
+  const systemPrompt = characterPrompts[characterId] || characterPrompts.tuantuan;
+  const intimacyContext = getIntimacyContext(Number(intimacyLevel) || 0);
+  const nameContext = userName ? `主人的名字叫"${String(userName).slice(0, 40)}"。` : '你还不知道主人的名字。';
+
+  const roleContext = roleInstructions[role] || roleInstructions.friend;
+  const memoryBlock = typeof memoryContext === 'string' && memoryContext.trim()
+    ? `\n\n你记得的关于主人的事(长期记忆,自然地用上,不要一次全说出来,也不要说"根据记忆"):\n${memoryContext.slice(0, MEMORY_CONTEXT_LIMIT)}`
+    : '';
+  const followUpBlock = typeof followUp === 'string' && followUp.trim() && !crisis
+    ? `\n\n如果合适,这次顺便问问主人:之前说的「${followUp.slice(0, 80)}」后来怎么样了。`
+    : '';
+
+  const fullSystemPrompt = `${systemPrompt}\n\n${roleContext}\n\n当前状态：\n${intimacyContext}\n${nameContext}${memoryBlock}${followUpBlock}\n\n重要规则：\n- 始终保持角色扮演，不要跳出角色\n- 回复要自然、可爱、有温度\n- 感知主人的情绪，给予相应的回应\n- 不要给出专业建议，只需要用萌宠的方式陪伴和安慰\n${SAFETY_RULES}`;
+
+  const messages = (Array.isArray(history) ? history : []).slice(-20).map(msg => ({
+    role: msg?.role === 'user' ? 'user' : 'assistant',
+    content: String(msg?.content ?? '').slice(0, 2000),
+  }));
+  messages.push({ role: 'user', content: text });
+
+  // The model wants strictly alternating turns starting with the user.
+  const cleanMessages = [];
+  for (const msg of messages) {
+    if (cleanMessages.length === 0) {
+      if (msg.role === 'user') cleanMessages.push(msg);
+    } else if (cleanMessages[cleanMessages.length - 1].role !== msg.role) {
+      cleanMessages.push(msg);
+    } else if (msg.role === 'user') {
+      // Two user turns in a row: keep the newest, so this message is never dropped.
+      cleanMessages[cleanMessages.length - 1] = msg;
+    }
+  }
+  if (cleanMessages.length === 0) cleanMessages.push({ role: 'user', content: text });
+
+  const request = {
+    model: OPENAI_MODEL,
+    max_output_tokens: 300,
+    instructions: fullSystemPrompt,
+    input: cleanMessages,
+  };
+  const client = new OpenAI({ apiKey });
+
+  if (!stream) {
+    try {
+      const response = await client.responses.create(request);
+      return res.json({ response: `${response.output_text}${crisisTail}` });
+    } catch (error) {
+      console.error('Chat API error:', error.message);
+      return res.status(500).json({ error: 'api_error', message: error.message });
+    }
+  }
+
+  // Streaming: Server-Sent Events, one {"delta"} per chunk, then {"done"}.
+  res.set({ 'Content-Type': 'text/event-stream; charset=utf-8', 'Cache-Control': 'no-cache, no-transform', Connection: 'keep-alive', 'X-Accel-Buffering': 'no' });
+  res.flushHeaders();
+  const send = obj => res.write(`data: ${JSON.stringify(obj)}\n\n`);
+  const abort = new AbortController();
+  res.on('close', () => abort.abort());
+  try {
+    const events = await client.responses.create({ ...request, stream: true }, { signal: abort.signal });
+    for await (const event of events) {
+      if (event.type === 'response.output_text.delta' && event.delta) send({ delta: event.delta });
+    }
+    if (crisisTail) send({ delta: crisisTail });
+    send({ done: true });
+  } catch (error) {
+    if (!abort.signal.aborted) {
+      console.error('Chat stream error:', error.message);
+      send({ error: 'api_error', ...(crisisTail ? { delta: crisisTail } : {}) });
+    }
+  }
+  res.end();
 });
 
 // Analyze a pet photo with OpenAI vision and return parametric
@@ -349,6 +399,7 @@ app.post('/api/meshy/generate', async (req, res) => {
 
 app.get('/api/meshy/status/:taskId', async (req, res) => {
   try {
+    if (!/^[a-zA-Z0-9_-]{1,64}$/.test(req.params.taskId)) return res.status(400).json({ error: 'bad_task_id' });
     const key = meshyKey(req);
     if (!key) return res.status(400).json({ error: 'no_meshy_key' });
     const endpoint = req.query.multi === '1' ? 'multi-image-to-3d' : 'image-to-3d';
@@ -369,19 +420,46 @@ app.get('/api/meshy/status/:taskId', async (req, res) => {
 
 // Download the finished GLB into public/models/ so the dev server can
 // serve it same-origin (Meshy URLs expire and block CORS).
+const MAX_MODEL_BYTES = 60 * 1024 * 1024;
 app.post('/api/meshy/fetch-model', async (req, res) => {
   try {
-    const { glbUrl, taskId } = req.body;
-    if (!glbUrl || !glbUrl.includes('meshy')) {
+    const { glbUrl, taskId } = req.body ?? {};
+    // Only Meshy's own https hosts: the server must not fetch arbitrary
+    // URLs (internal services, huge files) on a client's behalf.
+    if (!isMeshyAssetUrl(glbUrl)) {
       return res.status(400).json({ error: 'bad_url' });
     }
-    const response = await fetch(glbUrl);
-    if (!response.ok) return res.status(502).json({ error: 'download_failed' });
-    const buffer = Buffer.from(await response.arrayBuffer());
+    // Follow redirects by hand so every hop stays on Meshy's hosts.
+    let url = glbUrl;
+    let response;
+    for (let hop = 0; ; hop++) {
+      response = await fetch(url, { redirect: 'manual', signal: AbortSignal.timeout(120_000) });
+      const next = response.status >= 300 && response.status < 400 ? response.headers.get('location') : null;
+      if (!next) break;
+      url = new URL(next, url).toString();
+      if (hop >= 3 || !isMeshyAssetUrl(url)) return res.status(400).json({ error: 'bad_redirect' });
+    }
+    if (!response.ok || !response.body) return res.status(502).json({ error: 'download_failed' });
+    if (Number(response.headers.get('content-length')) > MAX_MODEL_BYTES) {
+      return res.status(413).json({ error: 'model_too_large' });
+    }
+    const chunks = [];
+    let size = 0;
+    for await (const chunk of response.body) {
+      size += chunk.length;
+      if (size > MAX_MODEL_BYTES) return res.status(413).json({ error: 'model_too_large' });
+      chunks.push(chunk);
+    }
+    const buffer = Buffer.concat(chunks);
+    // Every GLB starts with the ASCII magic "glTF".
+    if (buffer.subarray(0, 4).toString('ascii') !== 'glTF') {
+      return res.status(502).json({ error: 'not_a_glb' });
+    }
 
     const fs = await import('fs');
     const path = await import('path');
-    const filename = `custom-${(taskId || Date.now()).toString().replace(/[^a-zA-Z0-9_-]/g, '')}.glb`;
+    const id = String(taskId ?? '').replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 64) || String(Date.now());
+    const filename = `custom-${id}.glb`;
     const dir = path.join(process.cwd(), 'public', 'models');
     fs.mkdirSync(dir, { recursive: true });
     fs.writeFileSync(path.join(dir, filename), buffer);

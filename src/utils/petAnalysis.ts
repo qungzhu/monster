@@ -1,4 +1,4 @@
-import { API_BASE } from './apiBase';
+import { API_BASE, apiHeaders } from './apiBase';
 
 /**
  * Pet photo analysis: turns a photo/video of the user's real pet
@@ -158,7 +158,7 @@ export async function startMeshyGeneration(dataUrls: string | string[]): Promise
   const urls = Array.isArray(dataUrls) ? dataUrls : [dataUrls];
   const res = await fetch(`${API_BASE}/api/meshy/generate`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: apiHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify({ imageDataUrls: urls }),
   });
   if (!res.ok) {
@@ -169,7 +169,7 @@ export async function startMeshyGeneration(dataUrls: string | string[]): Promise
 }
 
 export async function pollMeshyStatus(taskId: string, multi = false): Promise<MeshyProgress> {
-  const res = await fetch(`${API_BASE}/api/meshy/status/${taskId}?multi=${multi ? '1' : '0'}`);
+  const res = await fetch(`${API_BASE}/api/meshy/status/${taskId}?multi=${multi ? '1' : '0'}`, { headers: apiHeaders() });
   if (!res.ok) throw new Error(`status failed: ${res.status}`);
   return res.json();
 }
@@ -178,7 +178,7 @@ export async function pollMeshyStatus(taskId: string, multi = false): Promise<Me
 export async function fetchMeshyModel(glbUrl: string, taskId: string): Promise<string> {
   const res = await fetch(`${API_BASE}/api/meshy/fetch-model`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: apiHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify({ glbUrl, taskId }),
   });
   if (!res.ok) throw new Error(`fetch-model failed: ${res.status}`);
@@ -186,14 +186,14 @@ export async function fetchMeshyModel(glbUrl: string, taskId: string): Promise<s
   return localUrl;
 }
 
-/** Claude-vision analysis via the local backend proxy. */
+/** Vision analysis (OpenAI) via the backend proxy. */
 export async function analyzeWithAI(dataUrl: string, apiKey: string): Promise<PetAnalysis> {
   const [header, base64] = dataUrl.split(',');
   const mediaType = header.match(/data:([^;]+)/)?.[1] ?? 'image/jpeg';
 
   const res = await fetch(`${API_BASE}/api/analyze-pet`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-API-Key': apiKey },
+    headers: apiHeaders({ 'Content-Type': 'application/json', ...(apiKey ? { 'X-API-Key': apiKey } : {}) }),
     body: JSON.stringify({ imageBase64: base64, mediaType }),
   });
   if (!res.ok) throw new Error(`analyze failed: ${res.status}`);
