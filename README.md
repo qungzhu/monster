@@ -35,7 +35,7 @@ cp .env.example .env
 # 前端(开发服务器,默认 http://localhost:5173)
 npm run dev
 
-# 后端 API 代理(可选,Meshy 建模 / Claude 对话需要,默认端口 3001)
+# 后端 API 代理(可选,AI 对话 / Meshy 建模需要,默认端口 3001)
 npm run server
 
 # 或一条命令同时起前后端
@@ -59,8 +59,26 @@ npm run preview    # 本地预览生产构建
 
 | 变量 | 用途 | 获取 | 不填的影响 |
 |---|---|---|---|
-| `ANTHROPIC_API_KEY` | AI 对话 + 照片视觉分析 | [console.anthropic.com](https://console.anthropic.com)(需有余额) | 对话走本地模板,照片分析走离线取色 |
+| `OPENAI_API_KEY` | AI 对话、长期记忆整理、任务规划、照片视觉分析 | [platform.openai.com](https://platform.openai.com/api-keys)(需有余额) | 对话走本地模板,记忆/任务走本地规则,照片分析走离线取色 |
+| `OPENAI_MODEL` | 使用的模型,默认 `gpt-5.5` | — | 用默认模型 |
 | `MESHY_API_KEY` | 照片转 3D 建模 | [meshy.ai](https://www.meshy.ai) → Settings → API | 无法生成新的自定义宠物,已内置的猫不受影响 |
+
+### 上线部署时的防护
+
+AI 和 Meshy 接口会花你的额度,公开部署时请配置(见 `server/guard.js`):
+
+| 变量 | 作用 | 默认 |
+|---|---|---|
+| `ALLOWED_ORIGINS` | 允许跨域访问的前端来源,逗号分隔,如 `https://furrypal.app,capacitor://localhost` | 不限(仅适合本地开发) |
+| `APP_TOKEN` / `VITE_APP_TOKEN` | 服务端设置 `APP_TOKEN` 后,付费接口需带 `X-App-Token`;构建前端时把同样的值设为 `VITE_APP_TOKEN`。令牌会打包进 App,只能挡住随手滥用,真正封顶花费的是限流 | 不校验 |
+| `AI_RATE_LIMIT_PER_MIN` / `AI_RATE_LIMIT_PER_DAY` | 每个 IP 调用 AI 接口的上限 | 20 / 600 |
+| `MESHY_RATE_LIMIT_PER_HOUR` | 每个 IP 发起 3D 生成的上限 | 6 |
+
+限流计数存在进程内存里,多实例部署时需要换成共享存储。服务端只监听 `127.0.0.1`,公网访问请放在反向代理(Nginx / Caddy 等)后面。
+
+### 心理安全兜底
+
+主人流露出轻生、自伤念头时(`src/utils/safety.ts`,服务端同款在 `server/safety.js`),宠物不会走模板或模型的随意回复,而是温柔回应并给出求助渠道:全国心理援助热线 12356、希望24热线 400-161-9995、紧急情况 120/110。离线也生效;接了 AI 时,服务端也会在回复末尾强制附上热线。两份关键词表由 `npm run test:api` 校验保持一致。
 
 > ⚠️ **安全**:`.env` 已在 `.gitignore` 中,**切勿提交或打包进分发文件**。分享代码时用 `git archive` 或本仓库的分包方式(已自动排除 `.env`)。
 
@@ -206,4 +224,4 @@ npm run dev        # 前端(Vite 已代理 /plaza-ws)
 
 ## 技术栈
 
-React 19 · TypeScript · Vite · @react-three/fiber (three.js) · @react-three/drei · @react-three/postprocessing · Tailwind CSS v4 · framer-motion · Express · Anthropic SDK · Meshy API
+React 19 · TypeScript · Vite · @react-three/fiber (three.js) · @react-three/drei · @react-three/postprocessing · Tailwind CSS v4 · framer-motion · Express · OpenAI SDK · Meshy API
