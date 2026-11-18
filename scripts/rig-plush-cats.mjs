@@ -26,6 +26,9 @@ const out = path.join(plush, 'rigged');
 const rig = path.join(root, 'public/models/lite/plush-himalayan.glb');
 const blender = process.env.BLENDER_PY ?? path.join(root, '.venv-blender/bin/python');
 const TRIANGLES = process.env.RIG_TRIANGLES ?? '40000';
+// Cats Meshy built from loose overlapping fur flakes: rebuilt as one skin
+// first (tools/blender/reskin.py), or the flakes crack apart in the app.
+const RESKIN = new Set(['angora', 'chinchilla']);
 
 const names = process.argv.slice(2).length
   ? process.argv.slice(2)
@@ -58,6 +61,9 @@ for (const name of names) {
   const rigged = path.join(work, `${name}-rigged.glb`);
   try {
     await decode(src, plain);
+    if (RESKIN.has(name)) {
+      execFileSync(blender, [path.join(root, 'tools/blender/reskin.py'), plain, plain], { stdio: 'pipe' });
+    }
     const log = execFileSync(blender, [path.join(root, 'tools/blender/lite_rig.py'), rigPlain, plain, rigged, TRIANGLES, 'box'], { stdio: 'pipe' }).toString();
     if (process.env.RIG_LOG) console.log(log.split("\n").filter(l => /heat|anatomy|whisk|tail/i.test(l)).join("\n"));
     const tail = log.split('\n').find(l => l.startsWith('tail:'));

@@ -100,7 +100,20 @@ for o in new:
         bm = bmesh.new()
         bm.from_mesh(o.data)
         size = max(o.dimensions)
-        bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=size * 1e-5)
+        # Some Meshy cats (angora, chinchilla) come as a triangle soup: every
+        # triangle has its own corners and the smooth look lives only in
+        # custom normals. Welding those leaves the fur faceted and cracked,
+        # so they stay unwelded (fix-skin-spikes.mjs gives corners that share
+        # a spot the same weights, so the skin still can't tear there).
+        probe = bm.copy()
+        before = len(probe.verts)
+        bmesh.ops.remove_doubles(probe, verts=probe.verts, dist=size * 1e-5)
+        soup = len(probe.verts) < 0.75 * before
+        probe.free()
+        if soup:
+            print(f'soup mesh: {before} vertices kept unwelded')
+        else:
+            bmesh.ops.remove_doubles(bm, verts=bm.verts, dist=size * 1e-5)
         # Whiskers: Meshy models them as zero-thickness strips glued to the
         # muzzle, which decimation and skinning crumple into a tangle. Drop
         # them here (the app draws fine new ones from the whisker pads):
