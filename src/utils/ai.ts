@@ -3,7 +3,7 @@ import { detectEmotion } from './emotion';
 import type { Memory, MemoryOp } from '../data/memory';
 import type { CompanionRole, LifeItem } from '../data/companion';
 // Same-origin on the web (Vite proxies /api to the Express server in dev),
-// so the server's own OPENAI_API_KEY works without the user pasting a key.
+// so the server's own ANTHROPIC_API_KEY works without the user pasting a key.
 import { API_BASE, apiHeaders } from './apiBase';
 
 /** Extra context that makes the pet "know" its owner. */
@@ -19,9 +19,23 @@ export interface ChatContext {
   onDelta?: (textSoFar: string) => void;
 }
 
+/** The model's reading of the owner's emotion (mixed feelings: two). */
+export interface AIEmotion {
+  primary: MoodType;
+  secondary?: MoodType;
+}
+
 export interface AIChatResponse {
   response: string;
   isAI: boolean;
+  emotion?: AIEmotion;
+}
+
+const MOODS: MoodType[] = ['happy', 'sad', 'angry', 'anxious', 'lonely', 'neutral'];
+function toEmotion(value: unknown): AIEmotion | undefined {
+  const v = value as Partial<AIEmotion> | null | undefined;
+  if (!v || !MOODS.includes(v.primary as MoodType)) return undefined;
+  return { primary: v.primary as MoodType, ...(MOODS.includes(v.secondary as MoodType) ? { secondary: v.secondary } : {}) };
 }
 
 export async function sendAIMessage(
@@ -68,26 +82,28 @@ export async function sendAIMessage(
       const data = await res.json();
       if (typeof data.response !== 'string' || !data.response) return fallbackResponse(message, character);
       context.onDelta?.(data.response);
-      return { response: data.response, isAI: true };
+      return { response: data.response.trim(), isAI: true, emotion: toEmotion(data.emotion) };
     } catch {
       return fallbackResponse(message, character);
     }
   }
 
   let text = '';
+  let emotion: AIEmotion | undefined;
   try {
     for await (const event of readSSE(res.body)) {
       if (typeof event.delta === 'string') {
         text += event.delta;
-        context.onDelta?.(text);
+        context.onDelta?.(text.trimStart());
       }
+      if (event.emotion) emotion = toEmotion(event.emotion);
       if (event.done || event.error) break;
     }
   } catch {
     // Connection dropped mid-reply: keep whatever already arrived.
   }
   if (!text.trim()) return fallbackResponse(message, character);
-  return { response: text, isAI: true };
+  return { response: text.trim(), isAI: true, emotion };
 }
 
 /** Parse a Server-Sent Events body into its JSON `data:` payloads. */

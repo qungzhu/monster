@@ -186,7 +186,7 @@ export async function fetchMeshyModel(glbUrl: string, taskId: string): Promise<s
   return localUrl;
 }
 
-/** Vision analysis (OpenAI) via the backend proxy. */
+/** Vision analysis (Claude) via the backend proxy. */
 export async function analyzeWithAI(dataUrl: string, apiKey: string): Promise<PetAnalysis> {
   const [header, base64] = dataUrl.split(',');
   const mediaType = header.match(/data:([^;]+)/)?.[1] ?? 'image/jpeg';

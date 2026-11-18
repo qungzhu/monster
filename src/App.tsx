@@ -48,6 +48,7 @@ export default function App() {
         clearAllData={store.clearAllData}
         moodEntries={store.moodEntries}
         addMoodEntry={store.addMoodEntry}
+        updateMoodEntry={store.updateMoodEntry}
         coins={store.coins}
         addCoins={store.addCoins}
         addXP={store.addXP}

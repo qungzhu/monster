@@ -1,11 +1,11 @@
 // End-to-end for the API server's guards and chat: crisis safety, SSE
 // streaming, app token, rate limits and the Meshy download allow-list.
-// Starts a fake OpenAI upstream and the real server (port 3092).
+// Starts a fake Claude upstream and the real server (port 3092).
 // Run: npm run test:api
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
 import { createServer } from 'node:http';
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { CRISIS_PATTERNS as SERVER_PATTERNS, isCrisisMessage } from '../safety.js';
@@ -29,27 +29,46 @@ const clientPatterns = [...clientBlock.matchAll(/^\s*(\/.+\/[a-z]*),\s*$/gm)].ma
 assert.deepEqual(clientPatterns, SERVER_PATTERNS.map(String));
 ok('client and server crisis patterns are in sync');
 
-// ——— Fake OpenAI Responses API ———
-let lastInstructions = '';
+// ——— Fake Claude Messages API ———
+let lastRequest = {};
+let refuseNext = false;
+const message = (content, stop_reason = 'end_turn') => ({
+  id: 'msg_1', type: 'message', role: 'assistant', model: 'claude-opus-5-5', content, stop_reason,
+  stop_sequence: null, usage: { input_tokens: 10, output_tokens: 10 },
+});
 const upstream = createServer((req, res) => {
   let body = '';
   req.on('data', c => { body += c; });
   req.on('end', () => {
     const json = JSON.parse(body || '{}');
-    lastInstructions = json.instructions ?? '';
+    lastRequest = { ...json, beta: req.headers['anthropic-beta'] };
+    const system = JSON.stringify(json.system ?? '');
+    if (refuseNext) {
+      refuseNext = false;
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify(message([], 'refusal')));
+    }
+    if (json.output_config?.format?.type === 'json_schema') {
+      const out = system.includes('记忆整理器')
+        ? { ops: [{ op: 'add', text: '主人下周三面试', category: 'event' }] }
+        : { reply: '好的', actions: [] };
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      return res.end(JSON.stringify(message([{ type: 'text', text: JSON.stringify(out) }])));
+    }
+    const reply = ['汪!', '我在', '这里~\n<mo', 'od>sad,anxious</mood>'];
     if (json.stream) {
       res.writeHead(200, { 'Content-Type': 'text/event-stream' });
-      for (const delta of ['汪!', '我在', '这里~']) {
-        res.write(`event: response.output_text.delta\ndata: ${JSON.stringify({ type: 'response.output_text.delta', delta })}\n\n`);
-      }
-      res.end(`event: response.completed\ndata: ${JSON.stringify({ type: 'response.completed', response: { id: 'r1', output: [] } })}\n\n`);
-      return;
+      const ev = (type, data) => res.write(`event: ${type}\ndata: ${JSON.stringify({ type, ...data })}\n\n`);
+      ev('message_start', { message: message([]) });
+      ev('content_block_start', { index: 0, content_block: { type: 'text', text: '' } });
+      for (const text of reply) ev('content_block_delta', { index: 0, delta: { type: 'text_delta', text } });
+      ev('content_block_stop', { index: 0 });
+      ev('message_delta', { delta: { stop_reason: 'end_turn', stop_sequence: null }, usage: { output_tokens: 10 } });
+      ev('message_stop', {});
+      return res.end();
     }
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({
-      id: 'r1', object: 'response', status: 'completed',
-      output: [{ type: 'message', role: 'assistant', content: [{ type: 'output_text', text: '汪!我在这里~', annotations: [] }] }],
-    }));
+    res.end(JSON.stringify(message([{ type: 'text', text: reply.join('') }])));
   });
 });
 await new Promise(r => upstream.listen(0, '127.0.0.1', r));
@@ -60,9 +79,9 @@ const TOKEN = 'test-app-token';
 const server = spawn(process.execPath, ['server/index.js'], {
   env: {
     ...process.env, PORT: '3092',
-    OPENAI_API_KEY: 'sk-test', OPENAI_BASE_URL: `http://127.0.0.1:${upstream.address().port}/v1`,
+    ANTHROPIC_API_KEY: 'sk-ant-test', ANTHROPIC_BASE_URL: `http://127.0.0.1:${upstream.address().port}`,
     APP_TOKEN: TOKEN, AI_RATE_LIMIT_PER_MIN: '8',
-    SCHEDULE_FILE: join(dir, 'schedules.json'), VAPID_FILE: join(dir, 'vapid.json'),
+    SCHEDULE_FILE: join(dir, 'schedules.json'), VAPID_FILE: join(dir, 'vapid.json'), SAVES_DIR: join(dir, 'saves'),
   },
   stdio: ['ignore', 'pipe', 'pipe'],
 });
@@ -88,20 +107,28 @@ try {
   assert.equal((await chat({ message: '你好' }, { 'Content-Type': 'application/json' })).status, 401);
   ok('paid endpoints need the app token when APP_TOKEN is set');
 
-  // Plain JSON reply, with safety rules in the prompt
+  // Plain JSON reply: mood tag stripped and returned separately
   let res = await chat({ message: '你好' });
   assert.equal(res.status, 200);
-  assert.equal((await res.json()).response, '汪!我在这里~');
-  assert.match(lastInstructions, /12356/);
-  ok('JSON chat works and the system prompt carries the safety rules');
+  let body = await res.json();
+  assert.equal(body.response, '汪!我在这里~');
+  assert.deepEqual(body.emotion, { primary: 'sad', secondary: 'anxious' });
+  assert.equal(lastRequest.model, 'claude-opus-5-5');
+  assert.equal(lastRequest.fallbacks, 'default');
+  assert.match(lastRequest.beta, /server-side-fallback-2026-07-01/);
+  assert.match(JSON.stringify(lastRequest.system), /12356/);
+  ok('Claude chat: safety rules + refusal fallback sent, mood tag parsed out');
 
-  // Streaming
+  // Streaming: the tag never reaches the client, even split across chunks
   res = await chat({ message: '你好', stream: true });
   assert.match(res.headers.get('content-type'), /text\/event-stream/);
   let events = await readEvents(res);
-  assert.equal(events.filter(e => e.delta).map(e => e.delta).join(''), '汪!我在这里~');
+  const shown = events.filter(e => e.delta).map(e => e.delta).join('');
+  assert.equal(shown.trim(), '汪!我在这里~');
+  assert.doesNotMatch(shown, /mood|</);
+  assert.deepEqual(events.find(e => e.emotion).emotion, { primary: 'sad', secondary: 'anxious' });
   assert.ok(events.at(-1).done);
-  ok('streaming chat sends deltas then done');
+  ok('streaming chat: deltas, hidden mood tag, emotion event, done');
 
   // Crisis: help lines always appended, streamed or not
   res = await chat({ message: '我不想活了', stream: true });
@@ -112,6 +139,45 @@ try {
   res = await chat({ message: '我不想活了' });
   assert.match((await res.json()).response, /12356/);
   ok('crisis messages always get help lines appended');
+
+  // Refusal: no empty reply; the client falls back to its template
+  refuseNext = true;
+  res = await chat({ message: '你好' });
+  assert.equal(res.status, 502);
+  ok('a refused chat returns an error the client can fall back from');
+
+  // Structured outputs for memory extraction
+  res = await fetch(`${API}/api/memory/extract`, { method: 'POST', headers, body: JSON.stringify({ messages: ['我下周三面试'], memories: [] }) });
+  body = await res.json();
+  assert.equal(lastRequest.output_config.format.type, 'json_schema');
+  assert.deepEqual(body.ops.map(o => o.text), ['主人下周三面试']);
+  ok('memory extraction uses JSON-schema structured output');
+
+  // Cloud save with a sync code
+  const save = (method, code, body) => fetch(`${API}/api/save`, {
+    method, headers: { ...headers, ...(code ? { 'X-Sync-Code': code } : {}) }, body: body && JSON.stringify(body),
+  });
+  res = await save('POST', null, { data: { 'fp-user-name': '"小明"' } });
+  const { code } = await res.json();
+  assert.match(code, /^[2-9A-Z]{4}-[2-9A-Z]{4}-[2-9A-Z]{4}$/);
+  assert.equal(readdirSync(join(dir, 'saves')).some(f => f.includes(code)), false);
+  res = await save('GET', code.toLowerCase().replace(/-/g, ' '));
+  assert.equal((await res.json()).data['fp-user-name'], '"小明"');
+  ok('sync code created, stored hashed, restorable however it is typed');
+
+  res = await save('PUT', code, { data: { 'fp-coins': '10' }, baseVersion: 1 });
+  assert.equal((await res.json()).version, 2);
+  res = await save('PUT', code, { data: { 'fp-coins': '99' }, baseVersion: 1 });
+  assert.equal(res.status, 409);
+  assert.equal((await res.json()).data['fp-coins'], '10');
+  ok('a stale device gets the newer save back instead of overwriting it');
+
+  assert.equal((await save('GET', 'AAAA-BBBB-CCCC')).status, 404);
+  assert.equal((await save('POST', null, { data: { 'evil-key': 'x' } })).status, 400);
+  assert.equal((await save('POST', null, { data: { 'fp-x': { nested: 1 } } })).status, 400);
+  assert.equal((await save('DELETE', code)).status, 200);
+  assert.equal((await save('GET', code)).status, 404);
+  ok('unknown codes 404, only fp-* string values accepted, delete works');
 
   // Meshy download allow-list
   for (const glbUrl of ['http://169.254.169.254/latest/meta-data', 'https://evil.example/meshy.glb', 'http://assets.meshy.ai/x.glb', 'https://meshy.ai.evil.example/x.glb']) {
@@ -124,10 +190,10 @@ try {
   assert.equal(r.status, 400);
   ok('Meshy status rejects odd task ids');
 
-  // Rate limit: 8 per minute; 4 counted above (the 401 is rejected before the limiter)
+  // Rate limit: 8 per minute; 6 counted above across AI routes (the 401 is rejected before the limiter)
   const statuses = [];
   for (let i = 0; i < 5; i++) statuses.push((await chat({ message: '你好' })).status);
-  assert.deepEqual(statuses, [200, 200, 200, 200, 429]);
+  assert.deepEqual(statuses, [200, 200, 429, 429, 429]);
   ok('AI endpoints are rate limited per client');
 
   console.log(`api: ${passed} checks passed`);

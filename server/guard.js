@@ -1,6 +1,6 @@
 // Guards for the API server: who may call it (CORS + optional app token)
 // and how often (per-IP rate limits). Without these anyone who finds the
-// URL can spend the server's OpenAI / Meshy credit.
+// URL can spend the server's Claude / Meshy credit.
 //
 // Env:
 //   ALLOWED_ORIGINS  comma-separated browser origins allowed by CORS,

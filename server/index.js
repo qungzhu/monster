@@ -1,10 +1,11 @@
 import express from 'express';
 import cors from 'cors';
-import OpenAI from 'openai';
 import dotenv from 'dotenv';
 import { mountSchedule } from './schedule.js';
+import { MAX_SAVE_BYTES, mountSaves } from './saves.js';
 import { corsOptions, isMeshyAssetUrl, rateLimit, requireAppToken } from './guard.js';
 import { CRISIS_RESOURCES, SAFETY_RULES, isCrisisMessage } from './safety.js';
+import { MOOD_TAG_RULE, claudeClient, claudeKey, generateJSON, generateText, moodFilter, parseMood, stripMood, streamText } from './llm.js';
 import {
   buildGoogleAuthorizationUrl,
   createGoogleCalendarEvent,
@@ -28,7 +29,8 @@ app.use(cors(corsOptions()));
 const IMAGE_ROUTES = new Set(['/api/analyze-pet', '/api/meshy/generate']);
 const imageJson = express.json({ limit: '25mb' });
 const smallJson = express.json({ limit: '256kb' });
-app.use((req, res, next) => (IMAGE_ROUTES.has(req.path) ? imageJson : smallJson)(req, res, next));
+const saveJson = express.json({ limit: MAX_SAVE_BYTES });
+app.use((req, res, next) => (IMAGE_ROUTES.has(req.path) ? imageJson : req.path === '/api/save' ? saveJson : smallJson)(req, res, next));
 mountSchedule(app);
 
 // Paid endpoints: optional app token + per-IP limits.
@@ -44,9 +46,11 @@ for (const route of ['/api/chat', '/api/analyze-pet', '/api/agent/plan', '/api/m
 app.use('/api/meshy/generate', appToken, meshyLimit);
 app.use('/api/meshy/status', appToken, meshyPollLimit);
 app.use('/api/meshy/fetch-model', appToken, meshyPollLimit);
+// Cloud saves: a guessed code is a stolen save, so wrong codes are capped.
+app.use('/api/save', appToken, rateLimit({ windowMs: MINUTE, max: Number(process.env.SAVE_RATE_LIMIT_PER_MIN) || 30 }));
+mountSaves(app);
 
 const PORT = process.env.PORT || 3001;
-const OPENAI_MODEL = process.env.OPENAI_MODEL || 'gpt-5.5';
 const localGoogleStates = new Map();
 const localGoogleTokens = new Map();
 
@@ -211,7 +215,7 @@ app.post('/api/chat', async (req, res) => {
   const crisis = isCrisisMessage(text);
   const crisisTail = crisis ? `\n${CRISIS_RESOURCES}` : '';
 
-  const apiKey = req.headers['x-api-key'] || process.env.OPENAI_API_KEY;
+  const apiKey = claudeKey(req);
   if (!apiKey) {
     return res.status(400).json({ error: 'no_api_key', message: 'API key not configured' });
   }
@@ -228,7 +232,7 @@ app.post('/api/chat', async (req, res) => {
     ? `\n\n如果合适,这次顺便问问主人:之前说的「${followUp.slice(0, 80)}」后来怎么样了。`
     : '';
 
-  const fullSystemPrompt = `${systemPrompt}\n\n${roleContext}\n\n当前状态：\n${intimacyContext}\n${nameContext}${memoryBlock}${followUpBlock}\n\n重要规则：\n- 始终保持角色扮演，不要跳出角色\n- 回复要自然、可爱、有温度\n- 感知主人的情绪，给予相应的回应\n- 不要给出专业建议，只需要用萌宠的方式陪伴和安慰\n${SAFETY_RULES}`;
+  const fullSystemPrompt = `${systemPrompt}\n\n${roleContext}\n\n当前状态：\n${intimacyContext}\n${nameContext}${memoryBlock}${followUpBlock}\n\n重要规则：\n- 始终保持角色扮演，不要跳出角色\n- 回复要自然、可爱、有温度\n- 感知主人的情绪，给予相应的回应\n- 不要给出专业建议，只需要用萌宠的方式陪伴和安慰\n- 回复简短口语化,1 到 3 句、60 字以内,像宠物在说话,不用列表和标题\n- 每次换着说,不要重复上一条回复的开头、口头禅和动作描写\n${SAFETY_RULES}\n${MOOD_TAG_RULE}`;
 
   const messages = (Array.isArray(history) ? history : []).slice(-20).map(msg => ({
     role: msg?.role === 'user' ? 'user' : 'assistant',
@@ -250,36 +254,37 @@ app.post('/api/chat', async (req, res) => {
   }
   if (cleanMessages.length === 0) cleanMessages.push({ role: 'user', content: text });
 
-  const request = {
-    model: OPENAI_MODEL,
-    max_output_tokens: 300,
-    instructions: fullSystemPrompt,
-    input: cleanMessages,
-  };
-  const client = new OpenAI({ apiKey });
+  const request = { system: fullSystemPrompt, messages: cleanMessages };
+  const client = claudeClient(apiKey);
 
   if (!stream) {
     try {
-      const response = await client.responses.create(request);
-      return res.json({ response: `${response.output_text}${crisisTail}` });
+      const raw = await generateText(client, request);
+      if (!raw.trim()) {
+        return crisis
+          ? res.json({ response: CRISIS_RESOURCES })
+          : res.status(502).json({ error: 'no_reply' });
+      }
+      return res.json({ response: `${stripMood(raw)}${crisisTail}`, emotion: parseMood(raw) });
     } catch (error) {
       console.error('Chat API error:', error.message);
       return res.status(500).json({ error: 'api_error', message: error.message });
     }
   }
 
-  // Streaming: Server-Sent Events, one {"delta"} per chunk, then {"done"}.
+  // Streaming: Server-Sent Events, {"delta"} per chunk, then {"emotion"}
+  // (the model's reading of the owner's mood) and {"done"}.
   res.set({ 'Content-Type': 'text/event-stream; charset=utf-8', 'Cache-Control': 'no-cache, no-transform', Connection: 'keep-alive', 'X-Accel-Buffering': 'no' });
   res.flushHeaders();
   const send = obj => res.write(`data: ${JSON.stringify(obj)}\n\n`);
   const abort = new AbortController();
   res.on('close', () => abort.abort());
+  const filter = moodFilter(delta => { if (delta) send({ delta }); });
   try {
-    const events = await client.responses.create({ ...request, stream: true }, { signal: abort.signal });
-    for await (const event of events) {
-      if (event.type === 'response.output_text.delta' && event.delta) send({ delta: event.delta });
-    }
+    for await (const delta of streamText(client, { ...request, signal: abort.signal })) filter.push(delta);
+    const { mood } = filter.end();
     if (crisisTail) send({ delta: crisisTail });
+    if (mood) send({ emotion: mood });
     send({ done: true });
   } catch (error) {
     if (!abort.signal.aborted) {
@@ -290,56 +295,61 @@ app.post('/api/chat', async (req, res) => {
   res.end();
 });
 
-// Analyze a pet photo with OpenAI vision and return parametric
+// Analyze a pet photo with Claude vision and return parametric
 // model params so the app can rebuild the pet as a 3D companion.
+const PET_ANALYSIS_SCHEMA = {
+  type: 'object',
+  properties: {
+    species: { type: 'string', enum: ['cat', 'dog'] },
+    bodyColor: { type: 'string', description: '身体主毛色 hex,如 #c8a27a' },
+    accentColor: { type: 'string', description: '耳朵/背部/斑纹等深色部位 hex' },
+    bellyColor: { type: 'string', description: '肚子/胸口/爪子等浅色部位 hex' },
+    eyeColor: { type: 'string', description: '眼睛虹膜颜色 hex' },
+    earStyle: { type: 'string', enum: ['floppy', 'pointy', 'point', 'fold'] },
+    tailStyle: { type: 'string', enum: ['wag', 'curl'] },
+    legScale: { type: 'number' },
+    personality: { type: 'array', items: { type: 'string' } },
+    suggestedName: { type: 'string' },
+    breedGuess: { type: 'string' },
+  },
+  required: ['species', 'bodyColor', 'accentColor', 'bellyColor', 'eyeColor', 'earStyle', 'legScale', 'personality', 'suggestedName', 'breedGuess'],
+  additionalProperties: false,
+};
+
 app.post('/api/analyze-pet', async (req, res) => {
   try {
-    const { imageBase64, mediaType } = req.body;
-    const apiKey = req.headers['x-api-key'] || process.env.OPENAI_API_KEY;
+    const { imageBase64, mediaType } = req.body ?? {};
+    const apiKey = claudeKey(req);
     if (!apiKey) {
       return res.status(400).json({ error: 'no_api_key', message: 'API key not configured' });
     }
     if (!imageBase64) {
       return res.status(400).json({ error: 'no_image', message: 'imageBase64 required' });
     }
+    const media = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'].includes(mediaType) ? mediaType : 'image/jpeg';
 
-    const client = new OpenAI({ apiKey });
-    const response = await client.responses.create({
-      model: OPENAI_MODEL,
-      max_output_tokens: 400,
-      input: [{
-        role: 'user',
-        content: [
-          {
-            type: 'input_image',
-            image_url: `data:${mediaType || 'image/jpeg'};base64,${imageBase64}`,
-          },
-          {
-            type: 'input_text',
-            text: `仔细观察这张宠物照片，尽可能还原它的真实外形，返回严格的JSON（不要其他文字）：
-{
-  "species": "cat"或"dog",
-  "bodyColor": "身体主毛色hex（取照片里最大面积的毛色）",
-  "accentColor": "耳朵/背部/斑纹等深色部位hex",
-  "bellyColor": "肚子/胸口/爪子等浅色部位hex",
-  "eyeColor": "眼睛虹膜颜色hex",
-  "earStyle": 狗用"floppy"(垂耳)或"pointy"(立耳)，猫用"point"(尖耳)或"fold"(折耳),
-  "tailStyle": "wag"(直尾/短尾)或"curl"(卷尾/上翘尾)，仅狗需要,
-  "legScale": 腿长比例0.55到1，短腿犬如柯基/腊肠用0.55-0.7，正常腿用0.9-1,
-  "personality": ["三个贴合外形气质的中文性格标签"],
-  "suggestedName": "根据外形/毛色起的可爱中文小名",
-  "breedGuess": "推测的具体品种中文名（越具体越好）"
-}
-关键：颜色必须逐一对照照片取样，主色/深色/浅色要有明显区分，不要都取同一个色。如果不是猫狗，species按最接近的体型选。`,
-          },
-        ],
-      }],
+    const result = await generateJSON(claudeClient(apiKey), {
+      effort: 'medium',
+      schema: PET_ANALYSIS_SCHEMA,
+      content: [
+        { type: 'image', source: { type: 'base64', media_type: media, data: imageBase64 } },
+        {
+          type: 'text',
+          text: `仔细观察这张宠物照片,尽可能还原它的真实外形:
+- 颜色逐一对照照片取样:bodyColor 取最大面积的毛色,accentColor 取耳朵/背部/斑纹的深色,bellyColor 取肚子/胸口/爪子的浅色,三者要有明显区分
+- earStyle:狗用 floppy(垂耳)或 pointy(立耳),猫用 point(尖耳)或 fold(折耳)
+- tailStyle 只有狗需要:wag(直尾/短尾)或 curl(卷尾/上翘尾)
+- legScale 是腿长比例,0.55 到 1:柯基/腊肠等短腿犬 0.55-0.7,正常腿 0.9-1
+- personality:三个贴合外形气质的中文性格标签
+- suggestedName:根据外形/毛色起的可爱中文小名
+- breedGuess:推测的具体品种中文名,越具体越好
+不是猫狗时,species 按最接近的体型选。`,
+        },
+      ],
     });
-
-    const text = response.output_text;
-    const jsonMatch = text.match(/\{[\s\S]*\}/);
-    if (!jsonMatch) throw new Error('no JSON in response');
-    res.json(JSON.parse(jsonMatch[0]));
+    if (!result) return res.status(502).json({ error: 'no_result' });
+    result.legScale = Math.min(1, Math.max(0.55, Number(result.legScale) || 1));
+    res.json(result);
   } catch (error) {
     console.error('Analyze API error:', error.message);
     res.status(500).json({ error: 'api_error', message: error.message });
@@ -473,8 +483,39 @@ app.post('/api/meshy/fetch-model', async (req, res) => {
 // Task agent: understand a request and propose concrete actions. The client
 // shows them for confirmation and validates every action before running it,
 // so this only ever proposes. Returns { plan: null } when it isn't a task.
+const PLAN_SCHEMA = {
+  type: 'object',
+  properties: {
+    reply: { type: 'string' },
+    actions: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          type: { type: 'string', enum: ['add_item', 'complete_item', 'remove_item', 'calendar_event', 'remember', 'set_role'] },
+          itemType: { type: 'string', enum: ['todo', 'package', 'weight', 'study'] },
+          title: { type: 'string' },
+          due: { type: 'string' },
+          repeat: { type: 'string', enum: ['daily', 'weekdays', 'weekly', 'monthly'] },
+          id: { type: 'string' },
+          summary: { type: 'string' },
+          start: { type: 'string' },
+          end: { type: 'string' },
+          text: { type: 'string' },
+          category: { type: 'string', enum: ['profile', 'preference', 'event', 'relationship', 'goal'] },
+          role: { type: 'string', enum: ['friend', 'butler', 'assistant', 'teacher'] },
+        },
+        required: ['type'],
+        additionalProperties: false,
+      },
+    },
+  },
+  required: ['reply', 'actions'],
+  additionalProperties: false,
+};
+
 app.post('/api/agent/plan', async (req, res) => {
-  const apiKey = req.headers['x-api-key'] || process.env.OPENAI_API_KEY;
+  const apiKey = claudeKey(req);
   if (!apiKey) return res.status(400).json({ error: 'no_api_key', plan: null });
   try {
     const { command, now, items, memoryContext, calendarConnected } = req.body ?? {};
@@ -484,7 +525,6 @@ app.post('/api/agent/plan', async (req, res) => {
       id: String(i.id).slice(0, 60), type: String(i.type).slice(0, 12), title: String(i.title).slice(0, 60),
       completed: Boolean(i.completed), due: i.due ? String(i.due).slice(0, 40) : undefined,
     }));
-    const client = new OpenAI({ apiKey });
     const instructions = `你是陪伴型宠物 App 里的任务助手。判断主人这句话是不是要你"做事",是的话拆成具体动作。
 现在时间:${String(now ?? new Date().toString()).slice(0, 80)}。相对时间(明天/下周三/30分钟后)请换算成带时区偏移的 ISO 8601;只说了日期没说时间就用 09:00。
 可用动作(最多 6 个):
@@ -496,16 +536,12 @@ app.post('/api/agent/plan', async (req, res) => {
 - {"type":"set_role","role":"friend|butler|assistant|teacher"}  主人要你当朋友/管家/助手/老师
 complete_item 和 remove_item 只能用下面已有事项里的 id。
 不是做事(闲聊、倾诉、提问)就输出 {"actions":[]}。不要处理敏感信息(证件号、密码、银行卡)。
-输出严格 JSON:{"reply":"用宠物口吻的一句确认,不超过25字","actions":[...]}`;
-    const response = await client.responses.create({
-      model: OPENAI_MODEL,
-      max_output_tokens: 500,
-      instructions,
-      input: [{ role: 'user', content: JSON.stringify({ 主人说: text, 已有事项: list, 关于主人: String(memoryContext ?? '').slice(0, 1200) }) }],
-      text: { format: { type: 'json_object' } },
-    });
-    let parsed;
-    try { parsed = JSON.parse(response.output_text || '{}'); } catch { parsed = {}; }
+reply 是用宠物口吻的一句确认,不超过25字。`;
+    const parsed = (await generateJSON(claudeClient(apiKey), {
+      system: instructions,
+      schema: PLAN_SCHEMA,
+      content: JSON.stringify({ 主人说: text, 已有事项: list, 关于主人: String(memoryContext ?? '').slice(0, 1200) }),
+    })) ?? {};
     const actions = Array.isArray(parsed.actions) ? parsed.actions.slice(0, 6) : [];
     res.json({ plan: actions.length ? { reply: typeof parsed.reply === 'string' ? parsed.reply.slice(0, 80) : '', actions } : null });
   } catch (error) {
@@ -518,8 +554,30 @@ complete_item 和 remove_item 只能用下面已有事项里的 id。
 // add/update/delete ops against what the pet already remembers. Returns
 // { ops: [] } on any problem — the client also has an offline extractor.
 const MEMORY_CATEGORIES = ['profile', 'preference', 'event', 'relationship', 'goal'];
+const MEMORY_OPS_SCHEMA = {
+  type: 'object',
+  properties: {
+    ops: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          op: { type: 'string', enum: ['add', 'update', 'delete'] },
+          text: { type: 'string' },
+          category: { type: 'string', enum: MEMORY_CATEGORIES },
+          when: { type: 'string' },
+          id: { type: 'string' },
+        },
+        required: ['op'],
+        additionalProperties: false,
+      },
+    },
+  },
+  required: ['ops'],
+  additionalProperties: false,
+};
 app.post('/api/memory/extract', async (req, res) => {
-  const apiKey = req.headers['x-api-key'] || process.env.OPENAI_API_KEY;
+  const apiKey = claudeKey(req);
   if (!apiKey) return res.status(400).json({ error: 'no_api_key', ops: [] });
   try {
     const { messages, memories } = req.body ?? {};
@@ -528,22 +586,17 @@ app.post('/api/memory/extract', async (req, res) => {
       .map(m => ({ id: String(m.id).slice(0, 40), text: String(m.text).slice(0, 80), category: m.category }));
     if (!said.length) return res.json({ ops: [] });
 
-    const client = new OpenAI({ apiKey });
     const today = String(req.body?.now ?? new Date().toString()).slice(0, 80);
     const instructions = `你是一个记忆整理器,为陪伴型宠物 App 记录"关于主人的长期事实"。
 只记录对以后聊天有用、稳定或重要的信息:身份(名字/生日/职业/学校/城市)、喜好与禁忌、身边的人和宠物、近期重要事件(考试/面试/出行等,写清日期,相对日期请换算,今天是 ${today})、目标。
 不要记录:一时的情绪、寒暄、对宠物说的话、敏感信息(证件号、密码、银行卡、精确住址、健康诊断细节)。
-输出严格 JSON:{"ops":[{"op":"add","text":"简短中文陈述,不超过30字","category":"profile|preference|event|relationship|goal","when":"仅 event:事件发生时间,带时区的 ISO 8601,不知道就省略"},{"op":"update","id":"已有记忆id","text":"新内容"},{"op":"delete","id":"已有记忆id"}]}
-主人纠正或推翻旧信息时用 update/delete;没有新信息就输出 {"ops":[]}。`;
-    const response = await client.responses.create({
-      model: OPENAI_MODEL,
-      max_output_tokens: 400,
-      instructions,
-      input: [{ role: 'user', content: JSON.stringify({ 已知记忆: known, 主人最近说的话: said }) }],
-      text: { format: { type: 'json_object' } },
-    });
-    let parsed;
-    try { parsed = JSON.parse(response.output_text || '{}'); } catch { parsed = {}; }
+ops 里每一项:add 需要 text(简短中文陈述,不超过30字)和 category,event 类再加 when(事件发生时间,带时区的 ISO 8601,不知道就省略);update 需要已有记忆的 id 和新的 text;delete 只需要 id。
+主人纠正或推翻旧信息时用 update/delete;没有新信息就返回空的 ops。`;
+    const parsed = (await generateJSON(claudeClient(apiKey), {
+      system: instructions,
+      schema: MEMORY_OPS_SCHEMA,
+      content: JSON.stringify({ 已知记忆: known, 主人最近说的话: said }),
+    })) ?? {};
     const ids = new Set(known.map(k => k.id));
     const ops = (Array.isArray(parsed.ops) ? parsed.ops : []).slice(0, 10).flatMap(o => {
       if (o?.op === 'add' && typeof o.text === 'string' && MEMORY_CATEGORIES.includes(o.category)) {

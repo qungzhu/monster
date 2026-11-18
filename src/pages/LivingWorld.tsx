@@ -8,8 +8,10 @@ import { dailyQuests } from '../data/gameConfig';
 import type { GameItem } from '../data/gameConfig';
 import { parseIntent, getSuggestions } from '../utils/intents';
 import { getTimeOfDay } from '../utils/emotion';
-import { extractMemoriesAI, planWithAI, sendAIMessage } from '../utils/ai';
+import { extractMemoriesAI, planWithAI, sendAIMessage, type AIEmotion } from '../utils/ai';
 import { crisisReply, isCrisisMessage } from '../utils/safety';
+import { CloudSaveSection } from '../components/CloudSaveSection';
+import { disableCloudSave, startAutoSync } from '../sync/cloudSave';
 import { addGoogleCalendarEvent, getGoogleCalendarStatus } from '../utils/googleCalendar';
 import { PetScene } from '../components/pets/PetScene';
 import type { EmoteKind } from '../components/pets/GLBPet';
@@ -64,6 +66,7 @@ interface LivingWorldProps {
   clearAllData: () => void;
   moodEntries: MoodEntry[];
   addMoodEntry: (entry: MoodEntry) => void;
+  updateMoodEntry: (id: string, patch: Partial<MoodEntry>) => void;
   coins: number;
   addCoins: (n: number) => void;
   addXP: (n: number) => void;
@@ -117,7 +120,7 @@ export function LivingWorld(props: LivingWorldProps) {
   const {
     character, userName, setUserName,
     chatHistory, addMessage, getCharacterResponse, intimacyLevel, addIntimacy,
-    apiKey, setApiKey, clearAllData, moodEntries, addMoodEntry,
+    apiKey, setApiKey, clearAllData, moodEntries, addMoodEntry, updateMoodEntry,
     coins, addCoins, addXP, levelInfo, getPetStats,
     getQuestProgress, updateQuestProgress, inventory, buyItem, useItem: consumeItem,
     getReaction, isCheckedIn, checkIn, checkInStreak, getCheckInReward, chatCount,
@@ -275,13 +278,24 @@ export function LivingWorld(props: LivingWorldProps) {
 
   const proactive = useProactive({ items: lifeItems, memories, petName: petName || character?.name || '我', onMessage: onPush });
 
+  // Cloud save: keep it fresh in the background. If another device saved
+  // newer progress, its copy is now in storage — reload to show it.
+  useEffect(() => startAutoSync(() => {
+    say('另一台设备有新的进度,正在同步过来~', 2500);
+    setTimeout(() => location.reload(), 1500);
+  }), [say]);
+
   useEffect(() => () => {
     if (planCloseTimer.current) clearTimeout(planCloseTimer.current);
     if (pettingTimer.current) clearTimeout(pettingTimer.current);
     if (emoteTimer.current) clearTimeout(emoteTimer.current);
   }, []);
 
-  const doChat = async (text: string, emotion?: MoodType) => {
+  /**
+   * Chat with the pet. `moodEntryId` is the journal entry the keyword guess
+   * already made for this message; the model's own reading corrects it.
+   */
+  const doChat = async (text: string, emotion?: MoodType, moodEntryId?: string) => {
     if (!character) return;
     addMessage(character.id, {
       id: `user-${Date.now()}`,
@@ -335,6 +349,7 @@ export function LivingWorld(props: LivingWorldProps) {
     if (result.isAI) {
       if (followUp) markMemoryFollowedUp(followUp.id);
       finish(result.response);
+      if (result.emotion) journalAIEmotion(text, result.emotion, rename(result.response), moodEntryId);
       return;
     }
     // Offline: a template reply, plus a line that shows the pet remembers.
@@ -342,6 +357,22 @@ export function LivingWorld(props: LivingWorldProps) {
     if (recall?.followUpId) markMemoryFollowedUp(recall.followUpId);
     const reply = getCharacterResponse(character, emotion);
     setTimeout(() => finish(recall ? `${reply} ${recall.line}` : reply), 600 + Math.random() * 900);
+  };
+
+  // The model read the owner's emotion: fix the keyword guess in the mood
+  // journal (or add an entry the keywords missed), and let the pet react.
+  const journalAIEmotion = (text: string, emotion: AIEmotion, reply: string, moodEntryId?: string) => {
+    if (!character) return;
+    const patch = { mood: emotion.primary, secondaryMood: emotion.secondary, characterResponse: reply };
+    if (moodEntryId) {
+      updateMoodEntry(moodEntryId, patch);
+    } else if (emotion.primary !== 'neutral') {
+      addMoodEntry({ id: `mood-${Date.now()}`, date: new Date().toISOString(), note: text, characterId: character.id, ...patch });
+      updateQuestProgress('mood');
+      floatReward('📝 心情已记下');
+    }
+    const body = EMOTION_EMOTES[emotion.primary];
+    if (body) playEmote(body, 4000);
   };
 
   const remember = (ops: MemoryOp[]) => {
@@ -561,9 +592,11 @@ export function LivingWorld(props: LivingWorldProps) {
       case 'help': setActiveCard('help'); break;
       case 'mood': {
         // Emotional message: comfort + auto-journal, no forms to fill.
+        let moodEntryId: string | undefined;
         if (intent.emotion && character) {
+          moodEntryId = `mood-${Date.now()}`;
           addMoodEntry({
-            id: `mood-${Date.now()}`,
+            id: moodEntryId,
             date: new Date().toISOString(),
             mood: intent.emotion,
             note: text,
@@ -573,7 +606,7 @@ export function LivingWorld(props: LivingWorldProps) {
           updateQuestProgress('mood');
           floatReward(`📝 心情已记下`);
         }
-        doChat(text, intent.emotion);
+        doChat(text, intent.emotion, moodEntryId);
         break;
       }
       default:
@@ -1201,13 +1234,14 @@ export function LivingWorld(props: LivingWorldProps) {
             <motion.div initial={{ scale: 0.88, y: 24 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.88, y: 24 }}
               className="relative w-full max-w-sm rounded-2xl game-panel p-5" onClick={e => e.stopPropagation()}>
               <h2 className="text-base font-bold text-text-primary mb-4">设置 ⚙️</h2>
-              <label className="text-xs text-text-muted block mb-1.5">OpenAI API Key（本地存储）</label>
+              <label className="text-xs text-text-muted block mb-1.5">Claude API Key（本地存储）</label>
               <input
                 type="password" defaultValue={apiKey}
                 onBlur={e => setApiKey(e.target.value.trim())}
-                placeholder="sk-..."
+                placeholder="sk-ant-..."
                 className="w-full bg-surface-light rounded-xl px-3 py-2.5 text-sm text-text-primary placeholder:text-text-muted outline-none border border-transparent focus:border-white/20 mb-4"
               />
+              <CloudSaveSection />
               <button
                 onClick={() => setActiveCard('adopt')}
                 className="w-full glass rounded-xl py-2.5 text-sm text-text-secondary mb-2"
@@ -1215,7 +1249,7 @@ export function LivingWorld(props: LivingWorldProps) {
                 🏠 去领养小屋换一只伙伴
               </button>
               <button
-                onClick={() => { if (confirm('确定清除所有数据吗？此操作不可恢复')) { clearAllData(); setActiveCard(null); } }}
+                onClick={() => { if (confirm('确定清除本机所有数据吗？此操作不可恢复（云端存档不受影响，本机会停止同步）')) { disableCloudSave(); clearAllData(); setActiveCard(null); } }}
                 className="w-full rounded-xl py-2.5 text-sm text-red-400 bg-red-500/10 border border-red-500/20"
               >
                 清除所有数据
@@ -1255,6 +1289,15 @@ export function LivingWorld(props: LivingWorldProps) {
 }
 
 /** Speech appears as if the pet is saying it, a few characters at a time. */
+/** How the pet's body answers the owner's mood. */
+const EMOTION_EMOTES: Partial<Record<MoodType, EmoteKind>> = {
+  happy: 'cute',
+  sad: 'rub',
+  lonely: 'rub',
+  anxious: 'knead',
+  angry: 'rub',
+};
+
 function TypeText({ text, instant }: { text: string; instant: boolean }) {
   // Streaming replies grow the text a chunk at a time: keep typing from
   // where we are instead of starting over whenever the text extends.

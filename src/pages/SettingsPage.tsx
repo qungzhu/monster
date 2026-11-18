@@ -100,7 +100,7 @@ export function SettingsPage({ userName, setUserName, clearAllData, apiKey, setA
               )}
             </div>
             <p className="text-[11px] text-text-muted mb-3">
-              配置 OpenAI API Key 后，萌宠将使用 OpenAI 模型进行智能对话。不配置则使用预设回复。
+              配置 Claude API Key 后，萌宠将使用 Claude 进行智能对话。不配置则使用预设回复。
             </p>
 
             <div className="space-y-2">
@@ -110,7 +110,7 @@ export function SettingsPage({ userName, setUserName, clearAllData, apiKey, setA
                     type={showKey ? 'text' : 'password'}
                     value={keyInput}
                     onChange={e => setKeyInput(e.target.value)}
-                    placeholder="sk-..."
+                    placeholder="sk-ant-..."
                     className="w-full bg-surface-light rounded-xl px-4 py-2.5 pr-10 text-sm text-text-primary placeholder:text-text-muted outline-none border border-transparent focus:border-violet-500/20 transition-colors font-mono"
                   />
                   <button
@@ -131,7 +131,7 @@ export function SettingsPage({ userName, setUserName, clearAllData, apiKey, setA
               <div className="flex items-start gap-2 mt-2">
                 <Key size={12} className="text-text-muted shrink-0 mt-0.5" />
                 <p className="text-[11px] text-text-muted leading-relaxed">
-                  API Key 保存在本地浏览器中，请求时会通过本地后端发送给 OpenAI。也可改用后端 .env 中的 OPENAI_API_KEY。
+                  API Key 保存在本地浏览器中，请求时会通过本地后端发送给 Anthropic。也可改用后端 .env 中的 ANTHROPIC_API_KEY。
                 </p>
               </div>
             </div>
@@ -177,7 +177,7 @@ export function SettingsPage({ userName, setUserName, clearAllData, apiKey, setA
             </div>
             <div className="space-y-2">
               {[
-                { emoji: '🤖', text: 'OpenAI 智能对话（可选）' },
+                { emoji: '🤖', text: 'Claude 智能对话（可选）' },
                 { emoji: '🐾', text: '多只萌宠个性化陪伴' },
                 { emoji: '💬', text: '智能情绪感知对话' },
                 { emoji: '😸', text: '萌宠专属表情贴纸' },
