@@ -259,6 +259,8 @@ export interface MoodEntry {
   id: string;
   date: string;
   mood: MoodType;
+  /** Mixed feelings: the second emotion the AI picked up, if any. */
+  secondaryMood?: MoodType;
   note: string;
   characterId: string;
   characterResponse: string;

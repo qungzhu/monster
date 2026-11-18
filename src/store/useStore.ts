@@ -304,11 +304,18 @@ export function useAppStore() {
     });
   }, []);
 
+  // Offline replies: don't repeat any of the last few lines this pet said.
+  const recentReplies = useRef<Record<string, string[]>>({});
   const getCharacterResponse = useCallback((character: Character, mood?: MoodType): string => {
     const responses = mood && character.chatResponses[mood]
       ? character.chatResponses[mood]
       : character.chatResponses.default;
-    return responses[Math.floor(Math.random() * responses.length)];
+    const recent = recentReplies.current[character.id] ?? [];
+    const fresh = responses.filter(r => !recent.includes(r));
+    const pool = fresh.length ? fresh : responses;
+    const reply = pool[Math.floor(Math.random() * pool.length)];
+    recentReplies.current[character.id] = [...recent, reply].slice(-6);
+    return reply;
   }, []);
 
   const addIntimacy = useCallback((characterId: string, amount: number) => {
@@ -316,6 +323,15 @@ export function useAppStore() {
       const current = prev[characterId] || 0;
       const updated = { ...prev, [characterId]: Math.min(current + amount, 100) };
       saveToStorage(STORAGE_KEYS.intimacyLevels, updated);
+      return updated;
+    });
+  }, []);
+
+  /** Correct an entry, e.g. when the AI reads the emotion differently. */
+  const updateMoodEntry = useCallback((id: string, patch: Partial<MoodEntry>) => {
+    setMoodEntries(prev => {
+      const updated = prev.map(e => (e.id === id ? { ...e, ...patch } : e));
+      saveToStorage(STORAGE_KEYS.moodEntries, updated);
       return updated;
     });
   }, []);
@@ -535,6 +551,7 @@ export function useAppStore() {
     getCharacterResponse,
     moodEntries,
     addMoodEntry,
+    updateMoodEntry,
     intimacyLevels,
     addIntimacy,
     userName,

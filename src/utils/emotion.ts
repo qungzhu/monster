@@ -9,26 +9,57 @@ const emotionKeywords: Record<MoodType, string[]> = {
   neutral: [],
 };
 
+// Negation right before a keyword ("不开心", "没有生气", "一点都不开心")
+// or right after it ("开心不起来"). "不是不…" is a double negative.
+const NEGATED_BEFORE = /(不|没|没有|别|毫不|并不|不太|不怎么|一点(都|也)不|不是)$/;
+const DOUBLE_NEGATIVE_BEFORE = /不是不$/;
+const NEGATED_AFTER = /^(不起来|不了|不太起来)/;
+
+function isNegated(text: string, index: number, keyword: string): boolean {
+  const before = text.slice(Math.max(0, index - 4), index);
+  const after = text.slice(index + keyword.length, index + keyword.length + 4);
+  if (NEGATED_AFTER.test(after)) return true;
+  if (DOUBLE_NEGATIVE_BEFORE.test(before)) return false;
+  return NEGATED_BEFORE.test(before);
+}
+
+/**
+ * Offline emotion guess from keywords. The AI reply carries the model's
+ * own reading of the emotion (see server/index.js), which wins when present;
+ * this is the fallback when there is no model.
+ *
+ * A negated happy word counts as sad ("一点都不开心"); a negated negative
+ * word counts for nothing ("我没有生气").
+ */
 export function detectEmotion(text: string): MoodType {
   const lowerText = text.toLowerCase();
-  let maxScore = 0;
-  let detected: MoodType = 'neutral';
+  const scores: Partial<Record<MoodType, number>> = {};
 
-  for (const [mood, keywords] of Object.entries(emotionKeywords)) {
+  for (const [mood, keywords] of Object.entries(emotionKeywords) as [MoodType, string[]][]) {
     if (mood === 'neutral') continue;
-    let score = 0;
     for (const keyword of keywords) {
-      if (lowerText.includes(keyword.toLowerCase())) {
-        score++;
+      const k = keyword.toLowerCase();
+      let i = lowerText.indexOf(k);
+      while (i !== -1) {
+        if (!isNegated(lowerText, i, k)) {
+          scores[mood] = (scores[mood] ?? 0) + 1;
+        } else if (mood === 'happy') {
+          scores.sad = (scores.sad ?? 0) + 1;
+        }
+        i = lowerText.indexOf(k, i + k.length);
       }
-    }
-    if (score > maxScore) {
-      maxScore = score;
-      detected = mood as MoodType;
     }
   }
 
-  return detected === 'neutral' && maxScore === 0 ? 'default' as MoodType : detected;
+  let detected: MoodType | null = null;
+  let maxScore = 0;
+  for (const [mood, score] of Object.entries(scores) as [MoodType, number][]) {
+    if (score > maxScore) {
+      maxScore = score;
+      detected = mood;
+    }
+  }
+  return detected ?? ('default' as MoodType);
 }
 
 export function getTimeOfDay(): 'morning' | 'afternoon' | 'evening' {
