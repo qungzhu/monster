@@ -31,7 +31,7 @@ const TRIANGLES = process.env.RIG_TRIANGLES ?? '40000';
 // Eyes painted as tiny dots get proper ones painted on at the hand marks
 // (UVs of the original), in the breed's eye colour.
 const RESKIN = new Map([
-  ['angora', { marks: [[0.5117, 0.3871, 0.0429], [0.7398, 0.2452, 0.0433]], iris: [0.22, 0.46, 0.88] }],
+  ['angora', { marks: [[0.5117, 0.3871, 0.0429], [0.7398, 0.2452, 0.0433]], iris: [0.48, 0.70, 0.97] }],
   ['chinchilla', null],
 ]);
 
