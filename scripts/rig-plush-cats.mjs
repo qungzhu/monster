@@ -28,7 +28,12 @@ const blender = process.env.BLENDER_PY ?? path.join(root, '.venv-blender/bin/pyt
 const TRIANGLES = process.env.RIG_TRIANGLES ?? '40000';
 // Cats Meshy built from loose overlapping fur flakes: rebuilt as one skin
 // first (tools/blender/reskin.py), or the flakes crack apart in the app.
-const RESKIN = new Set(['angora', 'chinchilla']);
+// Eyes painted as tiny dots get proper ones painted on at the hand marks
+// (UVs of the original), in the breed's eye colour.
+const RESKIN = new Map([
+  ['angora', { marks: [[0.5117, 0.3871, 0.0429], [0.7398, 0.2452, 0.0433]], iris: [0.22, 0.46, 0.88] }],
+  ['chinchilla', null],
+]);
 
 const names = process.argv.slice(2).length
   ? process.argv.slice(2)
@@ -62,7 +67,8 @@ for (const name of names) {
   try {
     await decode(src, plain);
     if (RESKIN.has(name)) {
-      execFileSync(blender, [path.join(root, 'tools/blender/reskin.py'), plain, plain], { stdio: 'pipe' });
+      const eyes = RESKIN.get(name);
+      execFileSync(blender, [path.join(root, 'tools/blender/reskin.py'), plain, plain, ...(eyes ? [JSON.stringify(eyes)] : [])], { stdio: 'pipe' });
     }
     const log = execFileSync(blender, [path.join(root, 'tools/blender/lite_rig.py'), rigPlain, plain, rigged, TRIANGLES, 'box'], { stdio: 'pipe' }).toString();
     if (process.env.RIG_LOG) console.log(log.split("\n").filter(l => /heat|anatomy|whisk|tail/i.test(l)).join("\n"));
