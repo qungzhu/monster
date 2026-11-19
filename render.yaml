@@ -1,0 +1,20 @@
+# Render Blueprint: the real-time server (snow plaza + 毛球地球 globe).
+# Render → New → Blueprint → pick this repo. Then point the web app at it:
+#   VITE_PLAZA_URL=wss://<service>.onrender.com/plaza-ws   (Vercel env var, then redeploy)
+# The globe socket (/globe-ws) is derived from it.
+services:
+  - type: web
+    name: furrypal-plaza
+    runtime: node
+    plan: free
+    region: singapore
+    buildCommand: npm ci --omit=dev --ignore-scripts
+    startCommand: node server/plaza.js
+    healthCheckPath: /healthz
+    autoDeploy: true
+    envVars:
+      - key: NODE_VERSION
+        value: "22"
+      # salts the per-player offset strangers see; keep it secret and stable
+      - key: GLOBE_SALT
+        generateValue: true

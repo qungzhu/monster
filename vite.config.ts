@@ -12,6 +12,11 @@ const apiProxy = {
     target: 'ws://127.0.0.1:3002',
     ws: true,
   },
+  // Live globe (毛球地球), same server
+  '/globe-ws': {
+    target: 'ws://127.0.0.1:3002',
+    ws: true,
+  },
 }
 
 export default defineConfig({

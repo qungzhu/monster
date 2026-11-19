@@ -4,7 +4,8 @@ import { ArrowLeft, Footprints, Layers, LocateFixed, Shield, X } from 'lucide-re
 import { GlobeScene } from '../globe/GlobeScene';
 import { distanceKm } from '../globe/geo';
 import { countryAt } from '../globe/earth';
-import { nearestCity, recordVisit, useMockPresence } from '../globe/presence';
+import { nearestCity, recordVisit } from '../globe/presence';
+import { useGlobeLive } from '../globe/useGlobeLive';
 import type { GlobePet } from '../globe/presence';
 import { PLAZA_BREEDS } from '../plaza/protocol';
 
@@ -31,7 +32,6 @@ interface Props {
  * the crowds are. Your own cat only appears once you switch sharing on.
  */
 export function Globe({ userName, petName, adoptedBreedId }: Props) {
-  const world = useMockPresence();
   const [share, setShare] = useState<Share | null>(readShare);
   const [privacyOpen, setPrivacyOpen] = useState(() => readShare() === null);
   const [myPos, setMyPos] = useState<{ lat: number; lon: number } | null>(null);
@@ -44,6 +44,11 @@ export function Globe({ userName, petName, adoptedBreedId }: Props) {
   const [showHeat, setShowHeat] = useState(true);
   const [toast, setToast] = useState<string | null>(null);
 
+  const myBreed = PLAZA_BREEDS.some(b => b.id === adoptedBreedId) ? adoptedBreedId! : PLAZA_BREEDS[0].id;
+  const identity = useMemo(() => ({ name: userName || '铲屎官', petName: petName || '小猫', breed: myBreed }), [userName, petName, myBreed]);
+  const { mode, state: world, wave } = useGlobeLive(identity, share === 'on', share === 'on' ? myPos : null,
+    w => { setToast(`${w.name} 的 ${w.petName} 向你打招呼 👋`); setTimeout(() => setToast(null), 3000); });
+
   const flyTo = (lat: number, lon: number) => setFocus(f => ({ lat, lon, n: (f?.n ?? 0) + 1 }));
   const say = (t: string) => { setToast(t); setTimeout(() => setToast(null), 2200); };
 
@@ -52,8 +57,8 @@ export function Globe({ userName, petName, adoptedBreedId }: Props) {
     try { localStorage.setItem(SHARE_KEY, v); } catch { /* private mode */ }
   };
 
-  // When sharing is on: ask the device where we are (rounded on the way in;
-  // nothing leaves the device in this demo).
+  // When sharing is on: ask the device where we are. Rounded to ~100 m
+  // here; the server blurs it further for everyone but friends.
   const locate = () => {
     if (!navigator.geolocation) { say('这台设备拿不到位置'); return; }
     setLocating(true);
@@ -66,11 +71,17 @@ export function Globe({ userName, petName, adoptedBreedId }: Props) {
       },
       () => {
         setLocating(false);
-        // no permission: stand in Shanghai so the demo still works
+        if (mode === 'live') {
+          // never put someone somewhere they aren't on the real map
+          saveShare('off');
+          say('没拿到定位权限，你的猫暂时不会出现在地球上');
+          return;
+        }
+        // demo world: stand in Shanghai so it still works
         const c = nearestCity(31.23, 121.47);
         setMyPos({ lat: c.lat, lon: c.lon });
         flyTo(c.lat, c.lon);
-        say('没拿到定位权限，先把你放在上海');
+        say('没拿到定位权限，先把你放在上海（演示）');
       },
       { enableHighAccuracy: false, timeout: 8000, maximumAge: 10 * 60 * 1000 },
     );
@@ -88,7 +99,6 @@ export function Globe({ userName, petName, adoptedBreedId }: Props) {
     countryAt(myPos.lat, myPos.lon).then(c => { if (c) setVisited(recordVisit(c)); });
   }, [myPos]);
 
-  const myBreed = PLAZA_BREEDS.some(b => b.id === adoptedBreedId) ? adoptedBreedId! : PLAZA_BREEDS[0].id;
   const me = share === 'on' && myPos
     ? { id: 'me', breed: myBreed, lat: myPos.lat, lon: myPos.lon, name: userName || '我', petName: petName || '我的猫', lastSeen: 0, action: 'Happy' as const, friend: true }
     : null;
@@ -133,7 +143,7 @@ export function Globe({ userName, petName, adoptedBreedId }: Props) {
       </div>
 
       <div className="pointer-events-none absolute left-3 top-[76px] rounded-full bg-black/35 px-2.5 py-1 text-[10px] text-white/85">
-        演示：地球上的其他小猫是模拟数据
+        {mode === 'live' ? `实时在线 · ${world.pets.length} 只猫在地球上` : mode === 'connecting' ? '正在连接…' : '演示：暂时连不上服务器，显示的是模拟数据'}
       </div>
 
       {/* right-side tools */}
@@ -160,6 +170,13 @@ export function Globe({ userName, petName, adoptedBreedId }: Props) {
           <Footprints size={15} /> 去过 {visited.length} 个国家
         </div>
         <div className="flex gap-2.5 overflow-x-auto pb-1">
+          {friends.length === 0 && (
+            <div className="rounded-2xl bg-white/90 px-3 py-2 text-[12px] text-slate-600 shadow-lg">
+              还没有好友在地球上 · 去
+              <button onClick={() => { location.href = '/plaza'; }} className="mx-0.5 font-semibold" style={{ color: CORAL }}>雪原广场</button>
+              和别的猫一起玩，成为好友后会出现在这里
+            </div>
+          )}
           {friends.map(f => (
             <button key={f.id} onClick={() => { setSelected(f.id); flyTo(f.lat, f.lon); }}
               className="relative flex w-14 shrink-0 flex-col items-center">
@@ -186,12 +203,17 @@ export function Globe({ userName, petName, adoptedBreedId }: Props) {
               </div>
               <p className="text-[13px] text-slate-500">{breedLabel(sel.breed)} · 主人 {sel.name}</p>
               <p className="mt-2 text-[13px]">
-                📍 {sel.friend ? `${sel.country} ${sel.city}` : `${sel.city}（城市级位置）`}
+                📍 {sel.friend
+                  ? (`${sel.country} ${sel.city}`.trim() || '好友的位置')
+                  : `${sel.city || sel.country || '某个城市'}（城市级位置）`}
                 {sel.friend && me && <span className="text-slate-500"> · 离你 {Math.round(distanceKm(me.lat, me.lon, sel.lat, sel.lon)).toLocaleString()} km</span>}
               </p>
               <p className={`text-[12px] ${sel.lastSeen === 0 ? 'text-emerald-600' : 'text-slate-400'}`}>{ago(sel.lastSeen)}</p>
               <div className="mt-3 flex gap-2">
-                <button onClick={() => say(`已向 ${sel.petName} 打招呼 👋（演示）`)}
+                <button onClick={() => {
+                  if (mode === 'live') wave(sel.id);
+                  say(`已向 ${sel.petName} 打招呼 👋${mode === 'live' ? '' : '（演示）'}`);
+                }}
                   className="flex-1 rounded-xl py-2.5 text-[14px] font-semibold text-white" style={{ background: CORAL }}>
                   打个招呼
                 </button>
