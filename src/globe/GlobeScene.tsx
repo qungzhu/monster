@@ -9,6 +9,8 @@ import { liteModelUrl } from '../plaza/protocol';
 import { EARTH_RADIUS, latLonToVec3 } from './geo';
 import type { HeatCell } from './geo';
 import { makeEarthTexture } from './earth';
+import { MapTiles } from './MapTiles';
+import { ground } from './tiles';
 import type { GlobePet } from './presence';
 
 const PET_HEIGHT = 0.055;   // a cat stands this tall on the unit globe
@@ -107,7 +109,9 @@ function HeatLayer({ cells, visible }: { cells: HeatCell[]; visible: boolean }) 
   // close in, the crowd colours would bury the map and the cats: fade them
   const mat = useRef<THREE.MeshBasicMaterial>(null);
   useFrame(({ camera }) => {
-    if (mat.current) mat.current.opacity = THREE.MathUtils.clamp((camera.position.length() - 1.25) / 1.6, 0.22, 0.72);
+    // gone entirely once the street map is in (it floats above the tiles)
+    const alt = camera.position.length() - EARTH_RADIUS;
+    if (mat.current) mat.current.opacity = alt < 0.3 ? 0 : THREE.MathUtils.clamp((alt - 0.25) / 1.6, 0.22, 0.72);
   });
   return (
     <mesh visible={visible} renderOrder={1}>
@@ -189,6 +193,10 @@ function GlobeCat({ pet, isSelf, selected, showLabel, onSelect }: {
     x.crossVectors(up, fwd).normalize();
     m.makeBasis(x, up, fwd);
     group.current.quaternion.setFromRotationMatrix(m);
+    // stand on the map tiles, and shrink as we zoom in: a 350-km cat at
+    // street level would cover the whole city
+    group.current.position.copy(position).multiplyScalar(ground.lift);
+    group.current.scale.setScalar(THREE.MathUtils.clamp(ground.alt * 0.09, 0.00015, PET_HEIGHT) / PET_HEIGHT);
     const show = facing > 0.12;
     group.current.visible = show;
     if (label.current) label.current.style.opacity = show && showLabel ? String(Math.min(1, (facing - 0.12) * 5)) : '0';
@@ -254,9 +262,14 @@ function CameraRig({ focus }: { focus: { lat: number; lon: number; n: number } |
     const f = fly.current;
     const c = controls.current;
     if (c) {
-      // slower turning when close in, so a swipe doesn't fling the globe
+      // like a map app: a drag moves the ground under your finger at any
+      // height, and a pinch zooms in steps of the current height (so you
+      // can get from the whole planet down to a street, smoothly)
       const d = camera.position.length();
-      c.rotateSpeed = 0.25 + 0.35 * Math.min(1, (d - 1.2) / 2);
+      const alt = d - EARTH_RADIUS;
+      // ground moves 7.6 * speed / alt px per px of drag: 0.14 keeps it under the finger
+      c.rotateSpeed = THREE.MathUtils.clamp(alt * 0.14, 0.00002, 0.5);
+      c.zoomSpeed = THREE.MathUtils.clamp((alt / d) * 1.4, 0.02, 1);
     }
     if (!f) return;
     f.t = Math.min(1, f.t + dt / 1.1);
@@ -270,7 +283,7 @@ function CameraRig({ focus }: { focus: { lat: number; lon: number; n: number } |
   });
   return (
     <OrbitControls ref={controls} enablePan={false} enableDamping dampingFactor={0.08}
-      minDistance={1.22} maxDistance={Math.max(4.2, fitDist * 1.1)} zoomSpeed={0.7} />
+      minDistance={EARTH_RADIUS + 0.00025} maxDistance={Math.max(4.2, fitDist * 1.1)} />
   );
 }
 
@@ -282,9 +295,11 @@ export interface GlobeSceneProps {
   selectedId: string | null;
   focus: { lat: number; lon: number; n: number } | null;
   onSelect: (id: string | null) => void;
+  /** street map tiles on screen (their attribution must show) */
+  onTilesActive?: (active: boolean) => void;
 }
 
-export function GlobeScene({ pets, me, heat, showHeat, selectedId, focus, onSelect }: GlobeSceneProps) {
+export function GlobeScene({ pets, me, heat, showHeat, selectedId, focus, onSelect, onTilesActive }: GlobeSceneProps) {
   const camera = useThree(s => s.camera);
   const [zoomedIn, setZoomedIn] = useState(false);
   useFrame(() => {
@@ -300,6 +315,7 @@ export function GlobeScene({ pets, me, heat, showHeat, selectedId, focus, onSele
       <directionalLight position={[-3, -1, -2]} intensity={0.3} color="#bcd7ff" />
       <group>
         <Earth />
+        <MapTiles onActive={onTilesActive} />
         <HeatLayer cells={heat} visible={showHeat} />
         <Suspense fallback={null}>
           {pets.map(p => (

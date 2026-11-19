@@ -24,6 +24,8 @@ interface Props {
   userName: string;
   petName: string;
   adoptedBreedId: string | null;
+  /** Shown as a panel over the main scene: close it instead of leaving. */
+  onClose?: () => void;
 }
 
 /**
@@ -31,7 +33,7 @@ interface Props {
  * they are; strangers only at their city (blurred); a heat map shows where
  * the crowds are. Your own cat only appears once you switch sharing on.
  */
-export function Globe({ userName, petName, adoptedBreedId }: Props) {
+export function Globe({ userName, petName, adoptedBreedId, onClose }: Props) {
   const [share, setShare] = useState<Share | null>(readShare);
   const [privacyOpen, setPrivacyOpen] = useState(() => readShare() === null);
   const [myPos, setMyPos] = useState<{ lat: number; lon: number } | null>(null);
@@ -43,6 +45,7 @@ export function Globe({ userName, petName, adoptedBreedId }: Props) {
   const [focus, setFocus] = useState<{ lat: number; lon: number; n: number } | null>(null);
   const [showHeat, setShowHeat] = useState(true);
   const [toast, setToast] = useState<string | null>(null);
+  const [tiles, setTiles] = useState(false);
 
   const myBreed = PLAZA_BREEDS.some(b => b.id === adoptedBreedId) ? adoptedBreedId! : PLAZA_BREEDS[0].id;
   const identity = useMemo(() => ({ name: userName || '铲屎官', petName: petName || '小猫', breed: myBreed }), [userName, petName, myBreed]);
@@ -114,7 +117,7 @@ export function Globe({ userName, petName, adoptedBreedId }: Props) {
         frameloop={new URLSearchParams(location.search).has('still') ? 'demand' : 'always'}
         onPointerMissed={() => setSelected(null)}>
         <GlobeScene pets={world.pets} me={me} heat={world.heat} showHeat={showHeat}
-          selectedId={selected} focus={focus}
+          selectedId={selected} focus={focus} onTilesActive={setTiles}
           onSelect={id => {
             setSelected(id);
             const p = id === 'me' ? me : world.pets.find(x => x.id === id);
@@ -124,9 +127,9 @@ export function Globe({ userName, petName, adoptedBreedId }: Props) {
 
       {/* top bar */}
       <div className="pointer-events-none absolute inset-x-0 top-0 flex items-start justify-between gap-2 p-3 pt-[max(12px,env(safe-area-inset-top))]">
-        <button onClick={() => { location.href = '/'; }} aria-label="返回"
+        <button onClick={() => { if (onClose) onClose(); else location.href = '/'; }} aria-label={onClose ? '关闭' : '返回'}
           className="pointer-events-auto flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-lg">
-          <ArrowLeft size={20} />
+          {onClose ? <X size={20} /> : <ArrowLeft size={20} />}
         </button>
         <div className="pointer-events-auto rounded-2xl bg-white px-4 py-2 text-center shadow-lg">
           <div className="text-[15px] font-bold">毛球地球</div>
@@ -258,6 +261,13 @@ export function Globe({ userName, petName, adoptedBreedId }: Props) {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* map data credit, required while the street map shows */}
+      {tiles && (
+        <div className="pointer-events-none absolute bottom-[108px] left-3 rounded bg-white/75 px-1.5 py-0.5 text-[9px] text-slate-600">
+          © OpenStreetMap 贡献者 © CARTO
         </div>
       )}
 

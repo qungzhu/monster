@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, useCallback } from 'react';
+import { useState, useRef, useEffect, useCallback, lazy, Suspense } from 'react';
 import type { PointerEvent as ReactPointerEvent } from 'react';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { Send, Coins, PawPrint } from 'lucide-react';
@@ -50,7 +50,10 @@ import { rollForward } from '../../shared/recurrence';
 import { extractMemoriesLocally, memoryCommand, memoryContext, pendingFollowUp, recallLine } from '../data/memory';
 import type { Memory, MemoryOp } from '../data/memory';
 
-type CardType = 'life' | 'quests' | 'shop' | 'adopt' | 'custom' | 'memories' | 'about-me' | 'bond' | 'settings' | 'help' | null;
+type CardType = 'life' | 'quests' | 'shop' | 'adopt' | 'custom' | 'memories' | 'about-me' | 'bond' | 'settings' | 'help' | 'globe' | null;
+
+// 毛球地球 loads on first open (three map layers, its own canvas)
+const Globe = lazy(() => import('./Globe').then(m => ({ default: m.Globe })));
 
 interface LivingWorldProps {
   character: Character | null;
@@ -580,7 +583,7 @@ export function LivingWorld(props: LivingWorldProps) {
         break;
       case 'life': setActiveCard('life'); break;
       case 'plaza': say('走，去雪原广场找小伙伴！❄️', 1500); setTimeout(() => { location.href = '/plaza'; }, 700); break;
-      case 'globe': say('看看全世界的毛球都在哪儿 🌍', 1500); setTimeout(() => { location.href = '/globe'; }, 700); break;
+      case 'globe': say('看看全世界的毛球都在哪儿 🌍', 1500); setActiveCard('globe'); break;
       case 'quests': setActiveCard('quests'); break;
       case 'shop': setActiveCard('shop'); break;
       case 'adopt': setActiveCard('adopt'); break;
@@ -1255,6 +1258,24 @@ export function LivingWorld(props: LivingWorldProps) {
               >
                 清除所有数据
               </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* 毛球地球: slides up over the scene; your cat stays just above it */}
+      <AnimatePresence>
+        {activeCard === 'globe' && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50" onClick={() => setActiveCard(null)}>
+            <div className="absolute inset-0 bg-black/45" />
+            <motion.div initial={{ y: '100%' }} animate={{ y: 0 }} exit={{ y: '100%' }}
+              transition={{ type: 'spring', stiffness: 260, damping: 30 }}
+              className="absolute inset-x-0 bottom-0 top-[7vh] overflow-hidden rounded-t-3xl bg-[#070b1d] shadow-2xl"
+              onClick={e => e.stopPropagation()}>
+              <Suspense fallback={<div className="flex h-full items-center justify-center text-sm text-white/70">地球转过来啦…</div>}>
+                <Globe userName={userName} petName={petName} adoptedBreedId={adoptedBreedId} onClose={() => setActiveCard(null)} />
+              </Suspense>
             </motion.div>
           </motion.div>
         )}

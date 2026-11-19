@@ -1,8 +1,10 @@
+import { lazy, Suspense } from 'react';
 import { LivingWorld } from './pages/LivingWorld';
 import { Plaza } from './pages/Plaza';
-import { Globe } from './pages/Globe';
 import { rewardGrowth } from './plaza/protocol';
 import { useAppStore } from './store/useStore';
+
+const Globe = lazy(() => import('./pages/Globe').then(m => ({ default: m.Globe })));
 
 /**
  * AI-native paradigm: the whole app is one living scene.
@@ -18,7 +20,9 @@ export default function App() {
   if (location.pathname.startsWith('/globe')) {
     return (
       <div className="h-full relative">
-        <Globe userName={store.userName} petName={store.petName} adoptedBreedId={store.adoptedBreedId} />
+        <Suspense fallback={null}>
+          <Globe userName={store.userName} petName={store.petName} adoptedBreedId={store.adoptedBreedId} />
+        </Suspense>
       </div>
     );
   }
