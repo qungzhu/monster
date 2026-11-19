@@ -49,5 +49,7 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>开启后，你的猫会出现在毛球地球上：好友能看到你大致在哪，陌生人只能看到你所在的城市。</string>
 </dict>
 </plist>

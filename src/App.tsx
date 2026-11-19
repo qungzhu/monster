@@ -1,5 +1,6 @@
 import { LivingWorld } from './pages/LivingWorld';
 import { Plaza } from './pages/Plaza';
+import { Globe } from './pages/Globe';
 import { rewardGrowth } from './plaza/protocol';
 import { useAppStore } from './store/useStore';
 
@@ -13,6 +14,15 @@ export default function App() {
 
   // Shared multiplayer snow plaza lives at /plaza; everything else is the
   // single-player living scene.
+  // 毛球地球: everyone's cats on a globe.
+  if (location.pathname.startsWith('/globe')) {
+    return (
+      <div className="h-full relative">
+        <Globe userName={store.userName} petName={store.petName} adoptedBreedId={store.adoptedBreedId} />
+      </div>
+    );
+  }
+
   if (location.pathname.startsWith('/plaza')) {
     return (
       <div className="h-full relative">

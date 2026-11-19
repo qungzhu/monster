@@ -52,5 +52,7 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- 毛球地球: city-level location, only after the player opts in -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-feature android:name="android.software.live_wallpaper" android:required="false" />
 </manifest>
